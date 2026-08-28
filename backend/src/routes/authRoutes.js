@@ -5,17 +5,25 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-const otpLimiter = rateLimit({
+const otpRequestLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 10,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again later." },
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests. Please try again later." },
 });
 
 // OTP: phone or email login
-router.post("/otp/request", otpLimiter, authController.requestOtp);
-router.post("/otp/verify", otpLimiter, authController.verifyOtp);
+router.post("/otp/request", otpRequestLimiter, authController.requestOtp);
+router.post("/otp/verify", otpVerifyLimiter, authController.verifyOtp);
 
 // Session
 router.post("/refresh", authController.refresh);

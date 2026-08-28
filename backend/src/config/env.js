@@ -70,3 +70,13 @@ module.exports = {
     redirectUri: required("LINKEDIN_REDIRECT_URI"),
   },
 };
+
+console.log(
+  "DEBUG →",
+  "twilio SID:",
+  module.exports.twilio.accountSid,
+  "| resend key:",
+  module.exports.resend.apiKey,
+  "| nodeEnv:",
+  module.exports.nodeEnv,
+);

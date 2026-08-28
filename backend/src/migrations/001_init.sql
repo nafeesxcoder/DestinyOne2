@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS otp_codes (
   max_attempts INT NOT NULL DEFAULT 5,
   expires_at DATETIME NOT NULL,
   consumed_at DATETIME NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   INDEX idx_identifier_channel (identifier, channel)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

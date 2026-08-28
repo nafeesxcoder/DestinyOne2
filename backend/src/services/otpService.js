@@ -7,7 +7,7 @@ const {
   compareCode,
   normalizeIdentifier,
 } = require("../utils/otp");
-const { sendOtpSms, verifyOtpSms } = require("./smsService");
+const { sendOtpSms } = require("./smsService");
 const { sendOtpEmail } = require("./emailService");
 const { ApiError } = require("../middleware/errorHandler");
 
@@ -58,14 +58,8 @@ async function requestOtp({ channel, identifier }) {
 async function verifyOtp({ channel, identifier, code }) {
   const normalized = normalizeIdentifier(channel, identifier);
 
-  // ✅ Twilio Verify API se phone OTP verify karo
-  if (channel === "phone" && env.twilio.verifyServiceSid) {
-    const isValid = await verifyOtpSms(normalized, code);
-    if (!isValid) throw new ApiError(400, "Invalid or expired OTP");
-    return { identifier: normalized };
-  }
-
-  // Email ke liye database se check karo
+  // Phone aur email dono ke liye database se hi check karo
+  // (kyunki OTP humesha yahin generate/save hota hai, chahe SMS ho ya email)
   const rows = await query(
     `SELECT * FROM otp_codes
      WHERE identifier = ? AND channel = ? AND consumed_at IS NULL

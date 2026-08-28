@@ -27,7 +27,38 @@ export const authApi = {
     return data; // { ok: true, user, accessToken, refreshToken }
   },
 
-  async googleAuth(idToken: string) {
-    throw new Error("Google Auth flow has changed. Use expo-auth-session instead.");
+  async refresh(refreshToken: string) {
+    const response = await fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Refresh failed");
+    return data; // { ok: true, accessToken, refreshToken }
+  },
+
+  async me(accessToken: string) {
+    const response = await fetch(`${API_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not load profile");
+    return data; // { ok: true, user }
+  },
+
+  async logout(accessToken: string) {
+    const response = await fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Logout failed");
+    return data;
+  },
+
+  // Google/Apple/LinkedIn login screen ka URL — WebBrowser.openAuthSessionAsync ke saath use hota hai
+  oauthUrl(provider: "google" | "apple" | "linkedin") {
+    return `${API_URL}/auth/${provider}`;
   },
 };

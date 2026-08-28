@@ -13,13 +13,13 @@ function getClient() {
 }
 
 async function sendOtpEmail(toEmail, code) {
-  // Development mode: sirf console par print karo (email mat bhejo)
-  if (env.nodeEnv !== "production") {
+  // Sirf tab console-fallback use karo jab dev mode ho AUR API key set na ho
+  if (env.nodeEnv !== "production" && !env.resend.apiKey) {
     console.log(`[DEV EMAIL] OTP for ${toEmail}: ${code}`);
     return { simulated: true };
   }
 
-  // Production mode: actual email bhejo (domain verified hona chahiye)
+  // API key set hai (dev ya production, dono mein) — real email bhejo
   const { data, error } = await getClient().emails.send({
     from: env.resend.fromEmail,
     to: toEmail,

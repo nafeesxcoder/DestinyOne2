@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Image, Platform, Share, View } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApi } from "../api/authApi";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -2312,12 +2314,41 @@ function DestinyOneApp() {
               setScreen("otp");
             }}
             onSocialContinue={async (provider) => {
-              await new Promise((resolve) => setTimeout(resolve, 450));
-              setAuthDestination(
-                `${provider.toLowerCase()}@destinyone.preview`,
+              if (provider !== "Google") {
+                // LinkedIn/Apple abhi wire nahi hue — placeholder
+                await new Promise((resolve) => setTimeout(resolve, 450));
+                setAuthDestination(
+                  `${provider.toLowerCase()}@destinyone.preview`,
+                );
+                setAuthPassword("");
+                setScreen("verify");
+                return;
+              }
+              console.log("GOOGLE DEBUG: button clicked");
+              const redirectUrl = Linking.createURL("auth/callback");
+              console.log("GOOGLE DEBUG: redirectUrl =", redirectUrl);
+              console.log(
+                "GOOGLE DEBUG: oauth URL =",
+                authApi.oauthUrl("google"),
               );
-              setAuthPassword("");
-              setScreen("verify");
+              try {
+                const result = await WebBrowser.openAuthSessionAsync(
+                  authApi.oauthUrl("google"),
+                  redirectUrl,
+                );
+                console.log("GOOGLE DEBUG: result =", result);
+              } catch (err) {
+                console.log("GOOGLE DEBUG: error =", err);
+              }
+              if (result.type === "success" && result.url) {
+                const url = new URL(result.url);
+                const email = url.searchParams.get("email");
+                if (email) {
+                  setAuthDestination(email);
+                  setAuthPassword("");
+                  setScreen("otp");
+                }
+              }
             }}
           />
         )}

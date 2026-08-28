@@ -1,11 +1,11 @@
-const crypto = require('crypto');
-const asyncHandler = require('../utils/asyncHandler');
-const { ApiError } = require('../middleware/errorHandler');
-const otpService = require('../services/otpService');
-const userService = require('../services/userService');
-const sessionService = require('../services/sessionService');
-const oauthService = require('../services/oauthService');
-const env = require('../config/env');
+const crypto = require("crypto");
+const asyncHandler = require("../utils/asyncHandler");
+const { ApiError } = require("../middleware/errorHandler");
+const otpService = require("../services/otpService");
+const userService = require("../services/userService");
+const sessionService = require("../services/sessionService");
+const oauthService = require("../services/oauthService");
+const env = require("../config/env");
 
 // In-memory OAuth state store (swap for Redis in production / multi-instance deploys)
 const oauthStates = new Map();
@@ -23,11 +23,11 @@ function consumeState(state) {
 // ---------- OTP: phone or email ----------
 const requestOtp = asyncHandler(async (req, res) => {
   const { channel, identifier } = req.body;
-  if (!channel || !['phone', 'email'].includes(channel)) {
+  if (!channel || !["phone", "email"].includes(channel)) {
     throw new ApiError(400, 'channel must be "phone" or "email"');
   }
   if (!identifier) {
-    throw new ApiError(400, 'identifier is required');
+    throw new ApiError(400, "identifier is required");
   }
 
   const result = await otpService.requestOtp({ channel, identifier });
@@ -36,27 +36,31 @@ const requestOtp = asyncHandler(async (req, res) => {
 
 const verifyOtp = asyncHandler(async (req, res) => {
   const { channel, identifier, code } = req.body;
-  if (!channel || !['phone', 'email'].includes(channel)) {
+  if (!channel || !["phone", "email"].includes(channel)) {
     throw new ApiError(400, 'channel must be "phone" or "email"');
   }
   if (!identifier || !code) {
-    throw new ApiError(400, 'identifier and code are required');
+    throw new ApiError(400, "identifier and code are required");
   }
 
-  const { identifier: normalized } = await otpService.verifyOtp({ channel, identifier, code });
+  const { identifier: normalized } = await otpService.verifyOtp({
+    channel,
+    identifier,
+    code,
+  });
 
   let user =
-    channel === 'phone'
+    channel === "phone"
       ? await userService.findUserByPhone(normalized)
       : await userService.findUserByEmail(normalized);
 
   if (!user) {
     user = await userService.createUser(
-      channel === 'phone' ? { phone: normalized } : { email: normalized },
+      channel === "phone" ? { phone: normalized } : { email: normalized },
     );
-  } else if (channel === 'phone' && !user.phone_verified_at) {
+  } else if (channel === "phone" && !user.phone_verified_at) {
     await userService.markPhoneVerified(user.id);
-  } else if (channel === 'email' && !user.email_verified_at) {
+  } else if (channel === "email" && !user.email_verified_at) {
     await userService.markEmailVerified(user.id);
   }
 
@@ -67,7 +71,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
 // ---------- Refresh / logout ----------
 const refresh = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
-  if (!refreshToken) throw new ApiError(400, 'refreshToken is required');
+  if (!refreshToken) throw new ApiError(400, "refreshToken is required");
   const tokens = await sessionService.rotateSession(refreshToken);
   res.json({ ok: true, ...tokens });
 });
@@ -79,7 +83,7 @@ const logout = asyncHandler(async (req, res) => {
 
 const me = asyncHandler(async (req, res) => {
   const user = await userService.findUserById(req.user.id);
-  if (!user) throw new ApiError(404, 'User not found');
+  if (!user) throw new ApiError(404, "User not found");
   res.json({ ok: true, user: publicUser(user) });
 });
 
@@ -93,9 +97,17 @@ const googleCallback = asyncHandler(async (req, res) => {
   const { code, state } = req.query;
   consumeState(state);
   const profile = await oauthService.exchangeGoogleCode(code);
-  const user = await userService.findOrCreateByOAuth({ provider: 'google', ...profile });
-  const tokens = await sessionService.issueSession(user.id);
-  redirectToApp(res, tokens);
+  if (!profile.email) {
+    return res.redirect(`${env.appUrl}/auth/callback?error=google_no_email`);
+  }
+  // Google email already verified hai, extra security ke liye OTP bhi bhejte hain
+  await otpService.requestOtp({ channel: "email", identifier: profile.email });
+  const params = new URLSearchParams({
+    provider: "google",
+    email: profile.email,
+    fullName: profile.fullName || "",
+  });
+  res.redirect(`${env.appUrl}/auth/callback?${params.toString()}`);
 });
 
 // ---------- Apple ----------
@@ -109,9 +121,16 @@ const appleCallback = asyncHandler(async (req, res) => {
   const { code, state } = req.body;
   consumeState(state);
   const profile = await oauthService.exchangeAppleCode(code);
-  const user = await userService.findOrCreateByOAuth({ provider: 'apple', ...profile });
-  const tokens = await sessionService.issueSession(user.id);
-  redirectToApp(res, tokens);
+  if (!profile.email) {
+    return res.redirect(`${env.appUrl}/auth/callback?error=apple_no_email`);
+  }
+  await otpService.requestOtp({ channel: "email", identifier: profile.email });
+  const params = new URLSearchParams({
+    provider: "apple",
+    email: profile.email,
+    fullName: profile.fullName || "",
+  });
+  res.redirect(`${env.appUrl}/auth/callback?${params.toString()}`);
 });
 
 // ---------- LinkedIn ----------
@@ -124,9 +143,16 @@ const linkedinCallback = asyncHandler(async (req, res) => {
   const { code, state } = req.query;
   consumeState(state);
   const profile = await oauthService.exchangeLinkedInCode(code);
-  const user = await userService.findOrCreateByOAuth({ provider: 'linkedin', ...profile });
-  const tokens = await sessionService.issueSession(user.id);
-  redirectToApp(res, tokens);
+  if (!profile.email) {
+    return res.redirect(`${env.appUrl}/auth/callback?error=linkedin_no_email`);
+  }
+  await otpService.requestOtp({ channel: "email", identifier: profile.email });
+  const params = new URLSearchParams({
+    provider: "linkedin",
+    email: profile.email,
+    fullName: profile.fullName || "",
+  });
+  res.redirect(`${env.appUrl}/auth/callback?${params.toString()}`);
 });
 
 // ---------- helpers ----------
@@ -140,12 +166,6 @@ function publicUser(user) {
     phoneVerified: !!user.phone_verified_at,
     emailVerified: !!user.email_verified_at,
   };
-}
-
-function redirectToApp(res, tokens) {
-  // Deep-link back into the Expo app with tokens in the URL fragment.
-  const url = `${env.appUrl}/auth/callback#accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`;
-  res.redirect(url);
 }
 
 module.exports = {
