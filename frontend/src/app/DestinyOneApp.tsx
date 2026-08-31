@@ -331,6 +331,16 @@ function getPreviewScreen(): Screen | undefined {
     ? requested
     : undefined;
 }
+
+function getGoogleCallback(): { email: string; fullName: string } | undefined {
+  if (Platform.OS !== "web" || typeof window === "undefined") return undefined;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("provider") !== "google") return undefined;
+  const email = params.get("email");
+  if (!email) return undefined;
+  return { email, fullName: params.get("fullName") ?? "" };
+}
+
 function getPreviewState(): PreviewState | undefined {
   if (Platform.OS !== "web" || typeof window === "undefined") return undefined;
   const params = new URLSearchParams(window.location.search);
@@ -341,6 +351,7 @@ function getPreviewState(): PreviewState | undefined {
 }
 const showcasePreviewScreen = getPreviewScreen();
 const showcasePreviewState = getPreviewState();
+const googleCallbackData = getGoogleCallback();
 const isPreviewAccessMode =
   Platform.OS === "web" &&
   typeof window !== "undefined" &&
@@ -851,6 +862,15 @@ function DestinyOneApp() {
             });
           }
         }
+        if (googleCallbackData) {
+          setAuthDestination(googleCallbackData.email);
+          setAuthPassword("");
+          nextScreen = "otp";
+          if (typeof window !== "undefined") {
+            window.history.replaceState({}, "", window.location.pathname);
+          }
+        }
+
         const remaining = Math.max(0, 3000 - (Date.now() - started));
         setTimeout(() => {
           if (active) {
@@ -2324,22 +2344,15 @@ function DestinyOneApp() {
                 setScreen("verify");
                 return;
               }
-              console.log("GOOGLE DEBUG: button clicked");
-              const redirectUrl = Linking.createURL("auth/callback");
-              console.log("GOOGLE DEBUG: redirectUrl =", redirectUrl);
-              console.log(
-                "GOOGLE DEBUG: oauth URL =",
-                authApi.oauthUrl("google"),
-              );
-              try {
-                const result = await WebBrowser.openAuthSessionAsync(
-                  authApi.oauthUrl("google"),
-                  redirectUrl,
-                );
-                console.log("GOOGLE DEBUG: result =", result);
-              } catch (err) {
-                console.log("GOOGLE DEBUG: error =", err);
+              if (Platform.OS === "web") {
+                window.location.href = authApi.oauthUrl("google");
+                return;
               }
+              const redirectUrl = Linking.createURL("auth/callback");
+              const result = await WebBrowser.openAuthSessionAsync(
+                authApi.oauthUrl("google"),
+                redirectUrl,
+              );
               if (result.type === "success" && result.url) {
                 const url = new URL(result.url);
                 const email = url.searchParams.get("email");
