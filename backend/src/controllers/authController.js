@@ -6,7 +6,6 @@ const userService = require("../services/userService");
 const sessionService = require("../services/sessionService");
 const oauthService = require("../services/oauthService");
 const env = require("../config/env");
-
 // In-memory OAuth state store (swap for Redis in production / multi-instance deploys)
 const oauthStates = new Map();
 function createState(meta = {}) {
@@ -19,7 +18,6 @@ function consumeState(state) {
   oauthStates.delete(state);
   return value;
 }
-
 // ---------- OTP: phone or email ----------
 const requestOtp = asyncHandler(async (req, res) => {
   const { channel, identifier } = req.body;
@@ -29,11 +27,9 @@ const requestOtp = asyncHandler(async (req, res) => {
   if (!identifier) {
     throw new ApiError(400, "identifier is required");
   }
-
   const result = await otpService.requestOtp({ channel, identifier });
   res.json({ ok: true, ...result });
 });
-
 const verifyOtp = asyncHandler(async (req, res) => {
   const { channel, identifier, code } = req.body;
   if (!channel || !["phone", "email"].includes(channel)) {
@@ -42,18 +38,16 @@ const verifyOtp = asyncHandler(async (req, res) => {
   if (!identifier || !code) {
     throw new ApiError(400, "identifier and code are required");
   }
-
   const { identifier: normalized } = await otpService.verifyOtp({
     channel,
     identifier,
     code,
   });
-
   let user =
     channel === "phone"
       ? await userService.findUserByPhone(normalized)
       : await userService.findUserByEmail(normalized);
-
+  let accountRestored = false;
   if (!user) {
     user = await userService.createUser(
       channel === "phone" ? { phone: normalized } : { email: normalized },
@@ -63,11 +57,19 @@ const verifyOtp = asyncHandler(async (req, res) => {
   } else if (channel === "email" && !user.email_verified_at) {
     await userService.markEmailVerified(user.id);
   }
-
+  // Instagram-style: logging back in within 30 days of deletion restores the account.
+  if (user.deleted_at) {
+    if (userService.isWithinGracePeriod(user.deleted_at)) {
+      await userService.restoreUser(user.id);
+      user.deleted_at = null;
+      accountRestored = true;
+    } else {
+      throw new ApiError(410, "This account has been permanently deleted.");
+    }
+  }
   const tokens = await sessionService.issueSession(user.id);
-  res.json({ ok: true, user: publicUser(user), ...tokens });
+  res.json({ ok: true, user: publicUser(user), accountRestored, ...tokens });
 });
-
 // ---------- Refresh / logout ----------
 const refresh = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
@@ -75,24 +77,29 @@ const refresh = asyncHandler(async (req, res) => {
   const tokens = await sessionService.rotateSession(refreshToken);
   res.json({ ok: true, ...tokens });
 });
-
 const logout = asyncHandler(async (req, res) => {
   await sessionService.revokeAllSessions(req.user.id);
   res.json({ ok: true });
 });
-
 const me = asyncHandler(async (req, res) => {
   const user = await userService.findUserById(req.user.id);
   if (!user) throw new ApiError(404, "User not found");
   res.json({ ok: true, user: publicUser(user) });
 });
-
+// ---------- Delete / restore account (soft delete, 30-day grace period) ----------
+const deleteAccount = asyncHandler(async (req, res) => {
+  await userService.softDeleteUser(req.user.id);
+  await sessionService.revokeAllSessions(req.user.id);
+  res.json({
+    ok: true,
+    message: "Your account is scheduled for permanent deletion in 30 days. Log back in before then to restore it.",
+  });
+});
 // ---------- Google ----------
 const googleStart = asyncHandler(async (req, res) => {
   const state = createState();
   res.redirect(oauthService.getGoogleAuthUrl(state));
 });
-
 const googleCallback = asyncHandler(async (req, res) => {
   const { code, state } = req.query;
   consumeState(state);
@@ -109,13 +116,11 @@ const googleCallback = asyncHandler(async (req, res) => {
   });
   res.redirect(`${env.appUrl}/auth/callback?${params.toString()}`);
 });
-
 // ---------- Apple ----------
 const appleStart = asyncHandler(async (req, res) => {
   const state = createState();
   res.redirect(oauthService.getAppleAuthUrl(state));
 });
-
 const appleCallback = asyncHandler(async (req, res) => {
   // Apple posts form data (response_mode=form_post)
   const { code, state } = req.body;
@@ -132,13 +137,11 @@ const appleCallback = asyncHandler(async (req, res) => {
   });
   res.redirect(`${env.appUrl}/auth/callback?${params.toString()}`);
 });
-
 // ---------- LinkedIn ----------
 const linkedinStart = asyncHandler(async (req, res) => {
   const state = createState();
   res.redirect(oauthService.getLinkedInAuthUrl(state));
 });
-
 const linkedinCallback = asyncHandler(async (req, res) => {
   const { code, state } = req.query;
   consumeState(state);
@@ -154,7 +157,6 @@ const linkedinCallback = asyncHandler(async (req, res) => {
   });
   res.redirect(`${env.appUrl}/auth/callback?${params.toString()}`);
 });
-
 // ---------- helpers ----------
 function publicUser(user) {
   return {
@@ -167,13 +169,13 @@ function publicUser(user) {
     emailVerified: !!user.email_verified_at,
   };
 }
-
 module.exports = {
   requestOtp,
   verifyOtp,
   refresh,
   logout,
   me,
+  deleteAccount,
   googleStart,
   googleCallback,
   appleStart,

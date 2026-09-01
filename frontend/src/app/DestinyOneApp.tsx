@@ -4,6 +4,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApi } from "../api/authApi";
+import { profileApi } from "../api/profileApi";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -575,6 +576,7 @@ function DestinyOneApp() {
   const [verified, setVerified] = useState(isCustomerShowcase);
   const [authDestination, setAuthDestination] = useState("");
   const [authPassword, setAuthPassword] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const [onboardingComplete, setOnboardingComplete] =
     useState(isCustomerShowcase);
   const [profileReminderShownAt, setProfileReminderShownAt] = useState(
@@ -871,7 +873,47 @@ function DestinyOneApp() {
           }
         }
 
+        try {
+          const savedToken = await AsyncStorage.getItem(
+            "destinyone_access_token",
+          );
+          if (savedToken) {
+            const me = await authApi.me(savedToken);
+            setAccessToken(savedToken);
+            const profileData = await profileApi.getMyProfile(savedToken);
+            if (profileData.profile) {
+              setProfileDraft((current) => ({
+                ...current,
+                firstName: profileData.profile.first_name ?? current.firstName,
+                gender: profileData.profile.gender ?? current.gender,
+                age: profileData.profile.age
+                  ? String(profileData.profile.age)
+                  : current.age,
+                height: profileData.profile.height ?? current.height,
+                city: profileData.profile.city ?? current.city,
+                profession:
+                  profileData.profile.profession ?? current.profession,
+                religion: profileData.profile.religion ?? current.religion,
+                community: profileData.profile.community ?? current.community,
+              }));
+              setVerified(!!profileData.profile.verified);
+            }
+            if (profileData.photos?.length)
+              setProfilePhotos(profileData.photos);
+            if (profileData.vibes?.length) setVibeList(profileData.vibes);
+            if (profileData.intent?.intent)
+              setIntent(profileData.intent.intent);
+            const onboardingDone = !!profileData.profile?.onboarding_complete;
+            setOnboardingComplete(onboardingDone);
+            nextScreen = onboardingDone ? "home" : "profileSetup";
+            setAuthDestination(me.user.email || me.user.phone || "");
+          }
+        } catch {
+          await AsyncStorage.removeItem("destinyone_access_token");
+          await AsyncStorage.removeItem("destinyone_refresh_token");
+        }
         const remaining = Math.max(0, 3000 - (Date.now() - started));
+        ``;
         setTimeout(() => {
           if (active) {
             setScreen(showcasePreviewScreen ?? nextScreen);
@@ -2046,6 +2088,55 @@ function DestinyOneApp() {
       )
         return;
     }
+    if (accessToken) {
+      try {
+        await profileApi.updateProfile(accessToken, {
+          firstName: profileDraft.firstName,
+          gender: profileDraft.gender,
+          age: profileDraft.age,
+          height: profileDraft.height,
+          city: profileDraft.city,
+          profession: profileDraft.profession,
+          religion: profileDraft.religion,
+          community: profileDraft.community,
+        });
+        await profileApi.updatePhotos(accessToken, profilePhotos);
+        await profileApi.updateVibes(accessToken, vibeList);
+        await profileApi.updateIntent(accessToken, {
+          intent,
+          timeline: alignment.timeline,
+          children: alignment.children,
+          family: alignment.family,
+          relocation: alignment.relocation,
+        });
+        await profileApi.updatePreferences(accessToken, {
+          lookingFor: matchFilters.lookingFor,
+          minAge: matchFilters.minAge,
+          maxAge: matchFilters.maxAge,
+          cities: matchFilters.cities,
+          intents: matchFilters.intents,
+          mustHaveVibes: matchFilters.mustHaveVibes,
+          familyPriority: matchFilters.familyPriority,
+          children: matchFilters.children,
+          marriageTimeline: matchFilters.marriageTimeline,
+          relocation: matchFilters.relocation,
+          distancePreference: matchFilters.distancePreference,
+          smartDiscovery,
+        });
+        await profileApi.completeOnboarding(accessToken);
+      } catch (error) {
+        setAppNotice({
+          title: "Profile sync failed",
+          body:
+            error instanceof Error
+              ? error.message
+              : "Your profile could not be saved to the server. Please try again.",
+          icon: "cloud-offline-outline",
+          tone: "ruby",
+        });
+        return;
+      }
+    }
     setOnboardingComplete(true);
     setScreen("home");
     setReferralOfferOpen(true);
@@ -2309,8 +2400,26 @@ function DestinyOneApp() {
   };
   const deleteAccount = async () => {
     try {
-      await requestAccountDeletion();
+      if (accessToken) {
+        await authApi.deleteAccount(accessToken);
+      } else {
+        await requestAccountDeletion();
+      }
+    } catch (error) {
+      setAppNotice({
+        title: "Account not deleted",
+        body:
+          error instanceof Error
+            ? error.message
+            : "Your account could not be deleted. Please try again.",
+        icon: "cloud-offline-outline",
+        tone: "ruby",
+      });
+      return;
     } finally {
+      await AsyncStorage.removeItem("destinyone_access_token");
+      await AsyncStorage.removeItem("destinyone_refresh_token");
+      setAccessToken("");
       await resetDemo();
     }
   };
@@ -2393,6 +2502,7 @@ function DestinyOneApp() {
                   "destinyone_refresh_token",
                   result.refreshToken,
                 );
+                setAccessToken(result.accessToken);
                 return true;
               } catch {
                 return false;

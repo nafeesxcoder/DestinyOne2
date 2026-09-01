@@ -3,19 +3,29 @@ const path = require('path');
 const { pool } = require('../config/db');
 
 async function run() {
-  const sqlPath = path.join(__dirname, '001_init.sql');
-  const sql = fs.readFileSync(sqlPath, 'utf8');
-  const statements = sql
-    .split(';')
-    .map((statement) => statement.trim())
-    .filter(Boolean);
+  const migrationsDir = __dirname;
+  const files = fs
+    .readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
+    .sort();
 
   const connection = await pool.getConnection();
   try {
-    for (const statement of statements) {
-      await connection.query(statement);
+    let totalStatements = 0;
+    for (const file of files) {
+      const sqlPath = path.join(migrationsDir, file);
+      const sql = fs.readFileSync(sqlPath, 'utf8');
+      const statements = sql
+        .split(';')
+        .map((statement) => statement.trim())
+        .filter(Boolean);
+      for (const statement of statements) {
+        await connection.query(statement);
+      }
+      console.log(`${file}: ${statements.length} statements executed.`);
+      totalStatements += statements.length;
     }
-    console.log(`Migration complete: ${statements.length} statements executed.`);
+    console.log(`Migration complete: ${totalStatements} statements executed across ${files.length} files.`);
   } finally {
     connection.release();
     await pool.end();

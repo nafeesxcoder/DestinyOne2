@@ -1,5 +1,4 @@
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
-
 export const authApi = {
   async requestOtp(channel: "phone" | "email", identifier: string) {
     const response = await fetch(`${API_URL}/auth/otp/request`, {
@@ -11,7 +10,6 @@ export const authApi = {
     if (!response.ok) throw new Error(data.error || "Failed to send OTP");
     return data;
   },
-
   async verifyOtp(
     channel: "phone" | "email",
     identifier: string,
@@ -24,9 +22,8 @@ export const authApi = {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Verification failed");
-    return data; // { ok: true, user, accessToken, refreshToken }
+    return data; // { ok: true, user, accessToken, refreshToken, accountRestored }
   },
-
   async refresh(refreshToken: string) {
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
@@ -37,7 +34,6 @@ export const authApi = {
     if (!response.ok) throw new Error(data.error || "Refresh failed");
     return data; // { ok: true, accessToken, refreshToken }
   },
-
   async me(accessToken: string) {
     const response = await fetch(`${API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -46,7 +42,6 @@ export const authApi = {
     if (!response.ok) throw new Error(data.error || "Could not load profile");
     return data; // { ok: true, user }
   },
-
   async logout(accessToken: string) {
     const response = await fetch(`${API_URL}/auth/logout`, {
       method: "POST",
@@ -56,7 +51,15 @@ export const authApi = {
     if (!response.ok) throw new Error(data.error || "Logout failed");
     return data;
   },
-
+  async deleteAccount(accessToken: string) {
+    const response = await fetch(`${API_URL}/auth/account`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Account deletion failed");
+    return data; // { ok: true, message }
+  },
   // Google/Apple/LinkedIn login screen ka URL — WebBrowser.openAuthSessionAsync ke saath use hota hai
   oauthUrl(provider: "google" | "apple" | "linkedin") {
     return `${API_URL}/auth/${provider}`;
