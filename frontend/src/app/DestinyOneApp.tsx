@@ -336,7 +336,9 @@ function getPreviewScreen(): Screen | undefined {
 function getGoogleCallback(): { email: string; fullName: string } | undefined {
   if (Platform.OS !== "web" || typeof window === "undefined") return undefined;
   const params = new URLSearchParams(window.location.search);
-  if (params.get("provider") !== "google") return undefined;
+  const provider = params.get("provider");
+  if (provider !== "google" && provider !== "linkedin" && provider !== "apple")
+    return undefined;
   const email = params.get("email");
   if (!email) return undefined;
   return { email, fullName: params.get("fullName") ?? "" };
@@ -2559,7 +2561,42 @@ function DestinyOneApp() {
             voiceUri={voiceIntroUri}
             onVoiceChange={setVoiceIntroUri}
             allowPreviewContinue={isPreviewAccessMode}
-            onNext={() => setScreen("vibes")}
+            onNext={async () => {
+              if (onboardingComplete && accessToken) {
+                try {
+                  await profileApi.updateProfile(accessToken, {
+                    firstName: profileDraft.firstName,
+                    gender: profileDraft.gender,
+                    age: profileDraft.age,
+                    height: profileDraft.height,
+                    city: profileDraft.city,
+                    profession: profileDraft.profession,
+                    religion: profileDraft.religion,
+                    community: profileDraft.community,
+                  });
+                  await profileApi.updatePhotos(accessToken, profilePhotos);
+                  setAppNotice({
+                    title: "Profile updated",
+                    body: "Your changes have been saved.",
+                    icon: "checkmark-circle",
+                    tone: "gold",
+                  });
+                  setScreen("profile");
+                } catch (error) {
+                  setAppNotice({
+                    title: "Profile not saved",
+                    body:
+                      error instanceof Error
+                        ? error.message
+                        : "Your changes could not be saved. Please try again.",
+                    icon: "cloud-offline-outline",
+                    tone: "ruby",
+                  });
+                }
+                return;
+              }
+              setScreen("vibes");
+            }}
           />
         )}
         {screen === "vibes" && (
