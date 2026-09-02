@@ -2443,8 +2443,8 @@ function DestinyOneApp() {
               setScreen("otp");
             }}
             onSocialContinue={async (provider) => {
-              if (provider !== "Google") {
-                // LinkedIn/Apple abhi wire nahi hue — placeholder
+              if (provider === "Apple") {
+                // Apple abhi wire nahi hua — placeholder
                 await new Promise((resolve) => setTimeout(resolve, 450));
                 setAuthDestination(
                   `${provider.toLowerCase()}@destinyone.preview`,
@@ -2453,13 +2453,15 @@ function DestinyOneApp() {
                 setScreen("verify");
                 return;
               }
+
+              const providerKey = provider === "Google" ? "google" : "linkedin";
               if (Platform.OS === "web") {
-                window.location.href = authApi.oauthUrl("google");
+                window.location.href = authApi.oauthUrl(providerKey);
                 return;
               }
               const redirectUrl = Linking.createURL("auth/callback");
               const result = await WebBrowser.openAuthSessionAsync(
-                authApi.oauthUrl("google"),
+                authApi.oauthUrl(providerKey),
                 redirectUrl,
               );
               if (result.type === "success" && result.url) {
