@@ -336,9 +336,7 @@ function getPreviewScreen(): Screen | undefined {
 function getGoogleCallback(): { email: string; fullName: string } | undefined {
   if (Platform.OS !== "web" || typeof window === "undefined") return undefined;
   const params = new URLSearchParams(window.location.search);
-  const provider = params.get("provider");
-  if (provider !== "google" && provider !== "linkedin" && provider !== "apple")
-    return undefined;
+  if (params.get("provider") !== "google") return undefined;
   const email = params.get("email");
   if (!email) return undefined;
   return { email, fullName: params.get("fullName") ?? "" };
