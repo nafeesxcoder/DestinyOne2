@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes"); // Directly import auth routes
@@ -7,6 +8,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For Apple's form_post callback
+// Serve uploaded photos (e.g. https://api.destinyone.co/uploads/photos/xyz.jpg)
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // Mount auth routes under /auth
 app.use("/auth", authRoutes);
 // Mount profile routes under /profile

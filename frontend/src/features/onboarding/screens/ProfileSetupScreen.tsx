@@ -48,6 +48,29 @@ import {
 } from "../../../theme/appStyles";
 
 const backgroundImage = require("../../../../assets/background.png");
+async function uploadPhotoAsset(
+  uri: string,
+  accessToken?: string,
+): Promise<string> {
+  if (!accessToken) return uri;
+  try {
+    const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+    const formData = new FormData();
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    formData.append("photo", blob, "photo.jpg");
+    const uploadResponse = await fetch(`${API_URL}/profile/upload-photo`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: formData,
+    });
+    const data = await uploadResponse.json();
+    if (!uploadResponse.ok) throw new Error(data.error || "Upload failed");
+    return data.url;
+  } catch {
+    return uri;
+  }
+}
 
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
@@ -802,6 +825,7 @@ export function ProfileSetupScreen({
   onVoiceChange,
   allowPreviewContinue = false,
   onNext,
+  accessToken,
 }: {
   profile: ProfileDraft;
   onProfileChange: (profile: ProfileDraft) => void;
@@ -811,6 +835,7 @@ export function ProfileSetupScreen({
   onVoiceChange: (uri: string) => void;
   allowPreviewContinue?: boolean;
   onNext: () => void;
+  accessToken?: string;
 }) {
   const { width } = useWindowDimensions();
   const [mediaError, setMediaError] = useState("");
@@ -912,8 +937,12 @@ export function ProfileSetupScreen({
       quality: 0.85,
     });
     if (!result.canceled && result.assets[0]) {
+      const uploadedUri = await uploadPhotoAsset(
+        result.assets[0].uri,
+        accessToken,
+      );
       const next = [...photos];
-      next[index] = result.assets[0].uri;
+      next[index] = uploadedUri;
       onPhotosChange(next.filter(Boolean));
     }
   };
@@ -931,8 +960,12 @@ export function ProfileSetupScreen({
       quality: 0.85,
     });
     if (!result.canceled && result.assets[0]) {
+      const uploadedUri = await uploadPhotoAsset(
+        result.assets[0].uri,
+        accessToken,
+      );
       const next = [...photos];
-      next[index] = result.assets[0].uri;
+      next[index] = uploadedUri;
       onPhotosChange(next.filter(Boolean));
     }
   };

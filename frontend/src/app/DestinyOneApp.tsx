@@ -2552,6 +2552,7 @@ function DestinyOneApp() {
         )}
         {screen === "profileSetup" && (
           <ProfileSetupScreen
+            accessToken={accessToken}
             profile={profileDraft}
             onProfileChange={setProfileDraft}
             photos={profilePhotos}
