@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const { query } = require('../config/db');
-
 async function getFullProfile(userId) {
   const [profile] = await query('SELECT * FROM profiles WHERE user_id = ?', [userId]);
   const photos = await query(
@@ -11,7 +10,6 @@ async function getFullProfile(userId) {
   const [intent] = await query('SELECT * FROM profile_intent WHERE user_id = ?', [userId]);
   const [prefs] = await query('SELECT * FROM matching_preferences WHERE user_id = ?', [userId]);
   const [mode] = await query('SELECT mode FROM experience_mode WHERE user_id = ?', [userId]);
-
   return {
     profile: profile || null,
     photos: photos.map((p) => p.photo_url),
@@ -28,7 +26,6 @@ async function getFullProfile(userId) {
     experienceMode: mode?.mode || 'seeking',
   };
 }
-
 function safeParseJson(value, fallback) {
   if (value == null) return fallback;
   if (typeof value === 'object') return value;
@@ -38,12 +35,10 @@ function safeParseJson(value, fallback) {
     return fallback;
   }
 }
-
 async function upsertProfile(userId, input) {
   const {
     firstName, gender, age, height, city, profession, religion, community, about,
   } = input;
-
   await query(
     `INSERT INTO profiles (user_id, first_name, gender, age, height, city, profession, religion, community, about)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -54,7 +49,6 @@ async function upsertProfile(userId, input) {
     [userId, firstName || null, gender || null, age || null, height || null, city || null, profession || null, religion || null, community || null, about || null],
   );
 }
-
 async function replacePhotos(userId, photoUrls) {
   await query('DELETE FROM profile_photos WHERE user_id = ?', [userId]);
   for (let i = 0; i < photoUrls.length; i += 1) {
@@ -64,14 +58,12 @@ async function replacePhotos(userId, photoUrls) {
     );
   }
 }
-
 async function replaceVibes(userId, vibes) {
   await query('DELETE FROM profile_vibes WHERE user_id = ?', [userId]);
   for (const vibe of vibes) {
     await query('INSERT INTO profile_vibes (user_id, vibe) VALUES (?, ?)', [userId, vibe]);
   }
 }
-
 async function upsertIntent(userId, input) {
   const { intent, timeline, children, family, relocation } = input;
   await query(
@@ -83,13 +75,11 @@ async function upsertIntent(userId, input) {
     [userId, intent || null, timeline || null, children || null, family || null, relocation || null],
   );
 }
-
 async function upsertPreferences(userId, input) {
   const {
     lookingFor, minAge, maxAge, cities, intents, mustHaveVibes,
     familyPriority, children, marriageTimeline, relocation, distancePreference, smartDiscovery,
   } = input;
-
   await query(
     `INSERT INTO matching_preferences
        (user_id, looking_for, min_age, max_age, cities, intents, must_have_vibes,
@@ -118,7 +108,6 @@ async function upsertPreferences(userId, input) {
     ],
   );
 }
-
 async function setExperienceMode(userId, mode) {
   await query(
     `INSERT INTO experience_mode (user_id, mode) VALUES (?, ?)
@@ -126,11 +115,83 @@ async function setExperienceMode(userId, mode) {
     [userId, mode],
   );
 }
-
 async function markOnboardingComplete(userId) {
   await query('UPDATE profiles SET onboarding_complete = 1 WHERE user_id = ?', [userId]);
 }
-
+// ---------- Discovery: find real users matching preferences ----------
+async function findMatches(userId, limit = 20) {
+  const [myPrefs] = await query('SELECT * FROM matching_preferences WHERE user_id = ?', [userId]);
+  const minAge = myPrefs?.min_age ?? 21;
+  const maxAge = myPrefs?.max_age ?? 45;
+  const lookingFor = myPrefs?.looking_for || 'everyone';
+  let genderClause = '';
+  if (lookingFor === 'women') {
+    genderClause = "AND p.gender = 'woman'";
+  } else if (lookingFor === 'men') {
+    genderClause = "AND p.gender = 'man'";
+  }
+  const candidates = await query(
+    `SELECT
+       u.id AS user_id,
+       p.first_name, p.gender, p.age, p.height, p.city, p.profession,
+       p.religion, p.community, p.about, p.verified
+     FROM users u
+     JOIN profiles p ON p.user_id = u.id
+     WHERE u.id != ?
+       AND u.deleted_at IS NULL
+       AND p.onboarding_complete = 1
+       AND p.age BETWEEN ? AND ?
+       ${genderClause}
+       AND u.id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id = ?
+       )
+       AND u.id NOT IN (
+         SELECT blocker_id FROM blocks WHERE blocked_id = ?
+       )
+     ORDER BY p.updated_at DESC
+     LIMIT ${Number(limit)}`,
+    [userId, minAge, maxAge, userId, userId],
+  );
+  const results = [];
+  for (const candidate of candidates) {
+    const photos = await query(
+      'SELECT photo_url FROM profile_photos WHERE user_id = ? ORDER BY position ASC',
+      [candidate.user_id],
+    );
+    const vibes = await query('SELECT vibe FROM profile_vibes WHERE user_id = ?', [candidate.user_id]);
+    const [intentRow] = await query(
+      'SELECT intent, timeline, children, family, relocation FROM profile_intent WHERE user_id = ?',
+      [candidate.user_id],
+    );
+    results.push({
+      id: candidate.user_id,
+      profileId: candidate.user_id,
+      matchId: candidate.user_id,
+      name: candidate.first_name || 'Member',
+      age: candidate.age || 0,
+      city: candidate.city || '',
+      profession: candidate.profession || '',
+      gender: candidate.gender || 'nonbinary',
+      intent: intentRow?.intent || '',
+      match: 'Great Match',
+      vibes: vibes.map((v) => v.vibe),
+      photo: photos[0]?.photo_url || '',
+      photos: photos.map((p) => p.photo_url),
+      about: candidate.about || '',
+      values: '',
+      goals: '',
+      timeline: intentRow?.timeline || '',
+      children: intentRow?.children || '',
+      family: intentRow?.family || '',
+      relocation: intentRow?.relocation || '',
+      languages: [],
+      interests: [],
+      familyPriority: 'balanced',
+      vouches: { count: 0, qualities: [] },
+    });
+  }
+  return results;
+}
 module.exports = {
   getFullProfile,
   upsertProfile,
@@ -140,4 +201,5 @@ module.exports = {
   upsertPreferences,
   setExperienceMode,
   markOnboardingComplete,
+  findMatches,
 };

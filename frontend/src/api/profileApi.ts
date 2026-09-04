@@ -1,5 +1,4 @@
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
-
 async function authFetch(path: string, accessToken: string, options: RequestInit = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -13,12 +12,13 @@ async function authFetch(path: string, accessToken: string, options: RequestInit
   if (!response.ok) throw new Error(data.error || "Request failed");
   return data;
 }
-
 export const profileApi = {
   async getMyProfile(accessToken: string) {
     return authFetch("/profile/me", accessToken);
   },
-
+  async discoverMatches(accessToken: string, limit = 20) {
+    return authFetch(`/profile/discover?limit=${limit}`, accessToken);
+  },
   async updateProfile(
     accessToken: string,
     input: {
@@ -38,21 +38,18 @@ export const profileApi = {
       body: JSON.stringify(input),
     });
   },
-
   async updatePhotos(accessToken: string, photos: string[]) {
     return authFetch("/profile/photos", accessToken, {
       method: "PUT",
       body: JSON.stringify({ photos }),
     });
   },
-
   async updateVibes(accessToken: string, vibes: string[]) {
     return authFetch("/profile/vibes", accessToken, {
       method: "PUT",
       body: JSON.stringify({ vibes }),
     });
   },
-
   async updateIntent(
     accessToken: string,
     input: { intent?: string; timeline?: string; children?: string; family?: string; relocation?: string },
@@ -62,21 +59,18 @@ export const profileApi = {
       body: JSON.stringify(input),
     });
   },
-
   async updatePreferences(accessToken: string, input: Record<string, unknown>) {
     return authFetch("/profile/preferences", accessToken, {
       method: "PUT",
       body: JSON.stringify(input),
     });
   },
-
   async updateMode(accessToken: string, mode: "seeking" | "couple") {
     return authFetch("/profile/mode", accessToken, {
       method: "PUT",
       body: JSON.stringify({ mode }),
     });
   },
-
   async completeOnboarding(accessToken: string) {
     return authFetch("/profile/complete", accessToken, { method: "POST" });
   },

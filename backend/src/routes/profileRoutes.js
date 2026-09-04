@@ -5,6 +5,7 @@ const upload = require('../middleware/upload');
 const router = express.Router();
 router.use(requireAuth);
 router.get('/me', profileController.getMyProfile);
+router.get('/discover', profileController.discoverMatches);
 router.put('/profile', profileController.updateProfile);
 router.put('/photos', profileController.updatePhotos);
 router.post('/upload-photo', upload.single('photo'), profileController.uploadPhoto);

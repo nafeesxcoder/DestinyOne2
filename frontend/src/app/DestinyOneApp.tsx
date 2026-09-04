@@ -577,6 +577,9 @@ function DestinyOneApp() {
   const [authDestination, setAuthDestination] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [accessToken, setAccessToken] = useState("");
+  const [serverDiscoveredMatches, setServerDiscoveredMatches] = useState<
+    Match[] | null
+  >(null);
   const [onboardingComplete, setOnboardingComplete] =
     useState(isCustomerShowcase);
   const [profileReminderShownAt, setProfileReminderShownAt] = useState(
@@ -881,6 +884,16 @@ function DestinyOneApp() {
             const me = await authApi.me(savedToken);
             setAccessToken(savedToken);
             const profileData = await profileApi.getMyProfile(savedToken);
+            try {
+              const discoverResult = await profileApi.discoverMatches(
+                savedToken,
+                20,
+              );
+              if (discoverResult.matches)
+                setServerDiscoveredMatches(discoverResult.matches);
+            } catch {
+              setServerDiscoveredMatches([]);
+            }
             if (profileData.profile) {
               setProfileDraft((current) => ({
                 ...current,
@@ -1494,7 +1507,7 @@ function DestinyOneApp() {
     });
   };
   const localRankedMatches = rankMatches(
-    matches,
+    serverDiscoveredMatches ?? matches,
     { intent, vibes: vibeList, filters: matchFilters },
     discoverySignals,
     blockedIds,

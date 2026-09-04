@@ -51,6 +51,11 @@ const completeOnboarding = asyncHandler(async (req, res) => {
   await profileService.markOnboardingComplete(req.user.id);
   res.json({ ok: true });
 });
+const discoverMatches = asyncHandler(async (req, res) => {
+  const limit = Math.min(50, Number(req.query.limit) || 20);
+  const matches = await profileService.findMatches(req.user.id, limit);
+  res.json({ ok: true, matches });
+});
 module.exports = {
   getMyProfile,
   updateProfile,
@@ -61,4 +66,5 @@ module.exports = {
   updatePreferences,
   updateExperienceMode,
   completeOnboarding,
+  discoverMatches,
 };
