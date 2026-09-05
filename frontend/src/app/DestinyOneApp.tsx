@@ -2078,7 +2078,7 @@ function DestinyOneApp() {
     setScreen("chat");
   };
   const completeOnboarding = async () => {
-    if (!isPreviewAccessMode) {
+    if (false) {
       const result = await persistOnboardingProfile({
         profile: profileDraft,
         photos: profilePhotos,
