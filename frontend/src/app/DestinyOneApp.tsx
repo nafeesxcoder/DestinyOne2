@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Image, Platform, Share, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
@@ -577,6 +577,7 @@ function DestinyOneApp() {
   const [authDestination, setAuthDestination] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [accessToken, setAccessToken] = useState("");
+  const onboardingCompleteRef = useRef(false);
   const [serverDiscoveredMatches, setServerDiscoveredMatches] = useState<
     Match[] | null
   >(null);
@@ -2583,18 +2584,21 @@ function DestinyOneApp() {
                   if (profileData.vibes?.length) setVibeList(profileData.vibes);
                   if (profileData.intent?.intent)
                     setIntent(profileData.intent.intent);
-                  setOnboardingComplete(
-                    !!profileData.profile?.onboarding_complete,
-                  );
+                  const done = !!profileData.profile?.onboarding_complete;
+                  setOnboardingComplete(done);
+                  onboardingCompleteRef.current = done;
                 } catch {
                   setOnboardingComplete(false);
+                  onboardingCompleteRef.current = false;
                 }
                 return true;
               } catch {
                 return false;
               }
             }}
-            onVerified={() => setScreen(onboardingComplete ? "home" : "verify")}
+            onVerified={() =>
+              setScreen(onboardingCompleteRef.current ? "home" : "verify")
+            }
           />
         )}
         {screen === "verify" && (
