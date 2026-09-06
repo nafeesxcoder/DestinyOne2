@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const rateLimit = require("express-rate-limit");
 const authController = require("../controllers/authController");
 const { requireAuth } = require("../middleware/auth");
@@ -25,6 +25,7 @@ router.post("/refresh", authController.refresh);
 router.post("/logout", requireAuth, authController.logout);
 router.get("/me", requireAuth, authController.me);
 router.delete("/account", requireAuth, authController.deleteAccount);
+router.post("/deactivate", requireAuth, authController.deactivateAccount);
 // Google
 router.get("/google", authController.googleStart);
 router.get("/google/callback", authController.googleCallback);

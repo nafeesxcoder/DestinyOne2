@@ -1,4 +1,4 @@
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+﻿const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 export const authApi = {
   async requestOtp(channel: "phone" | "email", identifier: string) {
     const response = await fetch(`${API_URL}/auth/otp/request`, {
@@ -22,7 +22,7 @@ export const authApi = {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Verification failed");
-    return data; // { ok: true, user, accessToken, refreshToken, accountRestored }
+    return data;
   },
   async refresh(refreshToken: string) {
     const response = await fetch(`${API_URL}/auth/refresh`, {
@@ -32,7 +32,7 @@ export const authApi = {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Refresh failed");
-    return data; // { ok: true, accessToken, refreshToken }
+    return data;
   },
   async me(accessToken: string) {
     const response = await fetch(`${API_URL}/auth/me`, {
@@ -40,7 +40,7 @@ export const authApi = {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not load profile");
-    return data; // { ok: true, user }
+    return data;
   },
   async logout(accessToken: string) {
     const response = await fetch(`${API_URL}/auth/logout`, {
@@ -58,9 +58,18 @@ export const authApi = {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Account deletion failed");
-    return data; // { ok: true, message }
+    return data;
   },
-  // Google/Apple/LinkedIn login screen ka URL — WebBrowser.openAuthSessionAsync ke saath use hota hai
+  async deactivateAccount(accessToken: string) {
+    const response = await fetch(`${API_URL}/auth/deactivate`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.error || "Account deactivation failed");
+    return data;
+  },
   oauthUrl(provider: "google" | "apple" | "linkedin") {
     return `${API_URL}/auth/${provider}`;
   },

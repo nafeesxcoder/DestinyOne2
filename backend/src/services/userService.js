@@ -72,6 +72,15 @@ async function purgeExpiredDeletedUsers() {
   return result.affectedRows || 0;
 }
 
+// ---------- Temporary deactivation (Instagram-style, reversible any time) ----------
+async function deactivateUser(userId) {
+  await query('UPDATE users SET deactivated_at = NOW() WHERE id = ?', [userId]);
+}
+
+async function reactivateUser(userId) {
+  await query('UPDATE users SET deactivated_at = NULL WHERE id = ?', [userId]);
+}
+
 module.exports = {
   findUserByPhone,
   findUserByEmail,
@@ -84,4 +93,6 @@ module.exports = {
   restoreUser,
   isWithinGracePeriod,
   purgeExpiredDeletedUsers,
+  deactivateUser,
+  reactivateUser,
 };

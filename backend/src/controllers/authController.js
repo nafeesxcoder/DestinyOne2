@@ -1,4 +1,4 @@
-const crypto = require("crypto");
+﻿const crypto = require("crypto");
 const asyncHandler = require("../utils/asyncHandler");
 const { ApiError } = require("../middleware/errorHandler");
 const otpService = require("../services/otpService");
@@ -48,6 +48,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
       ? await userService.findUserByPhone(normalized)
       : await userService.findUserByEmail(normalized);
   let accountRestored = false;
+  let accountReactivated = false;
   if (!user) {
     user = await userService.createUser(
       channel === "phone" ? { phone: normalized } : { email: normalized },
@@ -67,8 +68,20 @@ const verifyOtp = asyncHandler(async (req, res) => {
       throw new ApiError(410, "This account has been permanently deleted.");
     }
   }
+  // Instagram-style: a deactivated account reactivates automatically the moment the member logs back in.
+  if (user.deactivated_at) {
+    await userService.reactivateUser(user.id);
+    user.deactivated_at = null;
+    accountReactivated = true;
+  }
   const tokens = await sessionService.issueSession(user.id);
-  res.json({ ok: true, user: publicUser(user), accountRestored, ...tokens });
+  res.json({
+    ok: true,
+    user: publicUser(user),
+    accountRestored,
+    accountReactivated,
+    ...tokens,
+  });
 });
 // ---------- Refresh / logout ----------
 const refresh = asyncHandler(async (req, res) => {
@@ -93,6 +106,15 @@ const deleteAccount = asyncHandler(async (req, res) => {
   res.json({
     ok: true,
     message: "Your account is scheduled for permanent deletion in 30 days. Log back in before then to restore it.",
+  });
+});
+// ---------- Deactivate account (Instagram-style, reversible any time by logging back in) ----------
+const deactivateAccount = asyncHandler(async (req, res) => {
+  await userService.deactivateUser(req.user.id);
+  await sessionService.revokeAllSessions(req.user.id);
+  res.json({
+    ok: true,
+    message: "Your account is deactivated. Your profile is hidden until you log back in.",
   });
 });
 // ---------- Google ----------
@@ -176,6 +198,7 @@ module.exports = {
   logout,
   me,
   deleteAccount,
+  deactivateAccount,
   googleStart,
   googleCallback,
   appleStart,

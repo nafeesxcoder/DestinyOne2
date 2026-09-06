@@ -2078,7 +2078,7 @@ function DestinyOneApp() {
     setScreen("chat");
   };
   const completeOnboarding = async () => {
-    if (false) {
+    if (!isPreviewAccessMode) {
       const result = await persistOnboardingProfile({
         profile: profileDraft,
         photos: profilePhotos,
@@ -2436,6 +2436,42 @@ function DestinyOneApp() {
       await resetDemo();
     }
   };
+  const deactivateAccount = async () => {
+    try {
+      if (accessToken) {
+        await authApi.deactivateAccount(accessToken);
+      }
+    } catch (error) {
+      setAppNotice({
+        title: "Account not deactivated",
+        body:
+          error instanceof Error
+            ? error.message
+            : "Your account could not be deactivated. Please try again.",
+        icon: "cloud-offline-outline",
+        tone: "ruby",
+      });
+      return;
+    } finally {
+      await AsyncStorage.removeItem("destinyone_access_token");
+      await AsyncStorage.removeItem("destinyone_refresh_token");
+      setAccessToken("");
+      await resetDemo();
+    }
+  };
+  const logout = async () => {
+    try {
+      if (accessToken) {
+        await authApi.logout(accessToken);
+      }
+    } catch {
+    } finally {
+      await AsyncStorage.removeItem("destinyone_access_token");
+      await AsyncStorage.removeItem("destinyone_refresh_token");
+      setAccessToken("");
+      await resetDemo();
+    }
+  };
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
@@ -2629,7 +2665,7 @@ function DestinyOneApp() {
           <AlignmentScreen
             value={alignment}
             onChange={setAlignment}
-            onNext={completeOnboarding}
+            onNext={() => setScreen("discovery")}
           />
         )}
         {screen === "home" &&
@@ -2768,7 +2804,11 @@ function DestinyOneApp() {
             onSmartChange={updateSmartDiscovery}
             onCrossedChange={setCrossedPaths}
             onClear={clearMatchingActivity}
-            onBack={() => setScreen("explore")}
+            onBack={() =>
+              onboardingComplete
+                ? setScreen("explore")
+                : void completeOnboarding()
+            }
           />
         )}
         {screen === "coach" && (
