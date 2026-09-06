@@ -2554,12 +2554,47 @@ function DestinyOneApp() {
                   result.refreshToken,
                 );
                 setAccessToken(result.accessToken);
+                try {
+                  const profileData = await profileApi.getMyProfile(
+                    result.accessToken,
+                  );
+                  if (profileData.profile) {
+                    setProfileDraft((current) => ({
+                      ...current,
+                      firstName:
+                        profileData.profile.first_name ?? current.firstName,
+                      gender: profileData.profile.gender ?? current.gender,
+                      age: profileData.profile.age
+                        ? String(profileData.profile.age)
+                        : current.age,
+                      height: profileData.profile.height ?? current.height,
+                      city: profileData.profile.city ?? current.city,
+                      profession:
+                        profileData.profile.profession ?? current.profession,
+                      religion:
+                        profileData.profile.religion ?? current.religion,
+                      community:
+                        profileData.profile.community ?? current.community,
+                    }));
+                    setVerified(!!profileData.profile.verified);
+                  }
+                  if (profileData.photos?.length)
+                    setProfilePhotos(profileData.photos);
+                  if (profileData.vibes?.length) setVibeList(profileData.vibes);
+                  if (profileData.intent?.intent)
+                    setIntent(profileData.intent.intent);
+                  setOnboardingComplete(
+                    !!profileData.profile?.onboarding_complete,
+                  );
+                } catch {
+                  setOnboardingComplete(false);
+                }
                 return true;
               } catch {
                 return false;
               }
             }}
-            onVerified={() => setScreen("verify")}
+            onVerified={() => setScreen(onboardingComplete ? "home" : "verify")}
           />
         )}
         {screen === "verify" && (
