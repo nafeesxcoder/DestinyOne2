@@ -65,6 +65,9 @@ export function ProfileScreen({
   onInvite,
   navigate,
   onReset,
+  onLogout,
+  onDeactivate,
+  onDeletePermanently,
 }: {
   experienceMode: ExperienceMode;
   connectionStatus: CoupleModeState["connection"]["status"];
@@ -86,6 +89,9 @@ export function ProfileScreen({
   onInvite: () => void;
   navigate: (s: Screen) => void;
   onReset: () => void;
+  onLogout?: () => void;
+  onDeactivate?: () => void;
+  onDeletePermanently?: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(initialSettingsOpen);
   const { width } = useWindowDimensions();
@@ -654,7 +660,40 @@ export function ProfileScreen({
               ))}
             </View>
           </View>
-          {showReset && (
+          {onLogout && (
+            <Pressable onPress={onLogout} style={styles.resetButton}>
+              <MiniPremiumIcon
+                name="log-out-outline"
+                tone="ruby"
+                size={34}
+                iconSize={16}
+              />
+              <Text style={styles.resetText}>Log out</Text>
+            </Pressable>
+          )}
+          {onDeactivate && (
+            <Pressable onPress={onDeactivate} style={styles.resetButton}>
+              <MiniPremiumIcon
+                name="pause-circle-outline"
+                tone="ruby"
+                size={34}
+                iconSize={16}
+              />
+              <Text style={styles.resetText}>Deactivate account</Text>
+            </Pressable>
+          )}
+          {onDeletePermanently && (
+            <Pressable onPress={onDeletePermanently} style={styles.resetButton}>
+              <MiniPremiumIcon
+                name="trash-outline"
+                tone="ruby"
+                size={34}
+                iconSize={16}
+              />
+              <Text style={styles.resetText}>Delete account permanently</Text>
+            </Pressable>
+          )}
+          {showReset && !onLogout && (
             <Pressable onPress={onReset} style={styles.resetButton}>
               <MiniPremiumIcon
                 name="log-out-outline"

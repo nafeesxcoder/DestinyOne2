@@ -3142,6 +3142,41 @@ function DestinyOneApp() {
             onInvite={() => setReferralOfferOpen(true)}
             navigate={navigateTo}
             onReset={resetDemo}
+            onLogout={async () => {
+              if (accessToken) {
+                try {
+                  await authApi.logout(accessToken);
+                } catch {
+                  // ignore network errors on logout; clear local session anyway
+                }
+              }
+              await AsyncStorage.removeItem("destinyone_access_token");
+              await AsyncStorage.removeItem("destinyone_refresh_token");
+              setAccessToken("");
+              await resetDemo();
+            }}
+            onDeactivate={async () => {
+              if (!accessToken) return;
+              try {
+                await authApi.deactivateAccount(accessToken);
+              } catch (error) {
+                setAppNotice({
+                  title: "Could not deactivate",
+                  body:
+                    error instanceof Error
+                      ? error.message
+                      : "Please try again.",
+                  icon: "cloud-offline-outline",
+                  tone: "ruby",
+                });
+                return;
+              }
+              await AsyncStorage.removeItem("destinyone_access_token");
+              await AsyncStorage.removeItem("destinyone_refresh_token");
+              setAccessToken("");
+              await resetDemo();
+            }}
+            onDeletePermanently={() => setScreen("safety")}
           />
         )}
         {screen === "support" && (
