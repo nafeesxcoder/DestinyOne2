@@ -2158,6 +2158,36 @@ function DestinyOneApp() {
       await refreshServerMatches();
   };
   const updateMatchFilters = async (next: MatchFilters) => {
+    if (accessToken) {
+      try {
+        await profileApi.updatePreferences(accessToken, {
+          lookingFor: next.lookingFor,
+          minAge: next.minAge,
+          maxAge: next.maxAge,
+          cities: next.cities,
+          intents: next.intents,
+          mustHaveVibes: next.mustHaveVibes,
+          familyPriority: next.familyPriority,
+          children: next.children,
+          marriageTimeline: next.marriageTimeline,
+          relocation: next.relocation,
+          distancePreference: next.distancePreference,
+          smartDiscovery,
+        });
+        setMatchFilters(next);
+      } catch (error) {
+        setAppNotice({
+          title: "Preferences not saved",
+          body:
+            error instanceof Error
+              ? error.message
+              : "Your match preferences could not be confirmed.",
+          icon: "cloud-offline-outline",
+          tone: "ruby",
+        });
+      }
+      return;
+    }
     const result = await persistMatchingPreferences({
       filters: next,
       profile: profileDraft,
@@ -2175,6 +2205,36 @@ function DestinyOneApp() {
     setMatchFilters(next);
   };
   const updateSmartDiscovery = async (enabled: boolean) => {
+    if (accessToken) {
+      try {
+        await profileApi.updatePreferences(accessToken, {
+          lookingFor: matchFilters.lookingFor,
+          minAge: matchFilters.minAge,
+          maxAge: matchFilters.maxAge,
+          cities: matchFilters.cities,
+          intents: matchFilters.intents,
+          mustHaveVibes: matchFilters.mustHaveVibes,
+          familyPriority: matchFilters.familyPriority,
+          children: matchFilters.children,
+          marriageTimeline: matchFilters.marriageTimeline,
+          relocation: matchFilters.relocation,
+          distancePreference: matchFilters.distancePreference,
+          smartDiscovery: enabled,
+        });
+        setSmartDiscovery(enabled);
+      } catch (error) {
+        setAppNotice({
+          title: "Discovery setting not saved",
+          body:
+            error instanceof Error
+              ? error.message
+              : "Smart Discovery could not be updated securely.",
+          icon: "cloud-offline-outline",
+          tone: "ruby",
+        });
+      }
+      return;
+    }
     const result = await persistMatchingPreferences({
       filters: matchFilters,
       profile: profileDraft,
