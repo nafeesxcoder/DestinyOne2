@@ -5,6 +5,7 @@ import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authApi } from "../api/authApi";
 import { profileApi } from "../api/profileApi";
+import { matchApi } from "../api/matchApi";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -1418,6 +1419,39 @@ function DestinyOneApp() {
     setScreen("detail");
   };
   const chooseInterested = async (match: Match) => {
+    if (accessToken) {
+      try {
+        const result = await matchApi.decide(
+          accessToken,
+          match.id,
+          "interested",
+        );
+        setSelected(match);
+        trackDiscovery("interested", match);
+        setDismissedIds((current) => [...new Set([...current, match.id])]);
+        if (result.mutual) {
+          setScreen("mutual");
+          return;
+        }
+        setAppNotice({
+          title: "Interest sent privately",
+          body: `If ${match.name} chooses you too, DestinyOne will open a mutual match and icebreaker.`,
+          icon: "heart-outline",
+          tone: "gold",
+        });
+      } catch (error) {
+        setAppNotice({
+          title: "Interest not sent",
+          body:
+            error instanceof Error
+              ? error.message
+              : "Your interest could not be confirmed. Please try again.",
+          icon: "cloud-offline-outline",
+          tone: "ruby",
+        });
+      }
+      return;
+    }
     const result = await persistMatchDecision(
       profileIdFor(match),
       "interested",
@@ -1448,6 +1482,24 @@ function DestinyOneApp() {
     });
   };
   const passMatch = async (match: Match) => {
+    if (accessToken) {
+      try {
+        await matchApi.decide(accessToken, match.id, "pass");
+        trackDiscovery("skip", match);
+        setDismissedIds((current) => [...new Set([...current, match.id])]);
+      } catch (error) {
+        setAppNotice({
+          title: "Pass not saved",
+          body:
+            error instanceof Error
+              ? error.message
+              : "This profile could not be removed securely. Please try again.",
+          icon: "cloud-offline-outline",
+          tone: "ruby",
+        });
+      }
+      return;
+    }
     const result = await persistMatchDecision(profileIdFor(match), "pass");
     if (
       !confirmMemberMutation(
