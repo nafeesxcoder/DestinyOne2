@@ -2843,6 +2843,7 @@ function DestinyOneApp() {
               alignment={alignment}
               signals={discoverySignals}
               dismissedCount={dismissedIds.length}
+              firstName={profileDraft.firstName}
               profileGrowth={{
                 hasPhoto: profilePhotos.length > 0,
                 verified,

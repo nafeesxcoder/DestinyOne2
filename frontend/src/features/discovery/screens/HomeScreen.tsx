@@ -125,6 +125,7 @@ export function HomeScreen({
   signals: _signals,
   dismissedCount: _dismissedCount,
   profileGrowth,
+  firstName = "there",
   crossedPaths,
   openDetail,
   onInterested,
@@ -142,6 +143,7 @@ export function HomeScreen({
   signals: DiscoverySignal[];
   dismissedCount: number;
   profileGrowth: ProfileGrowthInput;
+  firstName?: string;
   roseAvailability: RoseAvailability;
   crossedPaths: boolean;
   openDetail: (m: Match) => void;
@@ -173,7 +175,7 @@ export function HomeScreen({
   const poolMessage =
     matchingPoolStatus?.suggestions[0] ??
     "No verified profiles meet your preferences right now. We will refresh your introductions as the community grows.";
-  const firstName = profileGrowth.hasPhoto ? "Shivay" : "Shivay";
+  // firstName is now passed as a prop from the caller
   const railItems = [
     { label: "Home", screen: "home" as Screen, icon: "home" as const },
     {
