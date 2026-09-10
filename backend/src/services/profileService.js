@@ -1,15 +1,29 @@
-const crypto = require('crypto');
-const { query } = require('../config/db');
+const crypto = require("crypto");
+const { query } = require("../config/db");
 async function getFullProfile(userId) {
-  const [profile] = await query('SELECT * FROM profiles WHERE user_id = ?', [userId]);
+  const [profile] = await query("SELECT * FROM profiles WHERE user_id = ?", [
+    userId,
+  ]);
   const photos = await query(
-    'SELECT id, photo_url, position FROM profile_photos WHERE user_id = ? ORDER BY position ASC',
+    "SELECT id, photo_url, position FROM profile_photos WHERE user_id = ? ORDER BY position ASC",
     [userId],
   );
-  const vibes = await query('SELECT vibe FROM profile_vibes WHERE user_id = ?', [userId]);
-  const [intent] = await query('SELECT * FROM profile_intent WHERE user_id = ?', [userId]);
-  const [prefs] = await query('SELECT * FROM matching_preferences WHERE user_id = ?', [userId]);
-  const [mode] = await query('SELECT mode FROM experience_mode WHERE user_id = ?', [userId]);
+  const vibes = await query(
+    "SELECT vibe FROM profile_vibes WHERE user_id = ?",
+    [userId],
+  );
+  const [intent] = await query(
+    "SELECT * FROM profile_intent WHERE user_id = ?",
+    [userId],
+  );
+  const [prefs] = await query(
+    "SELECT * FROM matching_preferences WHERE user_id = ?",
+    [userId],
+  );
+  const [mode] = await query(
+    "SELECT mode FROM experience_mode WHERE user_id = ?",
+    [userId],
+  );
   return {
     profile: profile || null,
     photos: photos.map((p) => p.photo_url),
@@ -23,12 +37,12 @@ async function getFullProfile(userId) {
           must_have_vibes: safeParseJson(prefs.must_have_vibes, []),
         }
       : null,
-    experienceMode: mode?.mode || 'seeking',
+    experienceMode: mode?.mode || "seeking",
   };
 }
 function safeParseJson(value, fallback) {
   if (value == null) return fallback;
-  if (typeof value === 'object') return value;
+  if (typeof value === "object") return value;
   try {
     return JSON.parse(value);
   } catch {
@@ -37,7 +51,15 @@ function safeParseJson(value, fallback) {
 }
 async function upsertProfile(userId, input) {
   const {
-    firstName, gender, age, height, city, profession, religion, community, about,
+    firstName,
+    gender,
+    age,
+    height,
+    city,
+    profession,
+    religion,
+    community,
+    about,
   } = input;
   await query(
     `INSERT INTO profiles (user_id, first_name, gender, age, height, city, profession, religion, community, about)
@@ -46,22 +68,42 @@ async function upsertProfile(userId, input) {
        first_name = VALUES(first_name), gender = VALUES(gender), age = VALUES(age),
        height = VALUES(height), city = VALUES(city), profession = VALUES(profession),
        religion = VALUES(religion), community = VALUES(community), about = VALUES(about)`,
-    [userId, firstName || null, gender || null, age || null, height || null, city || null, profession || null, religion || null, community || null, about || null],
+    [
+      userId,
+      firstName || null,
+      gender || null,
+      age || null,
+      height || null,
+      city || null,
+      profession || null,
+      religion || null,
+      community || null,
+      about || null,
+    ],
+  );
+}
+async function submitVerification(userId, selfieUrl) {
+  await query(
+    "UPDATE profiles SET selfie_uri = ?, verified = 1 WHERE user_id = ?",
+    [selfieUrl, userId],
   );
 }
 async function replacePhotos(userId, photoUrls) {
-  await query('DELETE FROM profile_photos WHERE user_id = ?', [userId]);
+  await query("DELETE FROM profile_photos WHERE user_id = ?", [userId]);
   for (let i = 0; i < photoUrls.length; i += 1) {
     await query(
-      'INSERT INTO profile_photos (id, user_id, photo_url, position) VALUES (?, ?, ?, ?)',
+      "INSERT INTO profile_photos (id, user_id, photo_url, position) VALUES (?, ?, ?, ?)",
       [crypto.randomUUID(), userId, photoUrls[i], i],
     );
   }
 }
 async function replaceVibes(userId, vibes) {
-  await query('DELETE FROM profile_vibes WHERE user_id = ?', [userId]);
+  await query("DELETE FROM profile_vibes WHERE user_id = ?", [userId]);
   for (const vibe of vibes) {
-    await query('INSERT INTO profile_vibes (user_id, vibe) VALUES (?, ?)', [userId, vibe]);
+    await query("INSERT INTO profile_vibes (user_id, vibe) VALUES (?, ?)", [
+      userId,
+      vibe,
+    ]);
   }
 }
 async function upsertIntent(userId, input) {
@@ -72,13 +114,30 @@ async function upsertIntent(userId, input) {
      ON DUPLICATE KEY UPDATE
        intent = VALUES(intent), timeline = VALUES(timeline), children = VALUES(children),
        family = VALUES(family), relocation = VALUES(relocation)`,
-    [userId, intent || null, timeline || null, children || null, family || null, relocation || null],
+    [
+      userId,
+      intent || null,
+      timeline || null,
+      children || null,
+      family || null,
+      relocation || null,
+    ],
   );
 }
 async function upsertPreferences(userId, input) {
   const {
-    lookingFor, minAge, maxAge, cities, intents, mustHaveVibes,
-    familyPriority, children, marriageTimeline, relocation, distancePreference, smartDiscovery,
+    lookingFor,
+    minAge,
+    maxAge,
+    cities,
+    intents,
+    mustHaveVibes,
+    familyPriority,
+    children,
+    marriageTimeline,
+    relocation,
+    distancePreference,
+    smartDiscovery,
   } = input;
   await query(
     `INSERT INTO matching_preferences
@@ -93,7 +152,7 @@ async function upsertPreferences(userId, input) {
        distance_preference = VALUES(distance_preference), smart_discovery = VALUES(smart_discovery)`,
     [
       userId,
-      lookingFor || 'everyone',
+      lookingFor || "everyone",
       minAge ?? 21,
       maxAge ?? 45,
       JSON.stringify(cities || []),
@@ -116,18 +175,23 @@ async function setExperienceMode(userId, mode) {
   );
 }
 async function markOnboardingComplete(userId) {
-  await query('UPDATE profiles SET onboarding_complete = 1 WHERE user_id = ?', [userId]);
+  await query("UPDATE profiles SET onboarding_complete = 1 WHERE user_id = ?", [
+    userId,
+  ]);
 }
 // ---------- Discovery: find real users matching preferences ----------
 async function findMatches(userId, limit = 20) {
-  const [myPrefs] = await query('SELECT * FROM matching_preferences WHERE user_id = ?', [userId]);
+  const [myPrefs] = await query(
+    "SELECT * FROM matching_preferences WHERE user_id = ?",
+    [userId],
+  );
   const minAge = myPrefs?.min_age ?? 21;
   const maxAge = myPrefs?.max_age ?? 45;
-  const lookingFor = myPrefs?.looking_for || 'everyone';
-  let genderClause = '';
-  if (lookingFor === 'women') {
+  const lookingFor = myPrefs?.looking_for || "everyone";
+  let genderClause = "";
+  if (lookingFor === "women") {
     genderClause = "AND p.gender = 'woman'";
-  } else if (lookingFor === 'men') {
+  } else if (lookingFor === "men") {
     genderClause = "AND p.gender = 'man'";
   }
   const candidates = await query(
@@ -155,38 +219,41 @@ async function findMatches(userId, limit = 20) {
   const results = [];
   for (const candidate of candidates) {
     const photos = await query(
-      'SELECT photo_url FROM profile_photos WHERE user_id = ? ORDER BY position ASC',
+      "SELECT photo_url FROM profile_photos WHERE user_id = ? ORDER BY position ASC",
       [candidate.user_id],
     );
-    const vibes = await query('SELECT vibe FROM profile_vibes WHERE user_id = ?', [candidate.user_id]);
+    const vibes = await query(
+      "SELECT vibe FROM profile_vibes WHERE user_id = ?",
+      [candidate.user_id],
+    );
     const [intentRow] = await query(
-      'SELECT intent, timeline, children, family, relocation FROM profile_intent WHERE user_id = ?',
+      "SELECT intent, timeline, children, family, relocation FROM profile_intent WHERE user_id = ?",
       [candidate.user_id],
     );
     results.push({
       id: candidate.user_id,
       profileId: candidate.user_id,
       matchId: candidate.user_id,
-      name: candidate.first_name || 'Member',
+      name: candidate.first_name || "Member",
       age: candidate.age || 0,
-      city: candidate.city || '',
-      profession: candidate.profession || '',
-      gender: candidate.gender || 'nonbinary',
-      intent: intentRow?.intent || '',
-      match: 'Great Match',
+      city: candidate.city || "",
+      profession: candidate.profession || "",
+      gender: candidate.gender || "nonbinary",
+      intent: intentRow?.intent || "",
+      match: "Great Match",
       vibes: vibes.map((v) => v.vibe),
-      photo: photos[0]?.photo_url || '',
+      photo: photos[0]?.photo_url || "",
       photos: photos.map((p) => p.photo_url),
-      about: candidate.about || '',
-      values: '',
-      goals: '',
-      timeline: intentRow?.timeline || '',
-      children: intentRow?.children || '',
-      family: intentRow?.family || '',
-      relocation: intentRow?.relocation || '',
+      about: candidate.about || "",
+      values: "",
+      goals: "",
+      timeline: intentRow?.timeline || "",
+      children: intentRow?.children || "",
+      family: intentRow?.family || "",
+      relocation: intentRow?.relocation || "",
       languages: [],
       interests: [],
-      familyPriority: 'balanced',
+      familyPriority: "balanced",
       vouches: { count: 0, qualities: [] },
     });
   }
@@ -195,6 +262,7 @@ async function findMatches(userId, limit = 20) {
 module.exports = {
   getFullProfile,
   upsertProfile,
+  submitVerification,
   replacePhotos,
   replaceVibes,
   upsertIntent,

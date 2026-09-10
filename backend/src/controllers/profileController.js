@@ -33,6 +33,13 @@ const updateProfile = asyncHandler(async (req, res) => {
   });
   res.json({ ok: true });
 });
+const submitVerification = asyncHandler(async (req, res) => {
+  const { selfieUrl } = req.body;
+  if (!selfieUrl || typeof selfieUrl !== "string")
+    throw new ApiError(400, "selfieUrl is required");
+  await profileService.submitVerification(req.user.id, selfieUrl);
+  res.json({ ok: true });
+});
 const updatePhotos = asyncHandler(async (req, res) => {
   const { photos } = req.body;
   if (!Array.isArray(photos))
@@ -86,6 +93,7 @@ const discoverMatches = asyncHandler(async (req, res) => {
 module.exports = {
   getMyProfile,
   updateProfile,
+  submitVerification,
   updatePhotos,
   uploadPhoto,
   updateVibes,

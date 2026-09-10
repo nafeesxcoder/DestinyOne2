@@ -140,15 +140,18 @@ import {
 } from "../domain/coupleMode";
 import { createLocalCoupleModeRepository } from "./adapters/localCoupleModeRepository";
 import {
-  fetchCurrentCoupleConnectionHub,
-  respondToCoupleConnectionRequest,
-  saveCoupleModeMemberProfile,
-  searchCouplePartnerByPhone,
-  sendCoupleConnectionRequest,
-  setServerCoupleMode,
+  fetchCurrentCoupleConnectionHub as fetchCurrentCoupleConnectionHubPreview,
+  respondToCoupleConnectionRequest as respondToCoupleConnectionRequestPreview,
+  saveCoupleModeMemberProfile as saveCoupleModeMemberProfilePreview,
+  searchCouplePartnerByPhone as searchCouplePartnerByPhonePreview,
+  sendCoupleConnectionRequest as sendCoupleConnectionRequestPreview,
+  setServerCoupleMode as setServerCoupleModePreview,
+} from "./adapters/previewCoupleConnection";
+import {
   type CoupleConnectionHub,
   type CouplePartnerSummary,
-} from "./adapters/previewCoupleConnection";
+} from "../domain/coupleConnection";
+import { coupleApi } from "../api/coupleApi";
 import { searchChatGifCatalog } from "../domain/chatMediaCatalog";
 import {
   applyMessageDeletion,
@@ -1093,7 +1096,11 @@ function DestinyOneApp() {
       return;
     let active = true;
     const sync = () =>
-      void fetchCurrentCoupleConnectionHub()
+      void (
+        accessToken
+          ? coupleApi.getHub(accessToken)
+          : fetchCurrentCoupleConnectionHubPreview()
+      )
         .then((hub) => {
           if (active) applyCoupleHub(hub);
         })
@@ -1107,7 +1114,7 @@ function DestinyOneApp() {
       active = false;
       clearInterval(timer);
     };
-  }, [hydrated, coupleMode.experienceMode, screen]);
+  }, [hydrated, coupleMode.experienceMode, screen, accessToken]);
   useEffect(() => {
     if (coupleMode.experienceMode !== "couple" || !isCoupleModeRoute(screen))
       return;
@@ -1289,7 +1296,11 @@ function DestinyOneApp() {
         incomingRequests: [],
         outgoingRequests: [],
       });
-      void setServerCoupleMode(false).catch((error) =>
+      void (
+        accessToken
+          ? coupleApi.setMode(accessToken, false)
+          : setServerCoupleModePreview(false)
+      ).catch((error) =>
         setAppNotice({
           title: "Mode not updated",
           body:
@@ -1351,8 +1362,13 @@ function DestinyOneApp() {
     city: string;
     profession: string;
   }) => {
-    await saveCoupleModeMemberProfile(input);
-    await setServerCoupleMode(true);
+    if (accessToken) {
+      await profileApi.updateProfile(accessToken, input);
+      await profileApi.updateMode(accessToken, "couple");
+    } else {
+      await saveCoupleModeMemberProfilePreview(input);
+      await setServerCoupleModePreview(true);
+    }
     setProfileDraft((current) => ({
       ...current,
       firstName: input.firstName.trim(),
@@ -1363,9 +1379,13 @@ function DestinyOneApp() {
     setOnboardingComplete(true);
   };
   const searchCouplePartner = (phone: string) =>
-    searchCouplePartnerByPhone(phone);
+    accessToken
+      ? coupleApi.searchByPhone(accessToken, phone)
+      : searchCouplePartnerByPhonePreview(phone);
   const requestCoupleConnection = async (member: CouplePartnerSummary) => {
-    const request = await sendCoupleConnectionRequest(member);
+    const request = accessToken
+      ? await coupleApi.sendRequest(accessToken, member.memberId)
+      : await sendCoupleConnectionRequestPreview(member);
     setCoupleHub((current) => ({ ...current, outgoingRequests: [request] }));
     return request;
   };
@@ -1373,7 +1393,9 @@ function DestinyOneApp() {
     requestId: string,
     accept: boolean,
   ) => {
-    const hub = await respondToCoupleConnectionRequest(requestId, accept);
+    const hub = accessToken
+      ? await coupleApi.respond(accessToken, requestId, accept)
+      : await respondToCoupleConnectionRequestPreview(requestId, accept);
     applyCoupleHub(hub);
     if (accept && hub.connection) setScreen("home");
   };
