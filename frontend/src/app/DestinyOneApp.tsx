@@ -923,7 +923,17 @@ function DestinyOneApp() {
             nextScreen = onboardingDone ? "home" : "profileSetup";
             setAuthDestination(me.user.email || me.user.phone || "");
           }
-        } catch {
+        } catch (error) {
+          console.log("Session restore failed:", error);
+          setAppNotice({
+            title: "Session restore failed",
+            body:
+              error instanceof Error
+                ? error.message
+                : "Could not reach the DestinyOne server.",
+            icon: "cloud-offline-outline",
+            tone: "ruby",
+          });
           await AsyncStorage.removeItem("destinyone_access_token");
           await AsyncStorage.removeItem("destinyone_refresh_token");
         }
@@ -3013,14 +3023,45 @@ function DestinyOneApp() {
             hasVoiceIntro={!!voiceIntroUri}
             vouches={vouches}
             onBack={() => setScreen("profile")}
-            onVerify={() => {
-              setVerified(true);
-              setAppNotice({
-                title: "Trust badge upgraded",
-                body: "Your selfie check is complete for this demo. Additional identity checks will appear here when live verification is available.",
-                icon: "shield-checkmark",
-                tone: "gold",
-              });
+            onVerify={async () => {
+              if (!accessToken) {
+                setAppNotice({
+                  title: "Sign in required",
+                  body: "Please sign in again to complete verification.",
+                  icon: "shield-outline",
+                  tone: "ruby",
+                });
+                return;
+              }
+              if (!selfieUri) {
+                setAppNotice({
+                  title: "Selfie required",
+                  body: "Add a selfie photo before submitting for verification.",
+                  icon: "camera-outline",
+                  tone: "ruby",
+                });
+                return;
+              }
+              try {
+                await profileApi.submitVerification(accessToken, selfieUri);
+                setVerified(true);
+                setAppNotice({
+                  title: "Trust badge upgraded",
+                  body: "Your selfie has been submitted and saved to your account.",
+                  icon: "shield-checkmark",
+                  tone: "gold",
+                });
+              } catch (error) {
+                setAppNotice({
+                  title: "Verification failed",
+                  body:
+                    error instanceof Error
+                      ? error.message
+                      : "Could not submit verification. Please try again.",
+                  icon: "cloud-offline-outline",
+                  tone: "ruby",
+                });
+              }
             }}
             onOpenSafety={() => setScreen("safety")}
           />
@@ -3280,6 +3321,7 @@ function DestinyOneApp() {
             profile={profileDraft}
             verified={verified}
             profilePhoto={profilePhotos[0]}
+            photoCount={profilePhotos.length}
             hasVoiceIntro={!!voiceIntroUri}
             lastSeenVisible={lastSeenVisible}
             analyticsConsent={analyticsConsent}

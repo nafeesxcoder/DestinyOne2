@@ -53,6 +53,7 @@ export function ProfileScreen({
   profile,
   verified,
   profilePhoto,
+  photoCount = 0,
   hasVoiceIntro,
   lastSeenVisible,
   analyticsConsent,
@@ -77,6 +78,7 @@ export function ProfileScreen({
   profile: ProfileDraft;
   verified: boolean;
   profilePhoto?: string;
+  photoCount?: number;
   hasVoiceIntro: boolean;
   lastSeenVisible: boolean;
   analyticsConsent: boolean;
@@ -237,7 +239,7 @@ export function ProfileScreen({
       ];
   const profileStats = [
     {
-      value: profilePhoto ? "1 / 3" : "0 / 3",
+      value: `${Math.min(photoCount, 3)} / 3`,
       label: "Photos",
       icon: "images-outline" as const,
     },

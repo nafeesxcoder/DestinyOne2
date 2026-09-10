@@ -38,6 +38,12 @@ export const profileApi = {
       body: JSON.stringify(input),
     });
   },
+  async submitVerification(accessToken: string, selfieUrl: string) {
+    return authFetch("/profile/verify", accessToken, {
+      method: "POST",
+      body: JSON.stringify({ selfieUrl }),
+    });
+  },
   async updatePhotos(accessToken: string, photos: string[]) {
     return authFetch("/profile/photos", accessToken, {
       method: "PUT",
