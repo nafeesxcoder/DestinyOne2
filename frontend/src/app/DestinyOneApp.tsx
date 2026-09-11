@@ -2219,7 +2219,7 @@ function DestinyOneApp() {
     setScreen("chat");
   };
   const completeOnboarding = async () => {
-    if (!isPreviewAccessMode) {
+    if (!isPreviewAccessMode && !accessToken) {
       const result = await persistOnboardingProfile({
         profile: profileDraft,
         photos: profilePhotos,
