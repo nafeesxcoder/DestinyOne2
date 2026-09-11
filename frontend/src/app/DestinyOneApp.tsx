@@ -86,18 +86,18 @@ import {
 } from "../features/gifts/adapters/previewGiftRuntime";
 import { requestGiftConciergeV2 } from "../features/gifts/adapters/previewGiftConcierge";
 import {
-  fetchPersistedChatMessages,
+  fetchPersistedChatMessages as fetchPersistedChatMessagesPreview,
   fetchPersistedRelationshipJourney,
   persistBlock,
-  persistChatMessage,
+  persistChatMessage as persistChatMessagePreview,
   persistChatSettings,
   persistClearMatchingLearning,
-  persistDatePlanStatus,
-  persistDateProposal,
+  persistDatePlanStatus as persistDatePlanStatusPreview,
+  persistDateProposal as persistDateProposalPreview,
   persistDateSafetyPlan,
   persistDiscoverySignal,
   persistIcebreakerAnswer,
-  persistLiveLocationShare,
+  persistLiveLocationShare as persistLiveLocationSharePreview,
   persistMatchDecision,
   persistMatchFeedback,
   persistMatchingPreferences,
@@ -113,8 +113,9 @@ import {
   persistRelationshipReminder,
   persistReport,
   persistUnmatch,
-  subscribePersistedChatMessages,
+  subscribePersistedChatMessages as subscribePersistedChatMessagesPreview,
 } from "./adapters/previewPersistence";
+import { chatApi } from "../api/chatApi";
 import { conversationIdFor, profileIdFor } from "../domain/matchIdentity";
 import { previewEntitlementAllowed } from "../domain/monetizationOps";
 import { usePreviewStoreBilling } from "./adapters/usePreviewStoreBilling";
@@ -1378,6 +1379,61 @@ function DestinyOneApp() {
     }));
     setOnboardingComplete(true);
   };
+  const fetchPersistedChatMessages = (conversationId: string) =>
+    accessToken
+      ? chatApi.fetchMessages(accessToken, conversationId)
+      : fetchPersistedChatMessagesPreview(conversationId);
+  const subscribePersistedChatMessages = (
+    conversationId: string,
+    onMessage: (message: ChatMessage) => void,
+  ) => {
+    if (!accessToken)
+      return subscribePersistedChatMessagesPreview(conversationId, onMessage);
+    let active = true;
+    let sinceMs = Date.now();
+    const poll = () => {
+      if (!active) return;
+      void chatApi
+        .fetchMessagesSince(accessToken, conversationId, sinceMs)
+        .then((messages) => {
+          if (!active || !messages.length) return;
+          sinceMs = Math.max(sinceMs, ...messages.map((m) => m.createdAt));
+          messages.forEach(onMessage);
+        })
+        .catch(() => undefined);
+    };
+    const timer = setInterval(poll, 3000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  };
+  const persistChatMessage = (conversationId: string, message: ChatMessage) =>
+    accessToken
+      ? chatApi.sendMessage(accessToken, conversationId, message)
+      : persistChatMessagePreview(conversationId, message);
+  const persistDateProposal = (
+    conversationId: string,
+    date: NonNullable<ChatMessage["date"]>,
+  ) =>
+    accessToken
+      ? chatApi.sendDateProposal(accessToken, conversationId, date)
+      : persistDateProposalPreview(conversationId, date);
+  const persistDatePlanStatus = (
+    proposalId: string | undefined,
+    status: DatePlanStatus,
+  ) =>
+    accessToken
+      ? chatApi.setDatePlanStatus(accessToken, proposalId, status)
+      : persistDatePlanStatusPreview(proposalId, status);
+  const persistLiveLocationShare = (
+    conversationId: string,
+    location: NonNullable<ChatMessage["location"]>,
+    clientActionId: string,
+  ) =>
+    accessToken
+      ? chatApi.shareLiveLocation(accessToken, conversationId, location, clientActionId)
+      : persistLiveLocationSharePreview(conversationId, location, clientActionId);
   const searchCouplePartner = (phone: string) =>
     accessToken
       ? coupleApi.searchByPhone(accessToken, phone)

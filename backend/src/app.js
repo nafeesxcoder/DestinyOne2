@@ -5,6 +5,7 @@ const authRoutes = require("./routes/authRoutes"); // Directly import auth route
 const profileRoutes = require("./routes/profileRoutes"); // Directly import profile routes
 const matchRoutes = require("./routes/matchRoutes"); // Directly import match routes
 const coupleRoutes = require("./routes/coupleRoutes"); // Directly import couple routes
+const chatRoutes = require("./routes/chatRoutes"); // Directly import chat routes
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
 const app = express();
 app.use(cors());
@@ -16,10 +17,11 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 app.use("/auth", authRoutes);
 // Mount profile routes under /profile
 app.use("/profile", profileRoutes);
-// Mount match routes under /matches
+// Mount match routes under /matche
 app.use("/matches", matchRoutes);
 // Mount couple connection routes under /couple
 app.use("/couple", coupleRoutes);
+app.use("/chat", chatRoutes);
 // If you have other route modules (like gifts, users, etc.), mount them here
 // app.use('/gifts', giftRoutes);
 // app.use('/users', userRoutes);
