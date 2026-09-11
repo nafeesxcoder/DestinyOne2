@@ -1,4 +1,4 @@
-import type { ChatMessage, DatePlanStatus } from "../storage";
+﻿import type { ChatMessage, DatePlanStatus } from "../storage";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -85,6 +85,40 @@ export const chatApi = {
     return authFetch(`/chat/${conversationId}/location`, accessToken, {
       method: "POST",
       body: JSON.stringify({ location, clientActionId }),
+    }) as Promise<PersistenceResult<{ ok: boolean }>>;
+  },
+
+  async editMessage(
+    accessToken: string,
+    conversationId: string,
+    messageId: string,
+    text: string,
+  ): Promise<PersistenceResult<ChatMessage>> {
+    return authFetch(`/chat/${conversationId}/messages/${messageId}`, accessToken, {
+      method: "PUT",
+      body: JSON.stringify({ text }),
+    }) as Promise<PersistenceResult<ChatMessage>>;
+  },
+
+  async deleteMessage(
+    accessToken: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<PersistenceResult<ChatMessage>> {
+    return authFetch(`/chat/${conversationId}/messages/${messageId}`, accessToken, {
+      method: "DELETE",
+    }) as Promise<PersistenceResult<ChatMessage>>;
+  },
+
+  async setMessageState(
+    accessToken: string,
+    conversationId: string,
+    messageId: string,
+    input: { starred?: boolean; pinned?: boolean; hidden?: boolean; reaction?: string | null },
+  ): Promise<PersistenceResult<{ ok: boolean }>> {
+    return authFetch(`/chat/${conversationId}/messages/${messageId}/state`, accessToken, {
+      method: "PUT",
+      body: JSON.stringify(input),
     }) as Promise<PersistenceResult<{ ok: boolean }>>;
   },
 };

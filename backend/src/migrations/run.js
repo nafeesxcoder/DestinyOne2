@@ -1,12 +1,12 @@
-const fs = require('fs');
-const path = require('path');
-const { pool } = require('../config/db');
+﻿const fs = require("fs");
+const path = require("path");
+const { pool } = require("../config/db");
 
 async function run() {
   const migrationsDir = __dirname;
   const files = fs
     .readdirSync(migrationsDir)
-    .filter((file) => file.endsWith('.sql'))
+    .filter((file) => file.endsWith(".sql"))
     .sort();
 
   const connection = await pool.getConnection();
@@ -14,18 +14,25 @@ async function run() {
     let totalStatements = 0;
     for (const file of files) {
       const sqlPath = path.join(migrationsDir, file);
-      const sql = fs.readFileSync(sqlPath, 'utf8');
+      const sql = fs.readFileSync(sqlPath, "utf8");
       const statements = sql
-        .split(';')
+        .split(";")
         .map((statement) => statement.trim())
         .filter(Boolean);
       for (const statement of statements) {
-        await connection.query(statement);
+        try {
+          await connection.query(statement);
+        } catch (error) {
+          const skippable = ["ER_DUP_FIELDNAME", "ER_DUP_KEYNAME", "ER_TABLE_EXISTS_ERROR"];
+          if (!skippable.includes(error.code)) throw error;
+        }
       }
       console.log(`${file}: ${statements.length} statements executed.`);
       totalStatements += statements.length;
     }
-    console.log(`Migration complete: ${totalStatements} statements executed across ${files.length} files.`);
+    console.log(
+      `Migration complete: ${totalStatements} statements executed across ${files.length} files.`,
+    );
   } finally {
     connection.release();
     await pool.end();
@@ -33,6 +40,6 @@ async function run() {
 }
 
 run().catch((error) => {
-  console.error('Migration failed:', error);
+  console.error("Migration failed:", error);
   process.exit(1);
 });

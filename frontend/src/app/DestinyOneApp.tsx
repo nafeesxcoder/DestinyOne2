@@ -101,9 +101,9 @@ import {
   persistMatchDecision,
   persistMatchFeedback,
   persistMatchingPreferences,
-  persistMessageDelete,
-  persistMessageEdit,
-  persistMessageUserState,
+  persistMessageDelete as persistMessageDeletePreview,
+  persistMessageEdit as persistMessageEditPreview,
+  persistMessageUserState as persistMessageUserStatePreview,
   persistOnboardingProfile,
   persistPrivacySettings,
   persistProfileView,
@@ -1432,8 +1432,42 @@ function DestinyOneApp() {
     clientActionId: string,
   ) =>
     accessToken
-      ? chatApi.shareLiveLocation(accessToken, conversationId, location, clientActionId)
-      : persistLiveLocationSharePreview(conversationId, location, clientActionId);
+      ? chatApi.shareLiveLocation(
+          accessToken,
+          conversationId,
+          location,
+          clientActionId,
+        )
+      : persistLiveLocationSharePreview(
+          conversationId,
+          location,
+          clientActionId,
+        );
+  const persistMessageEdit = (
+    conversationId: string,
+    messageId: string,
+    text: string,
+  ) =>
+    accessToken
+      ? chatApi.editMessage(accessToken, conversationId, messageId, text)
+      : persistMessageEditPreview(conversationId, messageId, text);
+  const persistMessageDelete = (conversationId: string, messageId: string) =>
+    accessToken
+      ? chatApi.deleteMessage(accessToken, conversationId, messageId)
+      : persistMessageDeletePreview(conversationId, messageId);
+  const persistMessageUserState = (
+    conversationId: string,
+    messageId: string,
+    input: {
+      starred?: boolean;
+      pinned?: boolean;
+      hidden?: boolean;
+      reaction?: string | null;
+    },
+  ) =>
+    accessToken
+      ? chatApi.setMessageState(accessToken, conversationId, messageId, input)
+      : persistMessageUserStatePreview(conversationId, messageId, input);
   const searchCouplePartner = (phone: string) =>
     accessToken
       ? coupleApi.searchByPhone(accessToken, phone)
@@ -2219,7 +2253,7 @@ function DestinyOneApp() {
     setScreen("chat");
   };
   const completeOnboarding = async () => {
-    if (!isPreviewAccessMode && !accessToken) {
+    if (!isPreviewAccessMode) {
       const result = await persistOnboardingProfile({
         profile: profileDraft,
         photos: profilePhotos,

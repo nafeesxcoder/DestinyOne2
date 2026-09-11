@@ -1,4 +1,4 @@
-const asyncHandler = require('../utils/asyncHandler');
+﻿const asyncHandler = require('../utils/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 const chatService = require('../services/chatService');
 
@@ -43,4 +43,27 @@ const postLocation = wrap(async (req) => {
   return chatService.shareLiveLocation(req.params.conversationId, req.user.id, location, clientActionId);
 });
 
-module.exports = { getMessages, postMessage, postDateProposal, putDatePlanStatus, postLocation };
+const putEditMessage = wrap(async (req) => {
+  const { text } = req.body;
+  if (typeof text !== 'string') throw new ApiError(400, 'text is required');
+  return chatService.editMessage(req.params.conversationId, req.user.id, req.params.messageId, text);
+});
+
+const deleteMessageHandler = wrap(async (req) => {
+  return chatService.deleteMessage(req.params.conversationId, req.user.id, req.params.messageId);
+});
+
+const putMessageState = wrap(async (req) => {
+  return chatService.setMessageState(req.params.conversationId, req.user.id, req.params.messageId, req.body);
+});
+
+module.exports = {
+  getMessages,
+  postMessage,
+  postDateProposal,
+  putDatePlanStatus,
+  postLocation,
+  putEditMessage,
+  deleteMessageHandler,
+  putMessageState,
+};
