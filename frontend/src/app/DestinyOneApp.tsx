@@ -88,7 +88,7 @@ import { requestGiftConciergeV2 } from "../features/gifts/adapters/previewGiftCo
 import {
   fetchPersistedChatMessages as fetchPersistedChatMessagesPreview,
   fetchPersistedRelationshipJourney,
-  persistBlock,
+  persistBlock as persistBlockPreview,
   persistChatMessage as persistChatMessagePreview,
   persistChatSettings,
   persistClearMatchingLearning,
@@ -111,11 +111,12 @@ import {
   persistRelationshipJourneyEvent,
   persistRelationshipReflection,
   persistRelationshipReminder,
-  persistReport,
-  persistUnmatch,
+  persistReport as persistReportPreview,
+  persistUnmatch as persistUnmatchPreview,
   subscribePersistedChatMessages as subscribePersistedChatMessagesPreview,
 } from "./adapters/previewPersistence";
 import { chatApi } from "../api/chatApi";
+import { safetyApi } from "../api/safetyApi";
 import { conversationIdFor, profileIdFor } from "../domain/matchIdentity";
 import { previewEntitlementAllowed } from "../domain/monetizationOps";
 import { usePreviewStoreBilling } from "./adapters/usePreviewStoreBilling";
@@ -2486,12 +2487,15 @@ function DestinyOneApp() {
     details?: string,
   ) => {
     const reportId = `report-${Date.now()}`;
-    const result = await persistReport(
-      profileIdFor(match),
-      reason,
-      details,
-      reportId,
-    );
+    const result = accessToken
+      ? await safetyApi.report(
+          accessToken,
+          profileIdFor(match),
+          reason,
+          details,
+          reportId,
+        )
+      : await persistReportPreview(profileIdFor(match), reason, details, reportId);
     if (
       !confirmMemberMutation(
         result,
@@ -2519,7 +2523,9 @@ function DestinyOneApp() {
     return true;
   };
   const blockMatch = async (match: Match) => {
-    const result = await persistBlock(profileIdFor(match));
+    const result = accessToken
+      ? await safetyApi.block(accessToken, profileIdFor(match))
+      : await persistBlockPreview(profileIdFor(match));
     if (
       !confirmMemberMutation(
         result,
@@ -2539,10 +2545,9 @@ function DestinyOneApp() {
     return true;
   };
   const unmatchMatch = async (match: Match) => {
-    const result = await persistUnmatch(
-      conversationIdFor(match),
-      `unmatch-${Date.now()}`,
-    );
+    const result = accessToken
+      ? await safetyApi.unmatch(accessToken, conversationIdFor(match))
+      : await persistUnmatchPreview(conversationIdFor(match), `unmatch-${Date.now()}`);
     if (
       !confirmMemberMutation(
         result,
