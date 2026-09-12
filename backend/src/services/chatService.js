@@ -1,5 +1,5 @@
-﻿const crypto = require("crypto");
-const { query } = require("../config/db");
+﻿const crypto = require('crypto');
+const { query } = require('../config/db');
 
 async function assertParticipant(conversationId, userId) {
   const mutual = await query(
@@ -16,14 +16,14 @@ async function assertParticipant(conversationId, userId) {
   );
   if (couple.length) return [couple[0].requester_id, couple[0].partner_id];
 
-  const err = new Error("You do not have access to this conversation.");
+  const err = new Error('You do not have access to this conversation.');
   err.status = 403;
   throw err;
 }
 
 function parseJsonColumn(value, fallback) {
   if (value === null || value === undefined) return fallback;
-  return typeof value === "string" ? JSON.parse(value) : value;
+  return typeof value === 'string' ? JSON.parse(value) : value;
 }
 
 function rowToMessage(row, viewerId) {
@@ -39,12 +39,8 @@ function rowToMessage(row, viewerId) {
     createdAt: Number(row.created_at_ms),
     starredByMe: starredBy.includes(viewerId),
     pinnedAt: row.pinned_at ? new Date(row.pinned_at).getTime() : undefined,
-    reactions: reactionsMap[viewerId]
-      ? { me: reactionsMap[viewerId] }
-      : undefined,
-    editedAt: row.edited_at
-      ? new Date(row.edited_at).getTime()
-      : payload.editedAt,
+    reactions: reactionsMap[viewerId] ? { me: reactionsMap[viewerId] } : undefined,
+    editedAt: row.edited_at ? new Date(row.edited_at).getTime() : payload.editedAt,
     deletedAt: row.deleted_at ? new Date(row.deleted_at).getTime() : undefined,
     deletedForEveryone: !!row.deleted_for_everyone,
   };
@@ -53,11 +49,11 @@ function rowToMessage(row, viewerId) {
 async function getOwnedMessage(conversationId, userId, messageId) {
   await assertParticipant(conversationId, userId);
   const rows = await query(
-    "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
+    'SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?',
     [messageId, conversationId],
   );
   if (!rows.length) {
-    const err = new Error("Message not found");
+    const err = new Error('Message not found');
     err.status = 404;
     throw err;
   }
@@ -67,23 +63,23 @@ async function getOwnedMessage(conversationId, userId, messageId) {
 async function editMessage(conversationId, userId, messageId, text) {
   const row = await getOwnedMessage(conversationId, userId, messageId);
   if (row.sender_id !== userId) {
-    const err = new Error("You can only edit your own messages.");
+    const err = new Error('You can only edit your own messages.');
     err.status = 403;
     throw err;
   }
   if (row.deleted_at) {
-    const err = new Error("This message has been deleted.");
+    const err = new Error('This message has been deleted.');
     err.status = 400;
     throw err;
   }
   const payload = parseJsonColumn(row.payload, {});
   payload.text = text;
   await query(
-    "UPDATE chat_messages SET payload = ?, edited_at = NOW(6) WHERE id = ? AND conversation_id = ?",
-    [JSON.stringify(payload), messageId, conversationId],
+    'UPDATE chat_messages SET payload = ?, edited_at = NOW(6), updated_at_ms = ? WHERE id = ? AND conversation_id = ?',
+    [JSON.stringify(payload), Date.now(), messageId, conversationId],
   );
   const [updated] = await query(
-    "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
+    'SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?',
     [messageId, conversationId],
   );
   return rowToMessage(updated, userId);
@@ -92,7 +88,7 @@ async function editMessage(conversationId, userId, messageId, text) {
 async function deleteMessage(conversationId, userId, messageId) {
   const row = await getOwnedMessage(conversationId, userId, messageId);
   if (row.sender_id !== userId) {
-    const err = new Error("You can only delete your own messages.");
+    const err = new Error('You can only delete your own messages.');
     err.status = 403;
     throw err;
   }
@@ -109,11 +105,11 @@ async function deleteMessage(conversationId, userId, messageId) {
     linkPreview: undefined,
   };
   await query(
-    "UPDATE chat_messages SET payload = ?, deleted_at = NOW(6), deleted_for_everyone = 1 WHERE id = ? AND conversation_id = ?",
-    [JSON.stringify(cleared), messageId, conversationId],
+    'UPDATE chat_messages SET payload = ?, deleted_at = NOW(6), deleted_for_everyone = 1, updated_at_ms = ? WHERE id = ? AND conversation_id = ?',
+    [JSON.stringify(cleared), Date.now(), messageId, conversationId],
   );
   const [updated] = await query(
-    "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
+    'SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?',
     [messageId, conversationId],
   );
   return rowToMessage(updated, userId);
@@ -122,13 +118,13 @@ async function deleteMessage(conversationId, userId, messageId) {
 async function setMessageState(conversationId, userId, messageId, input) {
   const row = await getOwnedMessage(conversationId, userId, messageId);
   let starredBy = parseJsonColumn(row.starred_by, []);
-  if (typeof input.starred === "boolean") {
+  if (typeof input.starred === 'boolean') {
     starredBy = input.starred
       ? [...new Set([...starredBy, userId])]
       : starredBy.filter((id) => id !== userId);
   }
   let pinnedAt = row.pinned_at;
-  if (typeof input.pinned === "boolean") {
+  if (typeof input.pinned === 'boolean') {
     pinnedAt = input.pinned ? new Date() : null;
   }
   const reactionsMap = parseJsonColumn(row.reactions, {});
@@ -137,14 +133,8 @@ async function setMessageState(conversationId, userId, messageId, input) {
     else delete reactionsMap[userId];
   }
   await query(
-    "UPDATE chat_messages SET starred_by = ?, pinned_at = ?, reactions = ? WHERE id = ? AND conversation_id = ?",
-    [
-      JSON.stringify(starredBy),
-      pinnedAt,
-      JSON.stringify(reactionsMap),
-      messageId,
-      conversationId,
-    ],
+    'UPDATE chat_messages SET starred_by = ?, pinned_at = ?, reactions = ?, updated_at_ms = ? WHERE id = ? AND conversation_id = ?',
+    [JSON.stringify(starredBy), pinnedAt, JSON.stringify(reactionsMap), Date.now(), messageId, conversationId],
   );
   return { ok: true };
 }
@@ -153,7 +143,7 @@ async function listMessages(conversationId, userId, sinceMs) {
   await assertParticipant(conversationId, userId);
   const rows = sinceMs
     ? await query(
-        `SELECT * FROM chat_messages WHERE conversation_id = ? AND created_at_ms > ?
+        `SELECT * FROM chat_messages WHERE conversation_id = ? AND updated_at_ms > ?
          ORDER BY created_at_ms ASC`,
         [conversationId, sinceMs],
       )
@@ -175,20 +165,19 @@ async function sendMessage(conversationId, userId, message) {
     mine: _mine,
     status: _status,
     createdAt: _createdAt,
+    starredByMe: _starredByMe,
+    pinnedAt: _pinnedAt,
+    reactions: _reactions,
+    editedAt: _editedAt,
+    deletedAt: _deletedAt,
+    deletedForEveryone: _deletedForEveryone,
     ...payload
   } = message;
   await query(
-    `INSERT INTO chat_messages (id, conversation_id, sender_id, message_type, payload, status, created_at_ms)
-     VALUES (?, ?, ?, ?, ?, 'sent', ?)
+    `INSERT INTO chat_messages (id, conversation_id, sender_id, message_type, payload, status, created_at_ms, updated_at_ms)
+     VALUES (?, ?, ?, ?, ?, 'sent', ?, ?)
      ON DUPLICATE KEY UPDATE payload = VALUES(payload)`,
-    [
-      id,
-      conversationId,
-      userId,
-      message.type || "text",
-      JSON.stringify(payload),
-      createdAtMs,
-    ],
+    [id, conversationId, userId, message.type || 'text', JSON.stringify(payload), createdAtMs, createdAtMs],
   );
   const [row] = await query(
     `SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?`,
@@ -203,47 +192,29 @@ async function createDateProposal(conversationId, userId, date) {
   await query(
     `INSERT INTO date_proposals (id, conversation_id, proposer_id, status, venue, category, area, time_label)
      VALUES (?, ?, ?, 'proposed', ?, ?, ?, ?)`,
-    [
-      id,
-      conversationId,
-      userId,
-      date?.venue || null,
-      date?.category || null,
-      date?.area || null,
-      date?.time || null,
-    ],
+    [id, conversationId, userId, date?.venue || null, date?.category || null, date?.area || null, date?.time || null],
   );
-  return { id, status: "proposed" };
+  return { id, status: 'proposed' };
 }
 
 async function updateDatePlanStatus(userId, proposalId, status) {
   if (!proposalId) {
-    const err = new Error("proposalId is required");
+    const err = new Error('proposalId is required');
     err.status = 400;
     throw err;
   }
-  const rows = await query("SELECT * FROM date_proposals WHERE id = ?", [
-    proposalId,
-  ]);
+  const rows = await query('SELECT * FROM date_proposals WHERE id = ?', [proposalId]);
   if (!rows.length) {
-    const err = new Error("Date proposal not found");
+    const err = new Error('Date proposal not found');
     err.status = 404;
     throw err;
   }
   await assertParticipant(rows[0].conversation_id, userId);
-  await query("UPDATE date_proposals SET status = ? WHERE id = ?", [
-    status,
-    proposalId,
-  ]);
+  await query('UPDATE date_proposals SET status = ? WHERE id = ?', [status, proposalId]);
   return { id: proposalId, status };
 }
 
-async function shareLiveLocation(
-  conversationId,
-  userId,
-  location,
-  clientActionId,
-) {
+async function shareLiveLocation(conversationId, userId, location, clientActionId) {
   await assertParticipant(conversationId, userId);
   const id = crypto.randomUUID();
   await query(

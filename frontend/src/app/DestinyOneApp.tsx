@@ -1393,11 +1393,12 @@ function DestinyOneApp() {
     let sinceMs = Date.now();
     const poll = () => {
       if (!active) return;
+      const pollStartedAt = Date.now();
       void chatApi
         .fetchMessagesSince(accessToken, conversationId, sinceMs)
         .then((messages) => {
-          if (!active || !messages.length) return;
-          sinceMs = Math.max(sinceMs, ...messages.map((m) => m.createdAt));
+          if (!active) return;
+          sinceMs = pollStartedAt;
           messages.forEach(onMessage);
         })
         .catch(() => undefined);
