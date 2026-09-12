@@ -67,6 +67,7 @@ export type ChatMessage = {
   forwarded?: boolean;
   reactions?: Record<string,string>;
   starredByMe?: boolean;
+  hiddenForMe?: boolean;
   pinnedAt?: number;
   linkPreview?: { url: string; host: string; title: string; description: string; safety: 'safe' | 'caution' | 'danger' };
   createdAt: number;

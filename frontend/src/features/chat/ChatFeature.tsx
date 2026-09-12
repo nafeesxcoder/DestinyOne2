@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   createContext,
   useContext,
   useEffect,
@@ -133,7 +133,7 @@ import type {
 import { track } from "../../lib/telemetry";
 import giftCatalogJson from "../../../shared/gift-catalog.json";
 
-// 🚀 BACKGROUND IMAGE ADDED HERE
+// ðŸš€ BACKGROUND IMAGE ADDED HERE
 const backgroundImage = require("../../../assets/background.png");
 
 export type RoseAvailability = { freeAvailable: boolean; paidCredits: number };
@@ -154,22 +154,22 @@ const useChatRuntime = () => {
 };
 
 const digitalGifts = [
-  { name: "A Rose", emoji: "🌹", coins: 40, caption: "A little romance" },
-  { name: "Flowers", emoji: "💐", coins: 80, caption: "Thinking of you" },
-  { name: "Teddy", emoji: "🧸", coins: 120, caption: "A warm hug" },
+  { name: "A Rose", emoji: "ðŸŒ¹", coins: 40, caption: "A little romance" },
+  { name: "Flowers", emoji: "ðŸ’", coins: 80, caption: "Thinking of you" },
+  { name: "Teddy", emoji: "ðŸ§¸", coins: 120, caption: "A warm hug" },
   {
     name: "Celebration",
-    emoji: "🥂",
+    emoji: "ðŸ¥‚",
     coins: 160,
     caption: "To new beginnings",
   },
   {
     name: "Golden Heart",
-    emoji: "💛",
+    emoji: "ðŸ’›",
     coins: 200,
     caption: "Something meaningful",
   },
-  { name: "Promise", emoji: "💍", coins: 300, caption: "For a special moment" },
+  { name: "Promise", emoji: "ðŸ’", coins: 300, caption: "For a special moment" },
 ];
 export const physicalGifts = giftCatalogJson
   .filter((gift) => gift.active)
@@ -203,247 +203,247 @@ function digitalGiftIcon(name: string): keyof typeof Ionicons.glyphMap {
   return "gift";
 }
 const quickEmojis = [
-  "😀",
-  "😃",
-  "😄",
-  "😁",
-  "😆",
-  "😅",
-  "😂",
-  "🤣",
-  "😊",
-  "😇",
-  "🙂",
-  "🙃",
-  "😉",
-  "😌",
-  "😍",
-  "🥰",
-  "😘",
-  "😗",
-  "😙",
-  "😚",
-  "😋",
-  "😛",
-  "😝",
-  "😜",
-  "🤪",
-  "🤨",
-  "🧐",
-  "🤓",
-  "😎",
-  "🥸",
-  "🤩",
-  "🥳",
-  "🙂‍↕️",
-  "😏",
-  "😒",
-  "🙂‍↔️",
-  "😞",
-  "😔",
-  "😟",
-  "😕",
-  "🙁",
-  "☹️",
-  "😣",
-  "😖",
-  "😫",
-  "😩",
-  "🥺",
-  "😢",
-  "😭",
-  "😤",
-  "😠",
-  "😡",
-  "🤬",
-  "🤯",
-  "😳",
-  "🥵",
-  "🥶",
-  "😱",
-  "😨",
-  "😰",
-  "😥",
-  "😓",
-  "🤗",
-  "🤔",
-  "🫣",
-  "🤭",
-  "🫢",
-  "🫡",
-  "🤫",
-  "🫠",
-  "🤥",
-  "😶",
-  "😐",
-  "😑",
-  "😬",
-  "🙄",
-  "😯",
-  "😦",
-  "😧",
-  "😮",
-  "😲",
-  "🥱",
-  "😴",
-  "🤤",
-  "😪",
-  "😮‍💨",
-  "😵",
-  "😵‍💫",
-  "🤐",
-  "🥴",
-  "🤢",
-  "🤮",
-  "🤧",
-  "😷",
-  "🤒",
-  "🤕",
-  "🤑",
-  "🤠",
-  "😈",
-  "👿",
-  "👋",
-  "🤚",
-  "🖐️",
-  "✋",
-  "🖖",
-  "👌",
-  "🤌",
-  "🤏",
-  "✌️",
-  "🤞",
-  "🫰",
-  "🤟",
-  "🤘",
-  "🤙",
-  "👈",
-  "👉",
-  "👆",
-  "👇",
-  "☝️",
-  "👍",
-  "👎",
-  "✊",
-  "👊",
-  "🤛",
-  "🤜",
-  "👏",
-  "🙌",
-  "🫶",
-  "🫶🏽",
-  "🤲",
-  "🙏",
-  "✍️",
-  "💅",
-  "🤝",
-  "💪",
-  "🫵",
-  "🫂",
-  "👀",
-  "👁️",
-  "👄",
-  "❤️",
-  "🩷",
-  "🧡",
-  "💛",
-  "💚",
-  "💙",
-  "🩵",
-  "💜",
-  "🤎",
-  "🖤",
-  "🩶",
-  "🤍",
-  "💔",
-  "❤️‍🔥",
-  "❤️‍🩹",
-  "💕",
-  "💞",
-  "💓",
-  "💗",
-  "💖",
-  "💘",
-  "💝",
-  "💟",
-  "💌",
-  "💋",
-  "💯",
-  "💢",
-  "💥",
-  "💫",
-  "💦",
-  "💨",
-  "🕳️",
-  "💬",
-  "👑",
-  "💍",
-  "💎",
-  "✨",
-  "⭐",
-  "🌟",
-  "🔥",
-  "🌹",
-  "💐",
-  "🌷",
-  "🌸",
-  "🌺",
-  "🌻",
-  "🌼",
-  "🪷",
-  "🍀",
-  "☕",
-  "🫖",
-  "🍵",
-  "🍕",
-  "🍔",
-  "🍟",
-  "🌮",
-  "🍜",
-  "🍝",
-  "🍛",
-  "🍫",
-  "🍰",
-  "🧁",
-  "🍦",
-  "🍿",
-  "🥂",
-  "🍷",
-  "🍹",
-  "🎂",
-  "🎉",
-  "🎊",
-  "🎁",
-  "🎈",
-  "🪩",
-  "🎵",
-  "🎶",
-  "🎬",
-  "📸",
-  "🚗",
-  "✈️",
-  "🏡",
-  "🌍",
-  "🌙",
-  "☀️",
-  "🌧️",
-  "🌈",
-  "⚡",
-  "💃🏽",
-  "🕺",
-  "🏋️",
-  "🧘‍♀️",
-  "🐶",
-  "🐱",
-  "🐼",
-  "🦁",
-  "🦄",
-  "🦋",
-  "🐥",
-  "🐒",
-  "🙈",
-  "🙉",
-  "🙊",
+  "ðŸ˜€",
+  "ðŸ˜ƒ",
+  "ðŸ˜„",
+  "ðŸ˜",
+  "ðŸ˜†",
+  "ðŸ˜…",
+  "ðŸ˜‚",
+  "ðŸ¤£",
+  "ðŸ˜Š",
+  "ðŸ˜‡",
+  "ðŸ™‚",
+  "ðŸ™ƒ",
+  "ðŸ˜‰",
+  "ðŸ˜Œ",
+  "ðŸ˜",
+  "ðŸ¥°",
+  "ðŸ˜˜",
+  "ðŸ˜—",
+  "ðŸ˜™",
+  "ðŸ˜š",
+  "ðŸ˜‹",
+  "ðŸ˜›",
+  "ðŸ˜",
+  "ðŸ˜œ",
+  "ðŸ¤ª",
+  "ðŸ¤¨",
+  "ðŸ§",
+  "ðŸ¤“",
+  "ðŸ˜Ž",
+  "ðŸ¥¸",
+  "ðŸ¤©",
+  "ðŸ¥³",
+  "ðŸ™‚â€â†•ï¸",
+  "ðŸ˜",
+  "ðŸ˜’",
+  "ðŸ™‚â€â†”ï¸",
+  "ðŸ˜ž",
+  "ðŸ˜”",
+  "ðŸ˜Ÿ",
+  "ðŸ˜•",
+  "ðŸ™",
+  "â˜¹ï¸",
+  "ðŸ˜£",
+  "ðŸ˜–",
+  "ðŸ˜«",
+  "ðŸ˜©",
+  "ðŸ¥º",
+  "ðŸ˜¢",
+  "ðŸ˜­",
+  "ðŸ˜¤",
+  "ðŸ˜ ",
+  "ðŸ˜¡",
+  "ðŸ¤¬",
+  "ðŸ¤¯",
+  "ðŸ˜³",
+  "ðŸ¥µ",
+  "ðŸ¥¶",
+  "ðŸ˜±",
+  "ðŸ˜¨",
+  "ðŸ˜°",
+  "ðŸ˜¥",
+  "ðŸ˜“",
+  "ðŸ¤—",
+  "ðŸ¤”",
+  "ðŸ«£",
+  "ðŸ¤­",
+  "ðŸ«¢",
+  "ðŸ«¡",
+  "ðŸ¤«",
+  "ðŸ« ",
+  "ðŸ¤¥",
+  "ðŸ˜¶",
+  "ðŸ˜",
+  "ðŸ˜‘",
+  "ðŸ˜¬",
+  "ðŸ™„",
+  "ðŸ˜¯",
+  "ðŸ˜¦",
+  "ðŸ˜§",
+  "ðŸ˜®",
+  "ðŸ˜²",
+  "ðŸ¥±",
+  "ðŸ˜´",
+  "ðŸ¤¤",
+  "ðŸ˜ª",
+  "ðŸ˜®â€ðŸ’¨",
+  "ðŸ˜µ",
+  "ðŸ˜µâ€ðŸ’«",
+  "ðŸ¤",
+  "ðŸ¥´",
+  "ðŸ¤¢",
+  "ðŸ¤®",
+  "ðŸ¤§",
+  "ðŸ˜·",
+  "ðŸ¤’",
+  "ðŸ¤•",
+  "ðŸ¤‘",
+  "ðŸ¤ ",
+  "ðŸ˜ˆ",
+  "ðŸ‘¿",
+  "ðŸ‘‹",
+  "ðŸ¤š",
+  "ðŸ–ï¸",
+  "âœ‹",
+  "ðŸ––",
+  "ðŸ‘Œ",
+  "ðŸ¤Œ",
+  "ðŸ¤",
+  "âœŒï¸",
+  "ðŸ¤ž",
+  "ðŸ«°",
+  "ðŸ¤Ÿ",
+  "ðŸ¤˜",
+  "ðŸ¤™",
+  "ðŸ‘ˆ",
+  "ðŸ‘‰",
+  "ðŸ‘†",
+  "ðŸ‘‡",
+  "â˜ï¸",
+  "ðŸ‘",
+  "ðŸ‘Ž",
+  "âœŠ",
+  "ðŸ‘Š",
+  "ðŸ¤›",
+  "ðŸ¤œ",
+  "ðŸ‘",
+  "ðŸ™Œ",
+  "ðŸ«¶",
+  "ðŸ«¶ðŸ½",
+  "ðŸ¤²",
+  "ðŸ™",
+  "âœï¸",
+  "ðŸ’…",
+  "ðŸ¤",
+  "ðŸ’ª",
+  "ðŸ«µ",
+  "ðŸ«‚",
+  "ðŸ‘€",
+  "ðŸ‘ï¸",
+  "ðŸ‘„",
+  "â¤ï¸",
+  "ðŸ©·",
+  "ðŸ§¡",
+  "ðŸ’›",
+  "ðŸ’š",
+  "ðŸ’™",
+  "ðŸ©µ",
+  "ðŸ’œ",
+  "ðŸ¤Ž",
+  "ðŸ–¤",
+  "ðŸ©¶",
+  "ðŸ¤",
+  "ðŸ’”",
+  "â¤ï¸â€ðŸ”¥",
+  "â¤ï¸â€ðŸ©¹",
+  "ðŸ’•",
+  "ðŸ’ž",
+  "ðŸ’“",
+  "ðŸ’—",
+  "ðŸ’–",
+  "ðŸ’˜",
+  "ðŸ’",
+  "ðŸ’Ÿ",
+  "ðŸ’Œ",
+  "ðŸ’‹",
+  "ðŸ’¯",
+  "ðŸ’¢",
+  "ðŸ’¥",
+  "ðŸ’«",
+  "ðŸ’¦",
+  "ðŸ’¨",
+  "ðŸ•³ï¸",
+  "ðŸ’¬",
+  "ðŸ‘‘",
+  "ðŸ’",
+  "ðŸ’Ž",
+  "âœ¨",
+  "â­",
+  "ðŸŒŸ",
+  "ðŸ”¥",
+  "ðŸŒ¹",
+  "ðŸ’",
+  "ðŸŒ·",
+  "ðŸŒ¸",
+  "ðŸŒº",
+  "ðŸŒ»",
+  "ðŸŒ¼",
+  "ðŸª·",
+  "ðŸ€",
+  "â˜•",
+  "ðŸ«–",
+  "ðŸµ",
+  "ðŸ•",
+  "ðŸ”",
+  "ðŸŸ",
+  "ðŸŒ®",
+  "ðŸœ",
+  "ðŸ",
+  "ðŸ›",
+  "ðŸ«",
+  "ðŸ°",
+  "ðŸ§",
+  "ðŸ¦",
+  "ðŸ¿",
+  "ðŸ¥‚",
+  "ðŸ·",
+  "ðŸ¹",
+  "ðŸŽ‚",
+  "ðŸŽ‰",
+  "ðŸŽŠ",
+  "ðŸŽ",
+  "ðŸŽˆ",
+  "ðŸª©",
+  "ðŸŽµ",
+  "ðŸŽ¶",
+  "ðŸŽ¬",
+  "ðŸ“¸",
+  "ðŸš—",
+  "âœˆï¸",
+  "ðŸ¡",
+  "ðŸŒ",
+  "ðŸŒ™",
+  "â˜€ï¸",
+  "ðŸŒ§ï¸",
+  "ðŸŒˆ",
+  "âš¡",
+  "ðŸ’ƒðŸ½",
+  "ðŸ•º",
+  "ðŸ‹ï¸",
+  "ðŸ§˜â€â™€ï¸",
+  "ðŸ¶",
+  "ðŸ±",
+  "ðŸ¼",
+  "ðŸ¦",
+  "ðŸ¦„",
+  "ðŸ¦‹",
+  "ðŸ¥",
+  "ðŸ’",
+  "ðŸ™ˆ",
+  "ðŸ™‰",
+  "ðŸ™Š",
 ];
 type EmojiCategoryId =
   | "recent"
@@ -464,24 +464,24 @@ const emojiCategories: Array<{
     label: "Recent",
     icon: "time-outline",
     emojis: [
-      "❤️",
-      "😂",
-      "🥰",
-      "😘",
-      "😊",
-      "🙏",
-      "🔥",
-      "💐",
-      "☕",
-      "✨",
-      "🫶",
-      "😍",
-      "🤣",
-      "💌",
-      "🌹",
-      "🥺",
-      "🎉",
-      "🙈",
+      "â¤ï¸",
+      "ðŸ˜‚",
+      "ðŸ¥°",
+      "ðŸ˜˜",
+      "ðŸ˜Š",
+      "ðŸ™",
+      "ðŸ”¥",
+      "ðŸ’",
+      "â˜•",
+      "âœ¨",
+      "ðŸ«¶",
+      "ðŸ˜",
+      "ðŸ¤£",
+      "ðŸ’Œ",
+      "ðŸŒ¹",
+      "ðŸ¥º",
+      "ðŸŽ‰",
+      "ðŸ™ˆ",
     ],
   },
   {
@@ -523,11 +523,11 @@ const emojiSearchGroups = [
   },
   {
     keywords: "laugh funny haha smile happy",
-    emojis: ["😂", "🤣", "😄", "😁", "😆", "😅", "😜", "🤪", "😎", "🥳"],
+    emojis: ["ðŸ˜‚", "ðŸ¤£", "ðŸ˜„", "ðŸ˜", "ðŸ˜†", "ðŸ˜…", "ðŸ˜œ", "ðŸ¤ª", "ðŸ˜Ž", "ðŸ¥³"],
   },
   {
     keywords: "sad cry upset miss",
-    emojis: ["🥺", "😢", "😭", "😞", "😔", "💔", "😥", "😓"],
+    emojis: ["ðŸ¥º", "ðŸ˜¢", "ðŸ˜­", "ðŸ˜ž", "ðŸ˜”", "ðŸ’”", "ðŸ˜¥", "ðŸ˜“"],
   },
   {
     keywords: "food coffee chai date dinner cake",
@@ -543,7 +543,7 @@ const emojiSearchGroups = [
   },
 ];
 const isAnimatedEmojiText = (value = "") => {
-  const trimmed = value.trim().replace(/^✨STICKER\|/, "");
+  const trimmed = value.trim().replace(/^âœ¨STICKER\|/, "");
   return (
     !!trimmed &&
     !/[\p{L}\p{N}]/u.test(trimmed) &&
@@ -579,36 +579,36 @@ const snapFilters = [
   { name: "Crown Mode", color: "rgba(212,175,55,.22)" },
 ];
 const faceEmojiOptions = [
-  "😂",
-  "🤣",
-  "😎",
-  "👑",
-  "🥸",
-  "🤠",
-  "🤓",
-  "🤡",
-  "😈",
-  "👽",
-  "🤖",
-  "🦄",
-  "🐶",
-  "🐱",
-  "🐼",
-  "🦁",
-  "🐵",
-  "🙈",
-  "💘",
-  "😍",
-  "😘",
-  "🤭",
-  "😜",
-  "😇",
-  "🕶️",
-  "🎩",
-  "💃🏽",
-  "🪩",
-  "🔥",
-  "✨",
+  "ðŸ˜‚",
+  "ðŸ¤£",
+  "ðŸ˜Ž",
+  "ðŸ‘‘",
+  "ðŸ¥¸",
+  "ðŸ¤ ",
+  "ðŸ¤“",
+  "ðŸ¤¡",
+  "ðŸ˜ˆ",
+  "ðŸ‘½",
+  "ðŸ¤–",
+  "ðŸ¦„",
+  "ðŸ¶",
+  "ðŸ±",
+  "ðŸ¼",
+  "ðŸ¦",
+  "ðŸµ",
+  "ðŸ™ˆ",
+  "ðŸ’˜",
+  "ðŸ˜",
+  "ðŸ˜˜",
+  "ðŸ¤­",
+  "ðŸ˜œ",
+  "ðŸ˜‡",
+  "ðŸ•¶ï¸",
+  "ðŸŽ©",
+  "ðŸ’ƒðŸ½",
+  "ðŸª©",
+  "ðŸ”¥",
+  "âœ¨",
 ];
 const chatCoachSuggestions = [
   {
@@ -619,7 +619,7 @@ const chatCoachSuggestions = [
   {
     label: "Date idea",
     message: (match: Match) =>
-      `This may be early, but ${match.city.split(",")[0]} has some great cafés. Want to plan a simple public coffee sometime?`,
+      `This may be early, but ${match.city.split(",")[0]} has some great cafÃ©s. Want to plan a simple public coffee sometime?`,
   },
   {
     label: "Values check",
@@ -644,7 +644,7 @@ type CoupleGame = {
 };
 type GameReplyPayload = { parentId: string; gameTitle: string; answer: string };
 const parseGameReply = (message: ChatMessage): GameReplyPayload | null => {
-  if (message.type !== "text" || !message.text?.startsWith("🎮REPLY|"))
+  if (message.type !== "text" || !message.text?.startsWith("ðŸŽ®REPLY|"))
     return null;
   const parts = message.text.split("|");
   return {
@@ -654,7 +654,7 @@ const parseGameReply = (message: ChatMessage): GameReplyPayload | null => {
   };
 };
 const parseQuotedReply = (text?: string) => {
-  if (!text?.startsWith("↩REPLY|")) return null;
+  if (!text?.startsWith("â†©REPLY|")) return null;
   const parts = text.split("|");
   return {
     parentId: parts[1] ?? "",
@@ -688,7 +688,7 @@ const coupleGames: CoupleGame[] = [
       "Which small everyday gesture makes you feel genuinely considered?",
       "What does a peaceful Sunday in your future look like?",
       "What is something you are learning to communicate more clearly?",
-      "Which family tradition would you love to keep—or thoughtfully reinvent?",
+      "Which family tradition would you love to keepâ€”or thoughtfully reinvent?",
       "What kind of support helps you most on a difficult day?",
       "What is one dream that feels more exciting when shared?",
     ],
@@ -703,12 +703,12 @@ const coupleGames: CoupleGame[] = [
     howToPlay:
       "One person answers privately in their head; the other gets one guess and one hint.",
     prompts: [
-      "EMOJI CLUE · ☕🌧️📚 — invent the perfect date hidden in these emojis.",
-      "RIDDLE · I can fill a room but take up no space. What am I?",
-      "GUESS ME · Give three clues about your comfort food without naming it.",
-      "EMOJI STORY · 🧳🌄🎵🍜 — where did our imaginary weekend go?",
-      "TWO CLUES · Describe your dream city using only weather + one sound.",
-      "MYSTERY · Pick an object near you; give one true clue and one tricky clue.",
+      "EMOJI CLUE Â· â˜•ðŸŒ§ï¸ðŸ“š â€” invent the perfect date hidden in these emojis.",
+      "RIDDLE Â· I can fill a room but take up no space. What am I?",
+      "GUESS ME Â· Give three clues about your comfort food without naming it.",
+      "EMOJI STORY Â· ðŸ§³ðŸŒ„ðŸŽµðŸœ â€” where did our imaginary weekend go?",
+      "TWO CLUES Â· Describe your dream city using only weather + one sound.",
+      "MYSTERY Â· Pick an object near you; give one true clue and one tricky clue.",
     ],
   },
   {
@@ -719,14 +719,14 @@ const coupleGames: CoupleGame[] = [
     tag: "QUICK PICKS",
     description: "Fast choices that reveal the reason behind the answer.",
     howToPlay:
-      "Choose first, explain why second. No “both” answers for this round.",
+      "Choose first, explain why second. No â€œbothâ€ answers for this round.",
     prompts: [
-      "Cozy coffee ☕ or spontaneous road trip 🚗 — and what makes it your pick?",
-      "Sunrise walk 🌅 or late-night dessert 🍰?",
-      "Plan every detail 🗓️ or leave one surprise ✨?",
-      "Cook together 🍝 or find a hidden local restaurant 🥢?",
-      "Mountain cabin 🏔️ or city weekend 🌆?",
-      "Voice note 🎙️ or handwritten letter 💌?",
+      "Cozy coffee â˜• or spontaneous road trip ðŸš— â€” and what makes it your pick?",
+      "Sunrise walk ðŸŒ… or late-night dessert ðŸ°?",
+      "Plan every detail ðŸ—“ï¸ or leave one surprise âœ¨?",
+      "Cook together ðŸ or find a hidden local restaurant ðŸ¥¢?",
+      "Mountain cabin ðŸ”ï¸ or city weekend ðŸŒ†?",
+      "Voice note ðŸŽ™ï¸ or handwritten letter ðŸ’Œ?",
     ],
   },
   {
@@ -758,7 +758,7 @@ const coupleGames: CoupleGame[] = [
       "Both send one caption. The next person chooses the winner and starts another round.",
     prompts: [
       "Caption this: we arrived at the restaurant wearing the exact same color.",
-      "Caption this: our “quick coffee” somehow became a four-hour conversation.",
+      "Caption this: our â€œquick coffeeâ€ somehow became a four-hour conversation.",
       "Caption this: the GPS said two minutes; we are now beside a goat farm.",
       "Caption this: both families joined the video call five minutes early.",
       "Caption this: we tried cooking together and the smoke alarm became the referee.",
@@ -1165,11 +1165,11 @@ export function ChatScreen({
   });
   const messageSummary = (message: ChatMessage) => {
     const sticker = parseStickerPayload(message.text);
-    return message.text?.startsWith("🎮GAME|")
+    return message.text?.startsWith("ðŸŽ®GAME|")
       ? `Game: ${message.text.split("|")[1] ?? "Couple game"}`
-      : message.text?.startsWith("🎮REPLY|")
+      : message.text?.startsWith("ðŸŽ®REPLY|")
         ? `Game answer: ${parseGameReply(message)?.answer ?? ""}`
-        : message.text?.startsWith("↩REPLY|")
+        : message.text?.startsWith("â†©REPLY|")
           ? (parseQuotedReply(message.text)?.body ?? "Reply")
           : sticker
             ? `${sticker.label} ${sticker.emoji}`
@@ -1235,7 +1235,7 @@ export function ChatScreen({
     const value = text.trim();
     if (!value || sending) return;
     const messageText = replyTarget
-      ? `↩REPLY|${replyTarget.id}|${messageSummary(replyTarget).slice(0, 64)}|${value}`
+      ? `â†©REPLY|${replyTarget.id}|${messageSummary(replyTarget).slice(0, 64)}|${value}`
       : value;
     setSending(true);
     try {
@@ -1402,7 +1402,7 @@ export function ChatScreen({
         location: {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          label: "Live location · tracking for 30 min",
+          label: "Live location Â· tracking for 30 min",
           live: true,
           expiresAt: Date.now() + 30 * 60 * 1000,
           accuracy: position.coords.accuracy ?? undefined,
@@ -1580,7 +1580,7 @@ export function ChatScreen({
     await dispatchMessage(
       createMessage({
         type: "gift",
-        text: `${gift.name} requested · ${order.quote.etaLabel}`,
+        text: `${gift.name} requested Â· ${order.quote.etaLabel}`,
         gift: {
           name: gift.name,
           emoji: gift.emoji,
@@ -1641,7 +1641,7 @@ export function ChatScreen({
   };
   const startGame = (game: CoupleGame, prompt: string) => {
     void dispatchMessage(
-      createMessage({ type: "text", text: `🎮GAME|${game.title}|${prompt}` }),
+      createMessage({ type: "text", text: `ðŸŽ®GAME|${game.title}|${prompt}` }),
     );
     setGamesOpen(false);
     setShowAttachments(false);
@@ -1653,7 +1653,7 @@ export function ChatScreen({
     void dispatchMessage(
       createMessage({
         type: "text",
-        text: `🎮REPLY|${parent.id}|${gameTitle}|${value}`,
+        text: `ðŸŽ®REPLY|${parent.id}|${gameTitle}|${value}`,
       }),
     );
   };
@@ -1685,13 +1685,13 @@ export function ChatScreen({
     }
     if (id === "contact") {
       sendQuickShare(
-        `👤 Trusted contact card\n${match.name} · DestinyOne verified match`,
+        `ðŸ‘¤ Trusted contact card\n${match.name} Â· DestinyOne verified match`,
       );
       return;
     }
     if (id === "poll") {
       sendQuickShare(
-        "📊 Which date feels best?\n☕ Café   🍽️ Dinner   🎨 Activity",
+        "ðŸ“Š Which date feels best?\nâ˜• CafÃ©   ðŸ½ï¸ Dinner   ðŸŽ¨ Activity",
       );
       return;
     }
@@ -1746,18 +1746,18 @@ export function ChatScreen({
   const displayName = settings.nickname.trim() || match.name;
   const partnerIsOnline = isChatPreview ? connectionOnline : partnerOnline;
   const presenceLabel = partnerTyping
-    ? `${match.name} is typing…`
+    ? `${match.name} is typingâ€¦`
     : partnerIsOnline
       ? isCoupleMode
         ? "Private couple space"
         : settings.nickname.trim()
-          ? `${match.name} · Online`
+          ? `${match.name} Â· Online`
           : "Online now"
       : !connectionOnline
         ? "You are offline"
         : realtimeConnected
           ? "Last seen recently"
-          : "Connecting securely…";
+          : "Connecting securelyâ€¦";
   const messageSafety = scanMessageSafety(text);
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const previewMessages: ChatMessage[] =
@@ -1827,7 +1827,9 @@ export function ChatScreen({
   }, {});
   const topLevelMessages = previewMessages.filter(
     (message) =>
-      !parseGameReply(message) && !hiddenMessageIds.includes(message.id),
+      !parseGameReply(message) &&
+      !hiddenMessageIds.includes(message.id) &&
+      !message.hiddenForMe,
   );
   const visibleMessages = normalizedSearch
     ? topLevelMessages.filter(
@@ -1883,6 +1885,11 @@ export function ChatScreen({
   const togglePin = async (messageId: string) => {
     const current = previewMessages.find((item) => item.id === messageId);
     await onMessageState(messageId, { pinned: !current?.pinnedAt });
+    setSelectedMessageId(null);
+  };
+  const hideForMe = async (messageId: string) => {
+    setHiddenMessageIds((current) => [...current, messageId]);
+    await onMessageState(messageId, { hidden: true });
     setSelectedMessageId(null);
   };
   const copySelected = async () => {
@@ -2138,7 +2145,7 @@ export function ChatScreen({
                   Incoming {lastCallEvent?.mode ?? "audio"} call
                 </Text>
                 <Text style={chatStyles.incomingCallBody}>
-                  {match.name} · Verified mutual match
+                  {match.name} Â· Verified mutual match
                 </Text>
               </View>
               <Pressable
@@ -2206,7 +2213,7 @@ export function ChatScreen({
                 {isCoupleMode
                   ? "Our space"
                   : disappearingMessages
-                    ? `${retentionShort} · Path`
+                    ? `${retentionShort} Â· Path`
                     : "Relationship path"}
               </Text>
             </Pressable>
@@ -2428,7 +2435,7 @@ export function ChatScreen({
                   <Text style={styles.kicker}>ICEBREAKER REVEALED</Text>
                   <Text style={styles.revealText}>
                     You both chose:{" "}
-                    <Text style={{ color: colors.text }}>Road trip 🚗</Text>
+                    <Text style={{ color: colors.text }}>Road trip ðŸš—</Text>
                   </Text>
                 </View>
                 <Text style={chatStyles.dayLabel}>TODAY</Text>
@@ -2436,7 +2443,7 @@ export function ChatScreen({
                   style={[styles.theirBubble, chatPremiumStyles.theirBubble]}
                 >
                   <Text style={styles.bubbleText}>
-                    Okay, excellent choice. Mountains or coast? 😊
+                    Okay, excellent choice. Mountains or coast? ðŸ˜Š
                   </Text>
                   <Text style={styles.time}>7:42 PM</Text>
                 </View>
@@ -2480,7 +2487,7 @@ export function ChatScreen({
                   color={colors.muted}
                 />
                 <Text style={chatStyles.emptySearchText}>
-                  No messages match “{searchQuery}”.
+                  No messages match â€œ{searchQuery}â€.
                 </Text>
               </View>
             )}
@@ -2618,7 +2625,7 @@ export function ChatScreen({
                     color={colors.muted}
                   />
                   <Text style={chatStyles.offlineText}>
-                    Offline · message will send when connected
+                    Offline Â· message will send when connected
                   </Text>
                 </View>
               )}
@@ -2681,7 +2688,7 @@ export function ChatScreen({
                       onChangeText={updateText}
                       onSubmitEditing={() => void sendText()}
                       returnKeyType="send"
-                      placeholder={sending ? "Sending…" : "Message…"}
+                      placeholder={sending ? "Sendingâ€¦" : "Messageâ€¦"}
                       placeholderTextColor="#8C7888"
                       editable={!sending}
                       style={[styles.chatInput, chatPremiumStyles.chatInput]}
@@ -2756,7 +2763,7 @@ export function ChatScreen({
             onInfo={() =>
               setMessageActionNotice(
                 selectedMessage
-                  ? `${selectedMessage.mine === false ? "Received" : "Sent"} ${new Date(selectedMessage.createdAt).toLocaleString()} · ${deliveryOverrides[selectedMessage.id] ?? selectedMessage.status}${selectedMessage.editedAt ? " · Edited" : ""}`
+                  ? `${selectedMessage.mine === false ? "Received" : "Sent"} ${new Date(selectedMessage.createdAt).toLocaleString()} Â· ${deliveryOverrides[selectedMessage.id] ?? selectedMessage.status}${selectedMessage.editedAt ? " Â· Edited" : ""}`
                   : "",
               )
             }
@@ -2784,6 +2791,9 @@ export function ChatScreen({
               if (selectedMessage) void toggleStar(selectedMessage.id);
             }}
             onDelete={requestDeleteSelected}
+            onHideForMe={() => {
+              if (selectedMessage) void hideForMe(selectedMessage.id);
+            }}
           />
           <EditMessageSheet
             message={editTarget}
@@ -3168,7 +3178,7 @@ function RelationshipJourneySheet({
                       : "Waiting for mutual confirmation"}
                   </Text>
                   <Text style={journeyStyles.reflectionBody}>
-                    {dateMessage?.date?.venue} · {dateMessage?.date?.time}
+                    {dateMessage?.date?.venue} Â· {dateMessage?.date?.time}
                   </Text>
                 </View>
               </View>
@@ -3499,10 +3509,10 @@ function MessageReceipt({ status }: { status: ChatMessage["status"] }) {
   const read = status === "read";
   const label =
     status === "sent"
-      ? "Sent · one tick"
+      ? "Sent Â· one tick"
       : status === "delivered"
-        ? "Delivered · two ticks"
-        : "Read · blue ticks";
+        ? "Delivered Â· two ticks"
+        : "Read Â· blue ticks";
   return (
     <View accessibilityLabel={label} style={chatStyles.receipt}>
       <Ionicons
@@ -3546,7 +3556,7 @@ function ChatBubble({
 }) {
   const mine = message.mine !== false;
   const gamePayload =
-    message.type === "text" && message.text?.startsWith("🎮GAME|")
+    message.type === "text" && message.text?.startsWith("ðŸŽ®GAME|")
       ? message.text.split("|")
       : null;
   const gameTitle = gamePayload?.[1] ?? "";
@@ -3694,7 +3704,7 @@ function ChatBubble({
                 mine && chatStyles.quotedReplyLabelMine,
               ]}
             >
-              Reply · tap to view
+              Reply Â· tap to view
             </Text>
             <Text
               numberOfLines={2}
@@ -3785,7 +3795,7 @@ function ChatBubble({
               iconSize={10}
             />
             <Text style={chatStyles.snapBadgeText}>
-              {message.snap.viewOnce ? "VIEW ONCE" : "24H SNAP"} ·{" "}
+              {message.snap.viewOnce ? "VIEW ONCE" : "24H SNAP"} Â·{" "}
               {message.snap.filter}
             </Text>
           </View>
@@ -4028,11 +4038,11 @@ function IncomingMessageSafety({ scan }: { scan: MessageSafetyScan }) {
 }
 
 function messageSummaryForAccessibility(message: ChatMessage) {
-  if (message.text?.startsWith("🎮GAME|"))
+  if (message.text?.startsWith("ðŸŽ®GAME|"))
     return `Couple game ${message.text.split("|")[1] ?? ""}`;
-  if (message.text?.startsWith("🎮REPLY|"))
+  if (message.text?.startsWith("ðŸŽ®REPLY|"))
     return `Game answer ${parseGameReply(message)?.answer ?? ""}`;
-  if (message.text?.startsWith("↩REPLY|"))
+  if (message.text?.startsWith("â†©REPLY|"))
     return `Reply ${parseQuotedReply(message.text)?.body ?? ""}`;
   const sticker = parseStickerPayload(message.text);
   if (sticker) return `${sticker.label} sticker ${sticker.emoji}`;
@@ -4159,16 +4169,16 @@ function AnimatedEmojiMessage({
     outputRange: [0.7, 1.15, 0.82],
   });
   const glyphs: Record<EmojiMotion, [string, string]> = {
-    laugh: ["💧", "💧"],
-    cry: ["💧", "💧"],
-    love: ["♥", "♡"],
-    kiss: ["♥", "💋"],
-    angry: ["💨", "💢"],
-    party: ["✦", "●"],
-    surprise: ["!", "✦"],
+    laugh: ["ðŸ’§", "ðŸ’§"],
+    cry: ["ðŸ’§", "ðŸ’§"],
+    love: ["â™¥", "â™¡"],
+    kiss: ["â™¥", "ðŸ’‹"],
+    angry: ["ðŸ’¨", "ðŸ’¢"],
+    party: ["âœ¦", "â—"],
+    surprise: ["!", "âœ¦"],
     sleep: ["Z", "z"],
-    celebrate: ["✦", "★"],
-    bounce: ["✦", ""],
+    celebrate: ["âœ¦", "â˜…"],
+    bounce: ["âœ¦", ""],
   };
   const [particleOne, particleTwo] = glyphs[emotion];
   const tone = sticker?.tone ?? "rose";
@@ -4264,7 +4274,7 @@ function AnimatedEmojiMessage({
             },
           ]}
         >
-          💋
+          ðŸ’‹
         </Animated.Text>
       )}
       <Animated.View
@@ -4335,11 +4345,11 @@ function AnimatedEmojiMessage({
 function CatalogGifMessage({ gif }: { gif: ChatGifCatalogItem }) {
   const sticker: CustomChatSticker = {
     id: gif.id,
-    emoji: gif.previewEmoji ?? "✨",
+    emoji: gif.previewEmoji ?? "âœ¨",
     label: gif.title.toUpperCase(),
     caption: `${gif.style} animated reaction`,
     tone: catalogGifTone(gif),
-    motion: classifyEmojiMotion(gif.previewEmoji ?? "✨"),
+    motion: classifyEmojiMotion(gif.previewEmoji ?? "âœ¨"),
     tags: gif.searchText,
   };
   return (
@@ -4401,7 +4411,7 @@ function GameChatCard({
               !mine && chatStyles.gameMessageEyebrowTheirs,
             ]}
           >
-            COUPLE GAME · ROUND READY
+            COUPLE GAME Â· ROUND READY
           </Text>
           <Text
             numberOfLines={1}
@@ -4469,7 +4479,7 @@ function GameChatCard({
             onChangeText={setAnswer}
             onSubmitEditing={send}
             returnKeyType="send"
-            placeholder="Type your answer inside this round…"
+            placeholder="Type your answer inside this roundâ€¦"
             placeholderTextColor={mine ? "rgba(255,255,255,.65)" : "#8F7980"}
             style={[
               chatStyles.gameReplyInput,
@@ -4713,7 +4723,7 @@ function PhysicalGiftChatCard({
         )}
         <View style={giftFlowStyles.orderHeroCopy}>
           <Text style={giftFlowStyles.orderEyebrow}>
-            DESTINYONE GIFT · #{orderShort}
+            DESTINYONE GIFT Â· #{orderShort}
           </Text>
           <Text style={giftFlowStyles.orderTitle}>{gift.name}</Text>
           <View style={giftFlowStyles.orderHeroMeta}>
@@ -4956,7 +4966,7 @@ function GiftRecipientDecisionPanelV2({
             Would you like to receive this gift?
           </Text>
           <Text style={giftFlowStyles.recipientFine}>
-            {minutesLeft} min left · the sender never sees your address
+            {minutesLeft} min left Â· the sender never sees your address
           </Text>
         </View>
       </View>
@@ -5010,7 +5020,7 @@ function GiftRecipientDecisionPanelV2({
               ]}
             >
               <Text style={giftFlowStyles.recipientAcceptText}>
-                {submitting ? "Saving…" : "Yes, decline"}
+                {submitting ? "Savingâ€¦" : "Yes, decline"}
               </Text>
             </Pressable>
           </View>
@@ -5058,7 +5068,7 @@ function GiftRecipientDecisionPanelV2({
                   />
                   {searching && (
                     <Text style={giftFlowStyles.addressSearching}>
-                      Searching…
+                      Searchingâ€¦
                     </Text>
                   )}
                 </View>
@@ -5213,7 +5223,7 @@ function GiftRecipientDecisionPanelV2({
               <Ionicons name="lock-closed" size={13} color="#FFF" />
               <Text style={giftFlowStyles.recipientAcceptText}>
                 {submitting
-                  ? "Securing…"
+                  ? "Securingâ€¦"
                   : knownAddress
                     ? "Confirm & accept"
                     : "Save & accept"}
@@ -5284,7 +5294,7 @@ function GiftTrackingMini({
         <View style={{ flex: 1 }}>
           <Text style={giftFlowStyles.chatTrackTitle}>Order progress</Text>
           <Text style={giftFlowStyles.chatTrackFine}>
-            {gift.provider ?? "DestinyOne delivery"} ·{" "}
+            {gift.provider ?? "DestinyOne delivery"} Â·{" "}
             {gift.acceptanceWindowMinutes ?? 30} min acceptance window
           </Text>
         </View>
@@ -5389,7 +5399,7 @@ function GiftTrackingMini({
       <View style={giftFlowStyles.chatPrivacy}>
         <Ionicons name="lock-closed" size={12} color="#8A6817" />
         <Text style={giftFlowStyles.chatPrivacyText}>
-          No charge before acceptance · recipient address stays private
+          No charge before acceptance Â· recipient address stays private
         </Text>
       </View>
     </View>
@@ -5504,7 +5514,7 @@ function VoiceNote({
                   !mine && chatStyles.voiceSpeedTextTheirs,
                 ]}
               >
-                {rate}×
+                {rate}Ã—
               </Text>
             </Pressable>
             <Pressable
@@ -5548,7 +5558,7 @@ function VoiceNote({
           >
             {transcript ||
               (transcriptStatus === "processing"
-                ? "Transcription is processing securely…"
+                ? "Transcription is processing securelyâ€¦"
                 : "A transcript was not captured for this message.")}
           </Text>
         </View>
@@ -5683,7 +5693,7 @@ function LiveLocationCard({
           <Text style={chatStyles.locationTitle}>Live location</Text>
           <Text style={chatStyles.locationSubtitle}>{location.label}</Text>
           <Text style={chatStyles.locationFine}>
-            {expiresIn > 0 ? `${expiresIn} min left · ` : "Expired · "}
+            {expiresIn > 0 ? `${expiresIn} min left Â· ` : "Expired Â· "}
             approximate area shared
           </Text>
         </View>
@@ -5830,13 +5840,13 @@ function ChatOptionsSheet({
       onPress: onSettings,
     },
     {
-      label: `Disappearing messages · ${retentionLabel}`,
+      label: `Disappearing messages Â· ${retentionLabel}`,
       body: "Choose after seen, 24 hours, 7 days, or keep messages.",
       icon: "timer-outline" as const,
       onPress: onSettings,
     },
     {
-      label: `Screenshot alerts · ${screenshotAlerts ? "On" : "Off"}`,
+      label: `Screenshot alerts Â· ${screenshotAlerts ? "On" : "Off"}`,
       body: "Supported native captures notify both people; web capture can be undetectable.",
       icon: "scan-outline" as const,
       onPress: onSettings,
@@ -5907,9 +5917,9 @@ export function RoseComposer({
   onClose: () => void;
   onSend: (note: string) => void;
 }) {
-  const [note, setNote] = useState("A Golden Spark for something real ✨");
+  const [note, setNote] = useState("A Golden Spark for something real âœ¨");
   useEffect(() => {
-    if (visible) setNote("A Golden Spark for something real ✨");
+    if (visible) setNote("A Golden Spark for something real âœ¨");
   }, [visible]);
   const canSend = availability.freeAvailable || availability.paidCredits > 0;
   return (
@@ -5950,7 +5960,7 @@ export function RoseComposer({
           onChangeText={setNote}
           multiline
           maxLength={120}
-          placeholder="Write a short note…"
+          placeholder="Write a short noteâ€¦"
           placeholderTextColor="#8C7888"
           style={aiStyles.roseNote}
         />
@@ -5960,7 +5970,7 @@ export function RoseComposer({
           variant={canSend ? "primary" : "gold"}
           onPress={() =>
             canSend
-              ? onSend(note.trim() || "A Golden Spark for something real ✨")
+              ? onSend(note.trim() || "A Golden Spark for something real âœ¨")
               : onSend(note.trim())
           }
         />
@@ -6019,9 +6029,9 @@ export function RoseReceivedPopup({
           <Pressable onPress={onClose} style={rosePopupStyles.close}>
             <PremiumIcon name="close" tone="dark" size={36} iconSize={17} />
           </Pressable>
-          <Text style={rosePopupStyles.petal}>✦</Text>
+          <Text style={rosePopupStyles.petal}>âœ¦</Text>
           <Text style={[rosePopupStyles.petal, rosePopupStyles.petalRight]}>
-            ✧
+            âœ§
           </Text>
           <Animated.View
             style={[rosePopupStyles.bloom, { transform: [{ scale }] }]}
@@ -6032,7 +6042,7 @@ export function RoseReceivedPopup({
           <Text style={rosePopupStyles.title}>
             {data.match.name} gets this moment
           </Text>
-          <Text style={rosePopupStyles.note}>“{data.note}”</Text>
+          <Text style={rosePopupStyles.note}>â€œ{data.note}â€</Text>
           <View style={rosePopupStyles.pushPreview}>
             <PremiumIcon
               name="notifications"
@@ -6041,7 +6051,7 @@ export function RoseReceivedPopup({
               iconSize={17}
             />
             <Text style={rosePopupStyles.pushPreviewText}>
-              Push notification queued · opens to this romantic animation
+              Push notification queued Â· opens to this romantic animation
             </Text>
           </View>
           <View style={{ width: "100%", gap: 10 }}>
@@ -6181,7 +6191,7 @@ function GifResultTile({
         />
       ) : (
         <View style={chatStyles.gifUnavailable}>
-          <Text style={chatStyles.gifUnavailableEmoji}>✨</Text>
+          <Text style={chatStyles.gifUnavailableEmoji}>âœ¨</Text>
           <Text style={chatStyles.gifUnavailableText}>Preview unavailable</Text>
         </View>
       )}
@@ -6245,7 +6255,7 @@ function CatalogGifArtwork({
   compact?: boolean;
 }) {
   const motion = useRef(new Animated.Value(0)).current;
-  const emotion = classifyEmojiMotion(gif.previewEmoji ?? "✨");
+  const emotion = classifyEmojiMotion(gif.previewEmoji ?? "âœ¨");
   useEffect(() => {
     motion.setValue(0);
     const fast = ["laugh", "angry", "party"].includes(emotion);
@@ -6322,7 +6332,7 @@ function CatalogGifArtwork({
             { opacity: motion, transform: [{ translateY }] },
           ]}
         >
-          💧
+          ðŸ’§
         </Animated.Text>
       )}
       {emotion === "laugh" && (
@@ -6342,7 +6352,7 @@ function CatalogGifArtwork({
             { opacity: motion, transform: [{ translateY }] },
           ]}
         >
-          💋
+          ðŸ’‹
         </Animated.Text>
       )}
       <Animated.Text
@@ -6354,7 +6364,7 @@ function CatalogGifArtwork({
           },
         ]}
       >
-        {gif.previewEmoji ?? "✨"}
+        {gif.previewEmoji ?? "âœ¨"}
       </Animated.Text>
     </LinearGradient>
   );
@@ -6452,7 +6462,7 @@ function CatalogGifPager({
         <Ionicons name="chevron-back" size={15} color="#8A1732" />
       </Pressable>
       <Text style={chatStyles.catalogGifPageText}>
-        {offset + 1}–{end} of {total.toLocaleString()}
+        {offset + 1}â€“{end} of {total.toLocaleString()}
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -6493,7 +6503,7 @@ function GifProviderLine({ live, error }: { live: boolean; error?: string }) {
         ]}
       >
         {error ||
-          `${live ? "Live exact search" : "Built-in animated catalog"} · ${live ? `Powered by ${gifSearch.providerName}` : "1,000 GIF reactions available now"}`}
+          `${live ? "Live exact search" : "Built-in animated catalog"} Â· ${live ? `Powered by ${gifSearch.providerName}` : "1,000 GIF reactions available now"}`}
       </Text>
     </View>
   );
@@ -6670,7 +6680,7 @@ function GifPicker({
                 autoFocus
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Try good morning, hug, kiss, love…"
+                placeholder="Try good morning, hug, kiss, loveâ€¦"
                 placeholderTextColor="#8A767D"
                 style={chatStyles.gifSearchInput}
               />
@@ -6697,12 +6707,12 @@ function GifPicker({
               : libraryMode === "favourites"
                 ? "YOUR FAVOURITES"
                 : query.trim()
-                  ? `RESULTS FOR “${query.trim().toUpperCase()}”`
+                  ? `RESULTS FOR â€œ${query.trim().toUpperCase()}â€`
                   : "DAILY REACTIONS"}
           </Text>
           <Text style={chatStyles.gifResultCount}>
             {provider.loading && libraryMode === "all"
-              ? "Searching…"
+              ? "Searchingâ€¦"
               : count.toLocaleString()}
           </Text>
         </View>
@@ -6753,7 +6763,7 @@ function GifPicker({
             >
               <Ionicons name="add-circle-outline" size={17} color="#A40B31" />
               <Text style={chatStyles.gifLoadMoreText}>
-                {provider.loadingMore ? "Loading…" : "Load 36 more"}
+                {provider.loadingMore ? "Loadingâ€¦" : "Load 36 more"}
               </Text>
             </Pressable>
           )}
@@ -6942,7 +6952,7 @@ function EmojiMediaPanel({
             ))}
             {!visibleEmoji.length && (
               <Text style={chatStyles.emojiEmpty}>
-                No emoji found. Try “love”, “laugh”, “food” or “travel”.
+                No emoji found. Try â€œloveâ€, â€œlaughâ€, â€œfoodâ€ or â€œtravelâ€.
               </Text>
             )}
           </>
@@ -6955,7 +6965,7 @@ function EmojiMediaPanel({
               </Text>
               <Text style={chatStyles.emojiSectionCount}>
                 {provider.loading
-                  ? "…"
+                  ? "â€¦"
                   : gifSearchConfigured
                     ? provider.totalCount.toLocaleString()
                     : catalogMatches.length.toLocaleString()}
@@ -7000,7 +7010,7 @@ function EmojiMediaPanel({
                 style={chatStyles.inlineGifMore}
               >
                 <Text style={chatStyles.inlineGifMoreText}>
-                  {provider.loadingMore ? "Loading…" : "Load 36 more"}
+                  {provider.loadingMore ? "Loadingâ€¦" : "Load 36 more"}
                 </Text>
               </Pressable>
             )}
@@ -7053,7 +7063,7 @@ function EmojiMediaPanel({
                     <Text style={chatStyles.customStickerEmoji}>
                       {sticker.emoji}
                     </Text>
-                    <Text style={chatStyles.customStickerSpark}>✦</Text>
+                    <Text style={chatStyles.customStickerSpark}>âœ¦</Text>
                   </View>
                   <Text numberOfLines={1} style={chatStyles.customStickerLabel}>
                     {sticker.label}
@@ -7135,6 +7145,7 @@ function MessageActionSheet({
   onPin,
   onStar,
   onDelete,
+  onHideForMe,
 }: {
   visible: boolean;
   message: ChatMessage | null;
@@ -7153,6 +7164,7 @@ function MessageActionSheet({
   onPin: () => void;
   onStar: () => void;
   onDelete: () => void;
+  onHideForMe: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [reactionHint, setReactionHint] = useState(false);
@@ -7177,7 +7189,7 @@ function MessageActionSheet({
     },
     ...(message?.mine !== false &&
     message?.type === "text" &&
-    !message?.text?.startsWith("🎮")
+    !message?.text?.startsWith("ðŸŽ®")
       ? [
           {
             label: "Edit",
@@ -7261,7 +7273,7 @@ function MessageActionSheet({
           </Pressable>
         </View>
         <View style={chatStyles.quickReactionRow}>
-          {["👍", "❤️", "😂", "😮", "🥺", "🙏"].map((item) => (
+          {["ðŸ‘", "â¤ï¸", "ðŸ˜‚", "ðŸ˜®", "ðŸ¥º", "ðŸ™"].map((item) => (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`React ${item}`}
@@ -7364,6 +7376,22 @@ function MessageActionSheet({
                 </View>
               </Pressable>
             ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete for me"
+            onPress={onHideForMe}
+            style={[chatStyles.actionRow, chatStyles.deleteAction]}
+          >
+            <View style={[chatStyles.actionIcon, chatStyles.deleteIcon]}>
+              <Ionicons name="trash-outline" size={18} color="#B10D38" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={chatStyles.deleteTitle}>Delete for me</Text>
+              <Text style={chatStyles.actionBody}>
+                Remove it from your view only
+              </Text>
+            </View>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -7447,7 +7475,7 @@ function EditMessageSheet({
         >
           <Ionicons name="checkmark-circle" size={18} color="#FFF" />
           <Text style={chatStyles.primarySheetButtonText}>
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Savingâ€¦" : "Save changes"}
           </Text>
         </Pressable>
       </SafeAreaView>
@@ -7504,7 +7532,7 @@ function ForwardSelectorSheet({
       <SafeAreaView style={[chatStyles.sheet, { maxHeight: "88%" }]}>
         <SheetHeader
           title="Forward messages"
-          subtitle={`${messages.length} ${messages.length === 1 ? "message" : "messages"} · choose a verified conversation`}
+          subtitle={`${messages.length} ${messages.length === 1 ? "message" : "messages"} Â· choose a verified conversation`}
           onClose={onClose}
         />
         <View style={chatStyles.gifSearchWrap}>
@@ -7548,7 +7576,7 @@ function ForwardSelectorSheet({
               <View style={{ flex: 1 }}>
                 <Text style={chatStyles.forwardName}>{person.name}</Text>
                 <Text style={chatStyles.forwardMeta}>
-                  {person.city} · Verified match
+                  {person.city} Â· Verified match
                 </Text>
               </View>
               <View style={chatStyles.forwardButton}>
@@ -7611,7 +7639,7 @@ function PinnedMessagesSheet({
                 style={{ flex: 1 }}
               >
                 <Text style={chatStyles.pinnedMessageLabel}>
-                  {message.mine === false ? "FROM YOUR MATCH" : "FROM YOU"} ·{" "}
+                  {message.mine === false ? "FROM YOUR MATCH" : "FROM YOU"} Â·{" "}
                   {new Date(message.createdAt).toLocaleDateString()}
                 </Text>
                 <Text numberOfLines={3} style={chatStyles.pinnedMessageText}>
@@ -7729,7 +7757,7 @@ function ConversationInboxSheet({
                 ]}
               >
                 {item[0]?.toUpperCase()}
-                {item.slice(1)} · {counts[item]}
+                {item.slice(1)} Â· {counts[item]}
               </Text>
             </Pressable>
           ))}
@@ -7796,7 +7824,7 @@ function ConversationInboxSheet({
                     )}
                   </View>
                   <Text style={chatStyles.forwardMeta}>
-                    {person.city} ·{" "}
+                    {person.city} Â·{" "}
                     {person.id === current.id
                       ? "Open now"
                       : "Verified conversation"}
@@ -7861,7 +7889,7 @@ function GiftShop({
   } = useChatRuntime().gifts;
   const [tab, setTab] = useState<"delivered" | "digital">("delivered");
   const [selectedGift, setSelectedGift] = useState<PhysicalGift | null>(null);
-  const [note, setNote] = useState("Thinking of you ❤️");
+  const [note, setNote] = useState("Thinking of you â¤ï¸");
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState("");
   const selectedQuote = selectedGift
@@ -7877,7 +7905,7 @@ function GiftShop({
     if (visible) {
       setTab("delivered");
       setSelectedGift(null);
-      setNote("Thinking of you ❤️");
+      setNote("Thinking of you â¤ï¸");
       setError("");
     }
   }, [visible]);
@@ -8009,7 +8037,7 @@ function GiftShop({
                       {selectedGift.name}
                     </Text>
                     <Text style={giftFlowStyles.quoteMeta}>
-                      {selectedQuote.serviceLevelLabel} · DestinyOne delivery ·
+                      {selectedQuote.serviceLevelLabel} Â· DestinyOne delivery Â·
                       ETA {selectedQuote.etaLabel}
                     </Text>
                   </View>
@@ -8047,7 +8075,7 @@ function GiftShop({
                   onChangeText={setNote}
                   multiline
                   maxLength={120}
-                  placeholder="Add a short note…"
+                  placeholder="Add a short noteâ€¦"
                   placeholderTextColor="#8C7888"
                   style={giftFlowStyles.noteInput}
                 />
@@ -8083,8 +8111,8 @@ function GiftShop({
                     {physicalMode === "blocked"
                       ? "Delivery connection required"
                       : ordering
-                        ? "Creating secure request…"
-                        : `Send request · ${formatGiftMoney(selectedQuote.totalCents)}`}
+                        ? "Creating secure requestâ€¦"
+                        : `Send request Â· ${formatGiftMoney(selectedQuote.totalCents)}`}
                   </Text>
                 </Pressable>
                 <Text style={giftFlowStyles.quoteFine}>
@@ -8273,7 +8301,7 @@ function GiftQuoteInfo({ quote }: { quote: GiftOrderQuote }) {
       <GiftQuoteInfoRow icon="bicycle" text={quote.providerRecommendation} />
       <GiftQuoteInfoRow
         icon="hourglass-outline"
-        text={`${quote.etaConfidence} ETA confidence · recipient acceptance expires privately at ${new Date(quote.acceptanceExpiresAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`}
+        text={`${quote.etaConfidence} ETA confidence Â· recipient acceptance expires privately at ${new Date(quote.acceptanceExpiresAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`}
       />
       <GiftQuoteInfoRow icon="card" text={quote.paymentPolicy} />
       <GiftQuoteInfoRow icon="refresh-circle" text={quote.cancellationPolicy} />
@@ -8340,7 +8368,7 @@ function GameSheet({
   };
   const sendCustom = () => {
     const value = customPrompt.trim();
-    if (selected && value) onPlay(selected, `CUSTOM ROUND · ${value}`);
+    if (selected && value) onPlay(selected, `CUSTOM ROUND Â· ${value}`);
   };
   return (
     <Modal
@@ -8566,7 +8594,7 @@ function GameSheet({
               ))}
             </ScrollView>
             <Text style={gameStyles.privacyNote}>
-              100 original Truth or Dare rounds · custom prompts · private to
+              100 original Truth or Dare rounds Â· custom prompts Â· private to
               this mutual chat.
             </Text>
           </>
@@ -8752,7 +8780,7 @@ function CoupleSettingsSheet({
                 {nickname.trim() || match.name}
               </Text>
               <Text style={coupleStyles.previewMeta}>
-                {match.name} · {activeTheme.name}
+                {match.name} Â· {activeTheme.name}
               </Text>
             </View>
             <PremiumIcon name="heart" tone="gold" size={44} iconSize={19} />
@@ -9030,7 +9058,7 @@ function CoupleSettingsSheet({
               <Text style={coupleStyles.limitText}>
                 Web browsers and some operating-system capture methods cannot be
                 detected reliably. DestinyOne will never show a false
-                “screenshot taken” alert.
+                â€œscreenshot takenâ€ alert.
               </Text>
             </View>
           </View>
@@ -9117,14 +9145,14 @@ function SnapStudio({
 }) {
   const [uri, setUri] = useState("");
   const [filter, setFilter] = useState(snapFilters[0]!.name);
-  const [sticker, setSticker] = useState("💘");
+  const [sticker, setSticker] = useState("ðŸ’˜");
   const [viewOnce, setViewOnce] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
     if (visible) {
       setUri("");
       setFilter(snapFilters[0]!.name);
-      setSticker("💘");
+      setSticker("ðŸ’˜");
       setViewOnce(true);
       setError("");
     }
@@ -9331,7 +9359,7 @@ function FaceEmojiStudio({
   onSend: (uri: string, emoji: string, filter: string) => void;
 }) {
   const [uri, setUri] = useState("");
-  const [emoji, setEmoji] = useState("😂");
+  const [emoji, setEmoji] = useState("ðŸ˜‚");
   const [filter, setFilter] = useState(snapFilters[5]!.name);
   const [error, setError] = useState("");
   const autoLaunch = useRef(false);
@@ -9339,7 +9367,7 @@ function FaceEmojiStudio({
     if (visible) {
       autoLaunch.current = false;
       setUri("");
-      setEmoji("😂");
+      setEmoji("ðŸ˜‚");
       setFilter(snapFilters[5]!.name);
       setError("");
     }
@@ -9438,7 +9466,7 @@ function FaceEmojiStudio({
             style={snapStyles.empty}
           >
             <PremiumIcon name="camera" tone="ruby" size={76} iconSize={35} />
-            <Text style={snapStyles.emptyTitle}>Opening camera…</Text>
+            <Text style={snapStyles.emptyTitle}>Opening cameraâ€¦</Text>
             <Text style={[styles.helper, { textAlign: "center" }]}>
               Funny Cam starts with camera. If your browser blocks it, tap Open
               camera below.
@@ -9614,13 +9642,13 @@ function CallModal({
   const activeError = permissionError;
   const stateLabel =
     callState === "permission"
-      ? "Checking device permissions…"
+      ? "Checking device permissionsâ€¦"
       : callState === "ringing"
-        ? `Ringing ${match.name}…`
+        ? `Ringing ${match.name}â€¦`
         : callState === "connecting"
           ? incomingCallId
-            ? "Answering securely…"
-            : "Creating secure connection…"
+            ? "Answering securelyâ€¦"
+            : "Creating secure connectionâ€¦"
           : callState === "blocked"
             ? "Connection needs attention"
             : muted
@@ -9645,7 +9673,7 @@ function CallModal({
               iconSize={13}
             />
             <Text style={callStyles.topPillText}>
-              {isCoupleMode ? "Private couple call" : "Mutual-match call"} ·{" "}
+              {isCoupleMode ? "Private couple call" : "Mutual-match call"} Â·{" "}
               {callState === "connected"
                 ? elapsed
                 : incomingCallId

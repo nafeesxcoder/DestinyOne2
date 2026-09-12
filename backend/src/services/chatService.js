@@ -29,6 +29,7 @@ function parseJsonColumn(value, fallback) {
 function rowToMessage(row, viewerId) {
   const payload = parseJsonColumn(row.payload, {});
   const starredBy = parseJsonColumn(row.starred_by, []);
+  const hiddenBy = parseJsonColumn(row.hidden_by, []);
   const reactionsMap = parseJsonColumn(row.reactions, {});
   return {
     ...payload,
@@ -38,6 +39,7 @@ function rowToMessage(row, viewerId) {
     status: row.status,
     createdAt: Number(row.created_at_ms),
     starredByMe: starredBy.includes(viewerId),
+    hiddenForMe: hiddenBy.includes(viewerId),
     pinnedAt: row.pinned_at ? new Date(row.pinned_at).getTime() : undefined,
     reactions: reactionsMap[viewerId] ? { me: reactionsMap[viewerId] } : undefined,
     editedAt: row.edited_at ? new Date(row.edited_at).getTime() : payload.editedAt,
@@ -123,6 +125,12 @@ async function setMessageState(conversationId, userId, messageId, input) {
       ? [...new Set([...starredBy, userId])]
       : starredBy.filter((id) => id !== userId);
   }
+  let hiddenBy = parseJsonColumn(row.hidden_by, []);
+  if (typeof input.hidden === 'boolean') {
+    hiddenBy = input.hidden
+      ? [...new Set([...hiddenBy, userId])]
+      : hiddenBy.filter((id) => id !== userId);
+  }
   let pinnedAt = row.pinned_at;
   if (typeof input.pinned === 'boolean') {
     pinnedAt = input.pinned ? new Date() : null;
@@ -133,8 +141,8 @@ async function setMessageState(conversationId, userId, messageId, input) {
     else delete reactionsMap[userId];
   }
   await query(
-    'UPDATE chat_messages SET starred_by = ?, pinned_at = ?, reactions = ?, updated_at_ms = ? WHERE id = ? AND conversation_id = ?',
-    [JSON.stringify(starredBy), pinnedAt, JSON.stringify(reactionsMap), Date.now(), messageId, conversationId],
+    'UPDATE chat_messages SET starred_by = ?, hidden_by = ?, pinned_at = ?, reactions = ?, updated_at_ms = ? WHERE id = ? AND conversation_id = ?',
+    [JSON.stringify(starredBy), JSON.stringify(hiddenBy), pinnedAt, JSON.stringify(reactionsMap), Date.now(), messageId, conversationId],
   );
   return { ok: true };
 }
