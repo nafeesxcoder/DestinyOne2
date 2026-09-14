@@ -888,12 +888,32 @@ function DestinyOneApp() {
             "destinyone_access_token",
           );
           if (savedToken) {
-            const me = await authApi.me(savedToken);
-            setAccessToken(savedToken);
-            const profileData = await profileApi.getMyProfile(savedToken);
+            let currentToken: string = savedToken;
+            let me;
+            try {
+              me = await authApi.me(currentToken);
+            } catch {
+              const savedRefreshToken = await AsyncStorage.getItem(
+                "destinyone_refresh_token",
+              );
+              if (!savedRefreshToken) throw new Error("No refresh token");
+              const tokens = await authApi.refresh(savedRefreshToken);
+              await AsyncStorage.setItem(
+                "destinyone_access_token",
+                tokens.accessToken,
+              );
+              await AsyncStorage.setItem(
+                "destinyone_refresh_token",
+                tokens.refreshToken,
+              );
+              currentToken = tokens.accessToken;
+              me = await authApi.me(currentToken);
+            }
+            setAccessToken(currentToken);
+            const profileData = await profileApi.getMyProfile(currentToken);
             try {
               const discoverResult = await profileApi.discoverMatches(
-                savedToken,
+                currentToken,
                 20,
               );
               if (discoverResult.matches)
@@ -1093,6 +1113,34 @@ function DestinyOneApp() {
     if (screen === "pricing")
       track("membership_viewed", { screen_key: "pricing" });
   }, [hydrated, screen]);
+  useEffect(() => {
+    if (!accessToken) return;
+    const interval = setInterval(
+      async () => {
+        try {
+          const savedRefreshToken = await AsyncStorage.getItem(
+            "destinyone_refresh_token",
+          );
+          if (!savedRefreshToken) return;
+          const tokens = await authApi.refresh(savedRefreshToken);
+          await AsyncStorage.setItem(
+            "destinyone_access_token",
+            tokens.accessToken,
+          );
+          await AsyncStorage.setItem(
+            "destinyone_refresh_token",
+            tokens.refreshToken,
+          );
+          setAccessToken(tokens.accessToken);
+        } catch {
+          // Silent: a real problem will surface next time the person
+          // interacts with the app, rather than interrupting them here.
+        }
+      },
+      10 * 60 * 1000,
+    );
+    return () => clearInterval(interval);
+  }, [accessToken]);
   useEffect(() => {
     if (!hydrated || !["coupleSetup", "home", "profile"].includes(screen))
       return;
@@ -2495,7 +2543,12 @@ function DestinyOneApp() {
           details,
           reportId,
         )
-      : await persistReportPreview(profileIdFor(match), reason, details, reportId);
+      : await persistReportPreview(
+          profileIdFor(match),
+          reason,
+          details,
+          reportId,
+        );
     if (
       !confirmMemberMutation(
         result,
@@ -2547,7 +2600,10 @@ function DestinyOneApp() {
   const unmatchMatch = async (match: Match) => {
     const result = accessToken
       ? await safetyApi.unmatch(accessToken, conversationIdFor(match))
-      : await persistUnmatchPreview(conversationIdFor(match), `unmatch-${Date.now()}`);
+      : await persistUnmatchPreview(
+          conversationIdFor(match),
+          `unmatch-${Date.now()}`,
+        );
     if (
       !confirmMemberMutation(
         result,
