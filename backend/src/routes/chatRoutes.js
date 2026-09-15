@@ -13,5 +13,7 @@ router.post('/:conversationId/location', chatController.postLocation);
 router.put('/:conversationId/messages/:messageId', chatController.putEditMessage);
 router.delete('/:conversationId/messages/:messageId', chatController.deleteMessageHandler);
 router.put('/:conversationId/messages/:messageId/state', chatController.putMessageState);
+router.get('/:conversationId/settings', chatController.getSettingsHandler);
+router.put('/:conversationId/settings', chatController.putSettingsHandler);
 
 module.exports = router;

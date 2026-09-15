@@ -1,4 +1,4 @@
-const crypto = require("crypto");
+﻿const crypto = require("crypto");
 const { query } = require("../config/db");
 
 async function assertParticipant(conversationId, userId) {
@@ -266,6 +266,27 @@ async function shareLiveLocation(
   return { ok: true };
 }
 
+async function getSettings(conversationId, userId) {
+  await assertParticipant(conversationId, userId);
+  const rows = await query(
+    'SELECT settings FROM chat_conversation_settings WHERE conversation_id = ? AND user_id = ?',
+    [conversationId, userId],
+  );
+  if (!rows.length) return null;
+  return parseJsonColumn(rows[0].settings, null);
+}
+
+async function saveSettings(conversationId, userId, settings) {
+  await assertParticipant(conversationId, userId);
+  await query(
+    `INSERT INTO chat_conversation_settings (conversation_id, user_id, settings)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE settings = VALUES(settings)`,
+    [conversationId, userId, JSON.stringify(settings)],
+  );
+  return { ok: true };
+}
+
 module.exports = {
   assertParticipant,
   listMessages,
@@ -276,4 +297,6 @@ module.exports = {
   editMessage,
   deleteMessage,
   setMessageState,
+  getSettings,
+  saveSettings,
 };

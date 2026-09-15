@@ -90,7 +90,7 @@ import {
   fetchPersistedRelationshipJourney,
   persistBlock as persistBlockPreview,
   persistChatMessage as persistChatMessagePreview,
-  persistChatSettings,
+  persistChatSettings as persistChatSettingsPreview,
   persistClearMatchingLearning,
   persistDatePlanStatus as persistDatePlanStatusPreview,
   persistDateProposal as persistDateProposalPreview,
@@ -1318,6 +1318,23 @@ function DestinyOneApp() {
       unsubscribe();
     };
   }, [hydrated, screen, conversationPartner.id]);
+  useEffect(() => {
+    if (!hydrated || screen !== "chat" || !accessToken) return;
+    let active = true;
+    void chatApi
+      .getSettings(accessToken, conversationIdFor(conversationPartner))
+      .then((settings) => {
+        if (!active || !settings) return;
+        setChatSettings((current) => ({
+          ...current,
+          [conversationPartner.id]: settings,
+        }));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [hydrated, screen, conversationPartner.id, accessToken]);
   if (!poppins || !satisfy)
     return <View style={{ flex: 1, backgroundColor: colors.black }} />;
   const chooseExperienceMode = (mode: ExperienceMode) => {
@@ -2274,17 +2291,23 @@ function DestinyOneApp() {
     setAnalyticsConsent(value);
   };
   const updateSelectedChatSettings = async (settings: CoupleChatSettings) => {
-    if (isPreviewAccessMode) {
+    if (isPreviewAccessMode && !accessToken) {
       setChatSettings((current) => ({
         ...current,
         [conversationPartner.id]: settings,
       }));
       return;
     }
-    const result = await persistChatSettings(
-      conversationIdFor(conversationPartner),
-      settings,
-    );
+    const result = accessToken
+      ? await chatApi.saveSettings(
+          accessToken,
+          conversationIdFor(conversationPartner),
+          settings,
+        )
+      : await persistChatSettingsPreview(
+          conversationIdFor(conversationPartner),
+          settings,
+        );
     if (
       !confirmMemberMutation(
         result,

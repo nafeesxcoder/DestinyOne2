@@ -57,6 +57,14 @@ const putMessageState = wrap(async (req) => {
   return chatService.setMessageState(req.params.conversationId, req.user.id, req.params.messageId, req.body);
 });
 
+const getSettingsHandler = wrap(async (req) => {
+  return chatService.getSettings(req.params.conversationId, req.user.id);
+});
+
+const putSettingsHandler = wrap(async (req) => {
+  return chatService.saveSettings(req.params.conversationId, req.user.id, req.body);
+});
+
 module.exports = {
   getMessages,
   postMessage,
@@ -66,4 +74,6 @@ module.exports = {
   putEditMessage,
   deleteMessageHandler,
   putMessageState,
+  getSettingsHandler,
+  putSettingsHandler,
 };

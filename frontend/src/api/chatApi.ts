@@ -1,4 +1,4 @@
-﻿import type { ChatMessage, DatePlanStatus } from "../storage";
+﻿import type { ChatMessage, CoupleChatSettings, DatePlanStatus } from "../storage";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -119,6 +119,25 @@ export const chatApi = {
     return authFetch(`/chat/${conversationId}/messages/${messageId}/state`, accessToken, {
       method: "PUT",
       body: JSON.stringify(input),
+    }) as Promise<PersistenceResult<{ ok: boolean }>>;
+  },
+
+  async getSettings(
+    accessToken: string,
+    conversationId: string,
+  ): Promise<CoupleChatSettings | null> {
+    const result = await authFetch(`/chat/${conversationId}/settings`, accessToken);
+    return (result.data as CoupleChatSettings | null) ?? null;
+  },
+
+  async saveSettings(
+    accessToken: string,
+    conversationId: string,
+    settings: CoupleChatSettings,
+  ): Promise<PersistenceResult<{ ok: boolean }>> {
+    return authFetch(`/chat/${conversationId}/settings`, accessToken, {
+      method: "PUT",
+      body: JSON.stringify(settings),
     }) as Promise<PersistenceResult<{ ok: boolean }>>;
   },
 };
