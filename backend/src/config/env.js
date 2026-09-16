@@ -1,4 +1,4 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 function required(name, fallback = undefined) {
   const value = process.env[name] ?? fallback;
@@ -69,10 +69,16 @@ module.exports = {
     clientSecret: required("LINKEDIN_CLIENT_SECRET"),
     redirectUri: required("LINKEDIN_REDIRECT_URI"),
   },
+
+  push: {
+    publicKey: required("VAPID_PUBLIC_KEY", ""),
+    privateKey: required("VAPID_PRIVATE_KEY", ""),
+    subject: required("VAPID_SUBJECT", "mailto:support@destinyone.co"),
+  },
 };
 
 console.log(
-  "DEBUG →",
+  "DEBUG â†’",
   "twilio SID:",
   module.exports.twilio.accountSid,
   "| resend key:",

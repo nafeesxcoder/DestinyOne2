@@ -1,4 +1,4 @@
-const path = require("path");
+﻿const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes"); // Directly import auth routes
@@ -6,6 +6,7 @@ const profileRoutes = require("./routes/profileRoutes"); // Directly import prof
 const matchRoutes = require("./routes/matchRoutes"); // Directly import match routes
 const coupleRoutes = require("./routes/coupleRoutes"); // Directly import couple routes
 const chatRoutes = require("./routes/chatRoutes"); // Directly import chat routes
+const pushRoutes = require("./routes/pushRoutes"); // Directly import push notification routes
 const safetyRoutes = require("./routes/safetyRoutes"); // Directly import safety routes
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
 const app = express();
@@ -23,6 +24,7 @@ app.use("/matches", matchRoutes);
 // Mount couple connection routes under /couple
 app.use("/couple", coupleRoutes);
 app.use("/chat", chatRoutes);
+app.use("/push", pushRoutes);
 app.use("/safety", safetyRoutes);
 // If you have other route modules (like gifts, users, etc.), mount them here
 // app.use('/gifts', giftRoutes);

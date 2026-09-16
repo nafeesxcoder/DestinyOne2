@@ -1,5 +1,6 @@
 ﻿const crypto = require("crypto");
 const { query } = require("../config/db");
+const pushService = require("./pushService");
 
 async function assertParticipant(conversationId, userId) {
   const mutual = await query(
@@ -7,18 +8,37 @@ async function assertParticipant(conversationId, userId) {
      WHERE (user_a_id = ? AND user_b_id = ?) OR (user_a_id = ? AND user_b_id = ?)`,
     [userId, conversationId, conversationId, userId],
   );
-  if (mutual.length) return [mutual[0].user_a_id, mutual[0].user_b_id];
+  let participants = null;
+  if (mutual.length) participants = [mutual[0].user_a_id, mutual[0].user_b_id];
 
-  const couple = await query(
-    `SELECT requester_id, partner_id FROM couple_connections
-     WHERE id = ? AND status = 'active' AND (requester_id = ? OR partner_id = ?)`,
-    [conversationId, userId, userId],
+  if (!participants) {
+    const couple = await query(
+      `SELECT requester_id, partner_id FROM couple_connections
+       WHERE id = ? AND status = 'active' AND (requester_id = ? OR partner_id = ?)`,
+      [conversationId, userId, userId],
+    );
+    if (couple.length)
+      participants = [couple[0].requester_id, couple[0].partner_id];
+  }
+
+  if (!participants) {
+    const err = new Error("You do not have access to this conversation.");
+    err.status = 403;
+    throw err;
+  }
+
+  const other = participants.find((id) => id !== userId) || conversationId;
+  const blocked = await query(
+    `SELECT id FROM blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)`,
+    [userId, other, other, userId],
   );
-  if (couple.length) return [couple[0].requester_id, couple[0].partner_id];
+  if (blocked.length) {
+    const err = new Error("This conversation is not available.");
+    err.status = 403;
+    throw err;
+  }
 
-  const err = new Error("You do not have access to this conversation.");
-  err.status = 403;
-  throw err;
+  return participants;
 }
 
 function parseJsonColumn(value, fallback) {
@@ -168,7 +188,7 @@ async function listMessages(conversationId, userId, sinceMs) {
 }
 
 async function sendMessage(conversationId, userId, message) {
-  await assertParticipant(conversationId, userId);
+  const participants = await assertParticipant(conversationId, userId);
   const id = String(message.id || crypto.randomUUID());
   const createdAtMs = Number(message.createdAt) || Date.now();
   const {
@@ -177,11 +197,17 @@ async function sendMessage(conversationId, userId, message) {
     mine: _mine,
     status: _status,
     createdAt: _createdAt,
+    starredByMe: _starredByMe,
+    pinnedAt: _pinnedAt,
+    reactions: _reactions,
+    editedAt: _editedAt,
+    deletedAt: _deletedAt,
+    deletedForEveryone: _deletedForEveryone,
     ...payload
   } = message;
   await query(
-    `INSERT INTO chat_messages (id, conversation_id, sender_id, message_type, payload, status, created_at_ms)
-     VALUES (?, ?, ?, ?, ?, 'sent', ?)
+    `INSERT INTO chat_messages (id, conversation_id, sender_id, message_type, payload, status, created_at_ms, updated_at_ms)
+     VALUES (?, ?, ?, ?, ?, 'sent', ?, ?)
      ON DUPLICATE KEY UPDATE payload = VALUES(payload)`,
     [
       id,
@@ -190,13 +216,41 @@ async function sendMessage(conversationId, userId, message) {
       message.type || "text",
       JSON.stringify(payload),
       createdAtMs,
+      createdAtMs,
     ],
   );
   const [row] = await query(
     `SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?`,
     [id, conversationId],
   );
-  return rowToMessage(row, userId);
+  const stored = rowToMessage(row, userId);
+  const recipientId = participants.find((pid) => pid !== userId);
+  if (recipientId) {
+    notifyRecipient(conversationId, userId, recipientId, stored).catch(() => undefined);
+  }
+  return stored;
+}
+
+async function notifyRecipient(conversationId, senderId, recipientId, message) {
+  const settingsRows = await query(
+    "SELECT settings FROM chat_conversation_settings WHERE conversation_id = ? AND user_id = ?",
+    [conversationId, recipientId],
+  );
+  if (settingsRows.length) {
+    const settings = parseJsonColumn(settingsRows[0].settings, {});
+    if (settings.notificationMode === "muted") return;
+    if (settings.mutedUntil && Number(settings.mutedUntil) > Date.now()) return;
+  }
+  const [profile] = await query("SELECT first_name FROM profiles WHERE user_id = ?", [senderId]);
+  const senderName = profile?.first_name || "Someone";
+  const preview = message.text
+    ? String(message.text).slice(0, 120)
+    : "Sent you a message";
+  await pushService.notifyUser(recipientId, {
+    title: senderName,
+    body: preview,
+    conversationId,
+  });
 }
 
 async function createDateProposal(conversationId, userId, date) {
@@ -269,7 +323,7 @@ async function shareLiveLocation(
 async function getSettings(conversationId, userId) {
   await assertParticipant(conversationId, userId);
   const rows = await query(
-    'SELECT settings FROM chat_conversation_settings WHERE conversation_id = ? AND user_id = ?',
+    "SELECT settings FROM chat_conversation_settings WHERE conversation_id = ? AND user_id = ?",
     [conversationId, userId],
   );
   if (!rows.length) return null;

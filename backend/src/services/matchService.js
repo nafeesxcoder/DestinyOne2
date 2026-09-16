@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+﻿const crypto = require('crypto');
 const { query } = require('../config/db');
 
 async function recordDecision(actorId, targetId, decision) {
@@ -42,6 +42,11 @@ async function getMutualMatches(userId) {
 
   const results = [];
   for (const row of rows) {
+    const blocked = await query(
+      `SELECT id FROM blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)`,
+      [userId, row.other_user_id, row.other_user_id, userId],
+    );
+    if (blocked.length) continue;
     const [profile] = await query(
       'SELECT first_name, age, city, profession, gender FROM profiles WHERE user_id = ?',
       [row.other_user_id],

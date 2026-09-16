@@ -116,6 +116,7 @@ import {
   subscribePersistedChatMessages as subscribePersistedChatMessagesPreview,
 } from "./adapters/previewPersistence";
 import { chatApi } from "../api/chatApi";
+import { pushApi } from "../api/pushApi";
 import { safetyApi } from "../api/safetyApi";
 import { conversationIdFor, profileIdFor } from "../domain/matchIdentity";
 import { previewEntitlementAllowed } from "../domain/monetizationOps";
@@ -560,6 +561,16 @@ function intentFromDatabase(value: string) {
     : value === "long_term"
       ? "Long-term Relationship"
       : "Long-term, leading to Marriage";
+}
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 function DestinyOneApp() {
   // Local state exists only for deterministic frontend preview/offline UX.
@@ -1140,6 +1151,39 @@ function DestinyOneApp() {
       10 * 60 * 1000,
     );
     return () => clearInterval(interval);
+  }, [accessToken]);
+  useEffect(() => {
+    if (!accessToken || Platform.OS !== "web") return;
+    if (
+      typeof navigator === "undefined" ||
+      !("serviceWorker" in navigator) ||
+      typeof window === "undefined" ||
+      !("PushManager" in window) ||
+      typeof Notification === "undefined"
+    )
+      return;
+    void (async () => {
+      try {
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") return;
+        const existing = await registration.pushManager.getSubscription();
+        if (existing) {
+          await pushApi.subscribe(accessToken, existing.toJSON());
+          return;
+        }
+        const publicKey = await pushApi.getPublicKey();
+        if (!publicKey) return;
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+        await pushApi.subscribe(accessToken, subscription.toJSON());
+      } catch {
+        // Push notifications are optional; a failure here should not
+        // interrupt anything else in the app.
+      }
+    })();
   }, [accessToken]);
   useEffect(() => {
     if (!hydrated || !["coupleSetup", "home", "profile"].includes(screen))
