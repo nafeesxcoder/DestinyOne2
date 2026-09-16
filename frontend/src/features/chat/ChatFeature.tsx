@@ -892,6 +892,8 @@ export function ChatScreen({
   onSpendCoins,
   onReport,
   onBlock,
+  isBlocked,
+  onUnblock,
   onUnmatch,
   navigate,
 }: {
@@ -946,6 +948,8 @@ export function ChatScreen({
   onSpendCoins: (coins: number) => void;
   onReport: (reason: string, details?: string) => void;
   onBlock: () => void;
+  isBlocked?: boolean;
+  onUnblock: () => void;
   onUnmatch: () => void;
   navigate: (s: Screen) => void;
 }) {
@@ -2917,6 +2921,7 @@ export function ChatScreen({
             mode={experienceMode}
             visible={safetyOpen}
             match={match}
+            isBlocked={isBlocked}
             onClose={() => setSafetyOpen(false)}
             onSafetyCenter={() => {
               setSafetyOpen(false);
@@ -2929,6 +2934,10 @@ export function ChatScreen({
             onBlock={() => {
               setSafetyOpen(false);
               onBlock();
+            }}
+            onUnblock={() => {
+              setSafetyOpen(false);
+              onUnblock();
             }}
             onUnmatch={() => {
               setSafetyOpen(false);

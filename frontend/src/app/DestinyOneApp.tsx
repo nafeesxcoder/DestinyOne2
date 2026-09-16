@@ -1379,6 +1379,26 @@ function DestinyOneApp() {
       active = false;
     };
   }, [hydrated, screen, conversationPartner.id, accessToken]);
+  useEffect(() => {
+    if (!hydrated || screen !== "chat" || !accessToken) return;
+    let active = true;
+    void safetyApi
+      .getBlockStatus(accessToken, profileIdFor(conversationPartner))
+      .then((blocked) => {
+        if (!active) return;
+        setBlockedIds((current) => {
+          const already = current.includes(conversationPartner.id);
+          if (blocked && !already) return [...current, conversationPartner.id];
+          if (!blocked && already)
+            return current.filter((id) => id !== conversationPartner.id);
+          return current;
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [hydrated, screen, conversationPartner.id, accessToken]);
   if (!poppins || !satisfy)
     return <View style={{ flex: 1, backgroundColor: colors.black }} />;
   const chooseExperienceMode = (mode: ExperienceMode) => {
@@ -2664,6 +2684,27 @@ function DestinyOneApp() {
     });
     return true;
   };
+  const unblockMatch = async (match: Match) => {
+    if (accessToken) {
+      const result = await safetyApi.unblock(accessToken, profileIdFor(match));
+      if (
+        !confirmMemberMutation(
+          result,
+          "Could not unblock",
+          "The unblock could not be confirmed. Please try again.",
+        )
+      )
+        return false;
+    }
+    setBlockedIds((current) => current.filter((id) => id !== match.id));
+    setAppNotice({
+      title: "Unblocked",
+      body: `${match.name} can appear in your matches and chats again.`,
+      icon: "checkmark-circle-outline",
+      tone: "gold",
+    });
+    return true;
+  };
   const unmatchMatch = async (match: Match) => {
     const result = accessToken
       ? await safetyApi.unmatch(accessToken, conversationIdFor(match))
@@ -3480,6 +3521,10 @@ function DestinyOneApp() {
             onBlock={async () => {
               if (await blockMatch(conversationPartner)) setScreen("home");
             }}
+            isBlocked={blockedIds.includes(conversationPartner.id)}
+            onUnblock={async () => {
+              await unblockMatch(conversationPartner);
+            }}
             onUnmatch={async () => {
               if (await unmatchMatch(conversationPartner)) setScreen("home");
             }}
@@ -3695,6 +3740,7 @@ function DestinyOneApp() {
         <SafetyActions
           visible={detailSafetyOpen}
           match={selected}
+          isBlocked={blockedIds.includes(selected.id)}
           onClose={() => setDetailSafetyOpen(false)}
           onSafetyCenter={() => {
             setDetailSafetyOpen(false);
@@ -3721,6 +3767,10 @@ function DestinyOneApp() {
                 tone: "ruby",
               });
             }
+          }}
+          onUnblock={async () => {
+            setDetailSafetyOpen(false);
+            await unblockMatch(selected);
           }}
           onUnmatch={async () => {
             setDetailSafetyOpen(false);

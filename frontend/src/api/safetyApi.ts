@@ -1,4 +1,4 @@
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+﻿const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 
 export type PersistenceResult<T = unknown> = {
   saved: boolean;
@@ -42,6 +42,18 @@ export const safetyApi = {
       method: "POST",
       body: JSON.stringify({ blockedId }),
     });
+  },
+
+  async unblock(accessToken: string, blockedId: string) {
+    return authFetch("/safety/unblock", accessToken, {
+      method: "POST",
+      body: JSON.stringify({ blockedId }),
+    });
+  },
+
+  async getBlockStatus(accessToken: string, targetId: string): Promise<boolean> {
+    const result = await authFetch(`/safety/block-status?targetId=${encodeURIComponent(targetId)}`, accessToken);
+    return !!(result.data as { blocked?: boolean } | undefined)?.blocked;
   },
 
   async unmatch(accessToken: string, targetId: string) {
