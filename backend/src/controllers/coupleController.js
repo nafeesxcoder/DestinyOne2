@@ -1,4 +1,4 @@
-const asyncHandler = require('../utils/asyncHandler');
+﻿const asyncHandler = require('../utils/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 const coupleService = require('../services/coupleService');
 
@@ -47,4 +47,9 @@ const setMode = asyncHandler(async (req, res) => {
   res.json({ ok: true });
 });
 
-module.exports = { searchPartner, sendRequest, respondRequest, getHub, setMode };
+const disconnect = asyncHandler(async (req, res) => {
+  await coupleService.disconnectConnection(req.user.id);
+  res.json({ ok: true, saved: true, reason: 'backend' });
+});
+
+module.exports = { searchPartner, sendRequest, respondRequest, getHub, setMode, disconnect };

@@ -1,0 +1,288 @@
+﻿
+> src\features\chat\ChatFeature.tsx:9549:function CallModal({
+  src\features\chat\ChatFeature.tsx:9550:  mode,
+  src\features\chat\ChatFeature.tsx:9551:  match,
+  src\features\chat\ChatFeature.tsx:9552:  isCoupleMode,
+  src\features\chat\ChatFeature.tsx:9553:  incomingCallId,
+  src\features\chat\ChatFeature.tsx:9554:  onClose,
+  src\features\chat\ChatFeature.tsx:9555:}: {
+  src\features\chat\ChatFeature.tsx:9556:  mode: "audio" | "video" | null;
+  src\features\chat\ChatFeature.tsx:9557:  match: Match;
+  src\features\chat\ChatFeature.tsx:9558:  isCoupleMode: boolean;
+  src\features\chat\ChatFeature.tsx:9559:  incomingCallId: string | null;
+  src\features\chat\ChatFeature.tsx:9560:  onClose: () => void;
+  src\features\chat\ChatFeature.tsx:9561:}) {
+  src\features\chat\ChatFeature.tsx:9562:  const [previewMuted, setPreviewMuted] = useState(false);
+  src\features\chat\ChatFeature.tsx:9563:  const [speaker, setSpeaker] = useState(true);
+  src\features\chat\ChatFeature.tsx:9564:  const [previewCamera, setPreviewCamera] = useState(mode === 
+"video");
+  src\features\chat\ChatFeature.tsx:9565:  const [seconds, setSeconds] = useState(0);
+  src\features\chat\ChatFeature.tsx:9566:  const [previewCallState, setPreviewCallState] = useState<
+  src\features\chat\ChatFeature.tsx:9567:    "permission" | "ringing" | "connecting" | "connected" | 
+"blocked"
+  src\features\chat\ChatFeature.tsx:9568:  >("permission");
+  src\features\chat\ChatFeature.tsx:9569:  const [permissionError, setPermissionError] = useState("");
+  src\features\chat\ChatFeature.tsx:9570:  const callState = previewCallState;
+  src\features\chat\ChatFeature.tsx:9571:  const muted = previewMuted;
+  src\features\chat\ChatFeature.tsx:9572:  const cameraOn = previewCamera;
+  src\features\chat\ChatFeature.tsx:9573:  const requestCallPermissions = async () => {
+  src\features\chat\ChatFeature.tsx:9574:    if (!mode) return;
+  src\features\chat\ChatFeature.tsx:9575:    setPermissionError("");
+  src\features\chat\ChatFeature.tsx:9576:    setPreviewCallState("permission");
+  src\features\chat\ChatFeature.tsx:9577:    try {
+  src\features\chat\ChatFeature.tsx:9578:      const microphone = await 
+requestRecordingPermissionsAsync();
+  src\features\chat\ChatFeature.tsx:9579:      const camera =
+  src\features\chat\ChatFeature.tsx:9580:        mode === "video"
+  src\features\chat\ChatFeature.tsx:9581:          ? await ImagePicker.requestCameraPermissionsAsync()
+  src\features\chat\ChatFeature.tsx:9582:          : { granted: true };
+  src\features\chat\ChatFeature.tsx:9583:      if (!microphone.granted || !camera.granted) {
+  src\features\chat\ChatFeature.tsx:9584:        setPermissionError(
+  src\features\chat\ChatFeature.tsx:9585:          `${mode === "video" ? "Camera and microphone" : 
+"Microphone"} access is required for this call.`,
+  src\features\chat\ChatFeature.tsx:9586:        );
+  src\features\chat\ChatFeature.tsx:9587:        setPreviewCallState("blocked");
+  src\features\chat\ChatFeature.tsx:9588:        return;
+  src\features\chat\ChatFeature.tsx:9589:      }
+  src\features\chat\ChatFeature.tsx:9590:      setPreviewCallState("ringing");
+  src\features\chat\ChatFeature.tsx:9591:    } catch {
+  src\features\chat\ChatFeature.tsx:9592:      setPermissionError(
+  src\features\chat\ChatFeature.tsx:9593:        "Device permissions could not be opened. Check browser 
+or phone settings.",
+  src\features\chat\ChatFeature.tsx:9594:      );
+  src\features\chat\ChatFeature.tsx:9595:      setPreviewCallState("blocked");
+  src\features\chat\ChatFeature.tsx:9596:    }
+  src\features\chat\ChatFeature.tsx:9597:  };
+  src\features\chat\ChatFeature.tsx:9598:  useEffect(() => {
+  src\features\chat\ChatFeature.tsx:9599:    if (!mode) return;
+  src\features\chat\ChatFeature.tsx:9600:    setPreviewMuted(false);
+  src\features\chat\ChatFeature.tsx:9601:    setSpeaker(true);
+  src\features\chat\ChatFeature.tsx:9602:    setPreviewCamera(mode === "video");
+  src\features\chat\ChatFeature.tsx:9603:    setSeconds(0);
+  src\features\chat\ChatFeature.tsx:9604:    void requestCallPermissions();
+  src\features\chat\ChatFeature.tsx:9605:  }, [mode]);
+  src\features\chat\ChatFeature.tsx:9606:  useEffect(() => {
+  src\features\chat\ChatFeature.tsx:9607:    if (callState !== "ringing") return;
+  src\features\chat\ChatFeature.tsx:9608:    const connectingTimer = setTimeout(
+  src\features\chat\ChatFeature.tsx:9609:      () => setPreviewCallState("connecting"),
+  src\features\chat\ChatFeature.tsx:9610:      900,
+  src\features\chat\ChatFeature.tsx:9611:    );
+  src\features\chat\ChatFeature.tsx:9612:    const connectedTimer = setTimeout(
+  src\features\chat\ChatFeature.tsx:9613:      () => setPreviewCallState("connected"),
+  src\features\chat\ChatFeature.tsx:9614:      1900,
+  src\features\chat\ChatFeature.tsx:9615:    );
+  src\features\chat\ChatFeature.tsx:9616:    return () => {
+  src\features\chat\ChatFeature.tsx:9617:      clearTimeout(connectingTimer);
+  src\features\chat\ChatFeature.tsx:9618:      clearTimeout(connectedTimer);
+  src\features\chat\ChatFeature.tsx:9619:    };
+  src\features\chat\ChatFeature.tsx:9620:  }, [callState]);
+  src\features\chat\ChatFeature.tsx:9621:  useEffect(() => {
+  src\features\chat\ChatFeature.tsx:9622:    if (callState !== "connected") return;
+  src\features\chat\ChatFeature.tsx:9623:    const timer = setInterval(() => setSeconds((value) => value 
++ 1), 1000);
+  src\features\chat\ChatFeature.tsx:9624:    return () => clearInterval(timer);
+  src\features\chat\ChatFeature.tsx:9625:  }, [callState]);
+  src\features\chat\ChatFeature.tsx:9626:  if (!mode) return null;
+  src\features\chat\ChatFeature.tsx:9627:  const elapsed = `${Math.floor(seconds / 60)}:${String(seconds 
+% 60).padStart(2, "0")}`;
+  src\features\chat\ChatFeature.tsx:9628:  const activeError = permissionError;
+  src\features\chat\ChatFeature.tsx:9629:  const stateLabel =
+  src\features\chat\ChatFeature.tsx:9630:    callState === "permission"
+  src\features\chat\ChatFeature.tsx:9631:      ? "Checking device permissionsâ€¦"
+  src\features\chat\ChatFeature.tsx:9632:      : callState === "ringing"
+  src\features\chat\ChatFeature.tsx:9633:        ? `Ringing ${match.name}â€¦`
+  src\features\chat\ChatFeature.tsx:9634:        : callState === "connecting"
+  src\features\chat\ChatFeature.tsx:9635:          ? incomingCallId
+  src\features\chat\ChatFeature.tsx:9636:            ? "Answering securelyâ€¦"
+  src\features\chat\ChatFeature.tsx:9637:            : "Creating secure connectionâ€¦"
+  src\features\chat\ChatFeature.tsx:9638:          : callState === "blocked"
+  src\features\chat\ChatFeature.tsx:9639:            ? "Connection needs attention"
+  src\features\chat\ChatFeature.tsx:9640:            : muted
+  src\features\chat\ChatFeature.tsx:9641:              ? "You are muted"
+  src\features\chat\ChatFeature.tsx:9642:              : mode === "video" && cameraOn
+  src\features\chat\ChatFeature.tsx:9643:                ? "Secure video connected"
+  src\features\chat\ChatFeature.tsx:9644:                : "Secure audio connected";
+  src\features\chat\ChatFeature.tsx:9645:  const toggleMute = () => setPreviewMuted((value) => !value);
+  src\features\chat\ChatFeature.tsx:9646:  const toggleCamera = () => setPreviewCamera((value) => 
+!value);
+  src\features\chat\ChatFeature.tsx:9647:  return (
+  src\features\chat\ChatFeature.tsx:9648:    <Modal visible transparent animationType="fade" 
+onRequestClose={onClose}>
+  src\features\chat\ChatFeature.tsx:9649:      <LinearGradient
+  src\features\chat\ChatFeature.tsx:9650:        colors={["#3A0714", "#150309", "#080103"]}
+  src\features\chat\ChatFeature.tsx:9651:        style={callStyles.backdrop}
+  src\features\chat\ChatFeature.tsx:9652:      >
+  src\features\chat\ChatFeature.tsx:9653:        <SafeAreaView style={callStyles.content}>
+  src\features\chat\ChatFeature.tsx:9654:          <View style={callStyles.topPill}>
+  src\features\chat\ChatFeature.tsx:9655:            <MiniPremiumIcon
+  src\features\chat\ChatFeature.tsx:9656:              name="shield-checkmark"
+  src\features\chat\ChatFeature.tsx:9657:              tone="gold"
+  src\features\chat\ChatFeature.tsx:9658:              size={28}
+  src\features\chat\ChatFeature.tsx:9659:              iconSize={13}
+  src\features\chat\ChatFeature.tsx:9660:            />
+  src\features\chat\ChatFeature.tsx:9661:            <Text style={callStyles.topPillText}>
+  src\features\chat\ChatFeature.tsx:9662:              {isCoupleMode ? "Private couple call" : 
+"Mutual-match call"} Â·{" "}
+  src\features\chat\ChatFeature.tsx:9663:              {callState === "connected"
+  src\features\chat\ChatFeature.tsx:9664:                ? elapsed
+  src\features\chat\ChatFeature.tsx:9665:                : incomingCallId
+  src\features\chat\ChatFeature.tsx:9666:                  ? "Incoming"
+  src\features\chat\ChatFeature.tsx:9667:                  : "Securing"}
+  src\features\chat\ChatFeature.tsx:9668:            </Text>
+  src\features\chat\ChatFeature.tsx:9669:          </View>
+  src\features\chat\ChatFeature.tsx:9670:          <View style={callStyles.avatarWrap}>
+  src\features\chat\ChatFeature.tsx:9671:            {match.photo ? (
+  src\features\chat\ChatFeature.tsx:9672:              <Image
+  src\features\chat\ChatFeature.tsx:9673:                source={{ uri: match.photo }}
+  src\features\chat\ChatFeature.tsx:9674:                style={callStyles.callAvatar}
+  src\features\chat\ChatFeature.tsx:9675:              />
+  src\features\chat\ChatFeature.tsx:9676:            ) : (
+  src\features\chat\ChatFeature.tsx:9677:              <View style={[callStyles.callAvatar, 
+chatStyles.initialAvatar]}>
+  src\features\chat\ChatFeature.tsx:9678:                <Text style={[chatStyles.initialAvatarText, { 
+fontSize: 42 }]}>
+  src\features\chat\ChatFeature.tsx:9679:                  {match.name[0]?.toUpperCase()}
+  src\features\chat\ChatFeature.tsx:9680:                </Text>
+  src\features\chat\ChatFeature.tsx:9681:              </View>
+  src\features\chat\ChatFeature.tsx:9682:            )}
+  src\features\chat\ChatFeature.tsx:9683:            <View
+  src\features\chat\ChatFeature.tsx:9684:              style={[
+  src\features\chat\ChatFeature.tsx:9685:                callStyles.callPulse,
+  src\features\chat\ChatFeature.tsx:9686:                callState === "connected" && 
+callStyles.callPulseConnected,
+  src\features\chat\ChatFeature.tsx:9687:              ]}
+  src\features\chat\ChatFeature.tsx:9688:            />
+  src\features\chat\ChatFeature.tsx:9689:          </View>
+  src\features\chat\ChatFeature.tsx:9690:          <Text style={callStyles.callName}>{match.name}</Text>
+  src\features\chat\ChatFeature.tsx:9691:          <Text 
+style={callStyles.callStatus}>{stateLabel}</Text>
+  src\features\chat\ChatFeature.tsx:9692:          {!!activeError && (
+  src\features\chat\ChatFeature.tsx:9693:            <View style={callStyles.permissionCard}>
+  src\features\chat\ChatFeature.tsx:9694:              <Ionicons name="lock-closed-outline" size={18} 
+color="#F4C5CD" />
+  src\features\chat\ChatFeature.tsx:9695:              <Text 
+style={callStyles.permissionText}>{activeError}</Text>
+  src\features\chat\ChatFeature.tsx:9696:              <Pressable
+  src\features\chat\ChatFeature.tsx:9697:                accessibilityRole="button"
+  src\features\chat\ChatFeature.tsx:9698:                accessibilityLabel="Retry call permissions"
+  src\features\chat\ChatFeature.tsx:9699:                onPress={() => void requestCallPermissions()}
+  src\features\chat\ChatFeature.tsx:9700:                style={callStyles.retryPermission}
+  src\features\chat\ChatFeature.tsx:9701:              >
+  src\features\chat\ChatFeature.tsx:9702:                <Text 
+style={callStyles.retryPermissionText}>Retry</Text>
+  src\features\chat\ChatFeature.tsx:9703:              </Pressable>
+  src\features\chat\ChatFeature.tsx:9704:            </View>
+  src\features\chat\ChatFeature.tsx:9705:          )}
+  src\features\chat\ChatFeature.tsx:9706:          {mode === "video" && callState !== "blocked" && (
+  src\features\chat\ChatFeature.tsx:9707:            <View style={callStyles.videoPreview}>
+  src\features\chat\ChatFeature.tsx:9708:              {cameraOn ? (
+  src\features\chat\ChatFeature.tsx:9709:                <>
+  src\features\chat\ChatFeature.tsx:9710:                  {match.photo ? (
+  src\features\chat\ChatFeature.tsx:9711:                    <Image
+  src\features\chat\ChatFeature.tsx:9712:                      source={{ uri: match.photo }}
+  src\features\chat\ChatFeature.tsx:9713:                      style={callStyles.videoRemote}
+  src\features\chat\ChatFeature.tsx:9714:                    />
+  src\features\chat\ChatFeature.tsx:9715:                  ) : (
+  src\features\chat\ChatFeature.tsx:9716:                    <View
+  src\features\chat\ChatFeature.tsx:9717:                      style={[callStyles.videoRemote, 
+chatStyles.initialAvatar]}
+  src\features\chat\ChatFeature.tsx:9718:                    >
+  src\features\chat\ChatFeature.tsx:9719:                      <Text
+  src\features\chat\ChatFeature.tsx:9720:                        style={[chatStyles.initialAvatarText, { 
+fontSize: 52 }]}
+  src\features\chat\ChatFeature.tsx:9721:                      >
+  src\features\chat\ChatFeature.tsx:9722:                        {match.name[0]?.toUpperCase()}
+  src\features\chat\ChatFeature.tsx:9723:                      </Text>
+  src\features\chat\ChatFeature.tsx:9724:                    </View>
+  src\features\chat\ChatFeature.tsx:9725:                  )}
+  src\features\chat\ChatFeature.tsx:9726:                  <LinearGradient
+  src\features\chat\ChatFeature.tsx:9727:                    colors={["transparent", "rgba(8,0,3,.78)"]}
+  src\features\chat\ChatFeature.tsx:9728:                    style={StyleSheet.absoluteFill}
+  src\features\chat\ChatFeature.tsx:9729:                  />
+  src\features\chat\ChatFeature.tsx:9730:                  <View style={callStyles.selfPreview}>
+  src\features\chat\ChatFeature.tsx:9731:                    <PremiumIcon
+  src\features\chat\ChatFeature.tsx:9732:                      name="person"
+  src\features\chat\ChatFeature.tsx:9733:                      tone="dark"
+  src\features\chat\ChatFeature.tsx:9734:                      size={34}
+  src\features\chat\ChatFeature.tsx:9735:                      iconSize={16}
+  src\features\chat\ChatFeature.tsx:9736:                    />
+  src\features\chat\ChatFeature.tsx:9737:                    <Text 
+style={callStyles.selfPreviewText}>You</Text>
+  src\features\chat\ChatFeature.tsx:9738:                  </View>
+  src\features\chat\ChatFeature.tsx:9739:                  <View style={callStyles.callStatePill}>
+  src\features\chat\ChatFeature.tsx:9740:                    <MiniPremiumIcon
+  src\features\chat\ChatFeature.tsx:9741:                      name={
+  src\features\chat\ChatFeature.tsx:9742:                        callState === "connected" ? "videocam" 
+: "lock-closed"
+  src\features\chat\ChatFeature.tsx:9743:                      }
+  src\features\chat\ChatFeature.tsx:9744:                      tone="gold"
+  src\features\chat\ChatFeature.tsx:9745:                      size={24}
+  src\features\chat\ChatFeature.tsx:9746:                      iconSize={11}
+  src\features\chat\ChatFeature.tsx:9747:                    />
+  src\features\chat\ChatFeature.tsx:9748:                    <Text style={callStyles.callStateText}>
+  src\features\chat\ChatFeature.tsx:9749:                      {callState === "connected" ? "Camera on" 
+: "Connecting"}
+  src\features\chat\ChatFeature.tsx:9750:                    </Text>
+  src\features\chat\ChatFeature.tsx:9751:                  </View>
+  src\features\chat\ChatFeature.tsx:9752:                </>
+  src\features\chat\ChatFeature.tsx:9753:              ) : (
+  src\features\chat\ChatFeature.tsx:9754:                <>
+  src\features\chat\ChatFeature.tsx:9755:                  <PremiumIcon
+  src\features\chat\ChatFeature.tsx:9756:                    name="videocam-off"
+  src\features\chat\ChatFeature.tsx:9757:                    tone="ruby"
+  src\features\chat\ChatFeature.tsx:9758:                    size={58}
+  src\features\chat\ChatFeature.tsx:9759:                    iconSize={27}
+  src\features\chat\ChatFeature.tsx:9760:                  />
+  src\features\chat\ChatFeature.tsx:9761:                  <Text
+  src\features\chat\ChatFeature.tsx:9762:                    style={[
+  src\features\chat\ChatFeature.tsx:9763:                      styles.helper,
+  src\features\chat\ChatFeature.tsx:9764:                      { textAlign: "center", color: "#EBCED4" },
+  src\features\chat\ChatFeature.tsx:9765:                    ]}
+  src\features\chat\ChatFeature.tsx:9766:                  >
+  src\features\chat\ChatFeature.tsx:9767:                    Camera is off. Audio continues.
+  src\features\chat\ChatFeature.tsx:9768:                  </Text>
+  src\features\chat\ChatFeature.tsx:9769:                </>
+  src\features\chat\ChatFeature.tsx:9770:              )}
+  src\features\chat\ChatFeature.tsx:9771:            </View>
+  src\features\chat\ChatFeature.tsx:9772:          )}
+  src\features\chat\ChatFeature.tsx:9773:          <View style={callStyles.callActions}>
+  src\features\chat\ChatFeature.tsx:9774:            <CallAction
+  src\features\chat\ChatFeature.tsx:9775:              active={muted}
+  src\features\chat\ChatFeature.tsx:9776:              icon={muted ? "mic-off" : "mic-outline"}
+  src\features\chat\ChatFeature.tsx:9777:              label={muted ? "Muted" : "Mute"}
+  src\features\chat\ChatFeature.tsx:9778:              onPress={toggleMute}
+  src\features\chat\ChatFeature.tsx:9779:            />
+  src\features\chat\ChatFeature.tsx:9780:            <CallAction
+  src\features\chat\ChatFeature.tsx:9781:              active={mode === "video" ? cameraOn : speaker}
+  src\features\chat\ChatFeature.tsx:9782:              icon={
+  src\features\chat\ChatFeature.tsx:9783:                mode === "video"
+  src\features\chat\ChatFeature.tsx:9784:                  ? cameraOn
+  src\features\chat\ChatFeature.tsx:9785:                    ? "videocam"
+  src\features\chat\ChatFeature.tsx:9786:                    : "videocam-off"
+  src\features\chat\ChatFeature.tsx:9787:                  : speaker
+  src\features\chat\ChatFeature.tsx:9788:                    ? "volume-high"
+  src\features\chat\ChatFeature.tsx:9789:                    : "volume-mute"
+  src\features\chat\ChatFeature.tsx:9790:              }
+  src\features\chat\ChatFeature.tsx:9791:              label={
+  src\features\chat\ChatFeature.tsx:9792:                mode === "video"
+  src\features\chat\ChatFeature.tsx:9793:                  ? cameraOn
+  src\features\chat\ChatFeature.tsx:9794:                    ? "Camera on"
+  src\features\chat\ChatFeature.tsx:9795:                    : "Camera off"
+  src\features\chat\ChatFeature.tsx:9796:                  : speaker
+  src\features\chat\ChatFeature.tsx:9797:                    ? "Speaker"
+  src\features\chat\ChatFeature.tsx:9798:                    : "Earpiece"
+  src\features\chat\ChatFeature.tsx:9799:              }
+  src\features\chat\ChatFeature.tsx:9800:              onPress={() =>
+  src\features\chat\ChatFeature.tsx:9801:                mode === "video"
+  src\features\chat\ChatFeature.tsx:9802:                  ? toggleCamera()
+  src\features\chat\ChatFeature.tsx:9803:                  : setSpeaker((value) => !value)
+  src\features\chat\ChatFeature.tsx:9804:              }
+  src\features\chat\ChatFeature.tsx:9805:            />
+  src\features\chat\ChatFeature.tsx:9806:            <CallAction danger icon="call" label="End" 
+onPress={onClose} />
+  src\features\chat\ChatFeature.tsx:9807:          </View>
+  src\features\chat\ChatFeature.tsx:9808:          <View style={callStyles.secureNote}>
+  src\features\chat\ChatFeature.tsx:9809:            <Ionicons name="lock-closed" size={13} 
+color="#D6B35B" />
+
+

@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const coupleController = require('../controllers/coupleController');
 const { requireAuth } = require('../middleware/auth');
 
@@ -10,5 +10,6 @@ router.get('/search', coupleController.searchPartner);
 router.post('/request', coupleController.sendRequest);
 router.post('/respond', coupleController.respondRequest);
 router.put('/mode', coupleController.setMode);
+router.post('/disconnect', coupleController.disconnect);
 
 module.exports = router;

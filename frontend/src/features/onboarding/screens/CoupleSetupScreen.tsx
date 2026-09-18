@@ -1,4 +1,4 @@
-import React, { useState, type ReactNode } from "react";
+﻿import React, { useState, type ReactNode } from "react";
 import { Image, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -46,6 +46,7 @@ export function CoupleSetupScreen({
   onRequest,
   onRespond,
   onOpenSpace,
+  onDisconnect,
   onBack,
 }: {
   profile: ProfileDraft;
@@ -60,8 +61,11 @@ export function CoupleSetupScreen({
   onRequest: (member: CouplePartnerSummary) => Promise<unknown>;
   onRespond: (requestId: string, accept: boolean) => Promise<void>;
   onOpenSpace: () => void;
+  onDisconnect: () => Promise<void>;
   onBack: () => void;
 }) {
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [memberName, setMemberName] = useState(profile.firstName);
   const [age, setAge] = useState(profile.age);
   const [city, setCity] = useState(profile.city);
@@ -83,7 +87,7 @@ export function CoupleSetupScreen({
     try {
       await onSaveProfile({ firstName: memberName, age, city, profession });
       setProfileEnabled(true);
-      setStatus("Details saved. Now enter your partner’s phone number below.");
+      setStatus("Details saved. Now enter your partner's phone number below.");
     } catch (value) {
       setError(
         value instanceof Error ? value.message : "Could not save your details.",
@@ -174,6 +178,41 @@ export function CoupleSetupScreen({
             variant="gold"
             onPress={onOpenSpace}
           />
+          {confirmDisconnect ? (
+            <View style={{ gap: 10, marginTop: 16 }}>
+              <Text style={[shared.body, { textAlign: "center" }]}>
+                Disconnect from {hub.connection.partnerDisplayName}? This ends
+                your shared space for both of you.
+              </Text>
+              <Button
+                label={disconnecting ? "Disconnecting…" : "Yes, disconnect"}
+                icon="close-circle"
+                onPress={async () => {
+                  setDisconnecting(true);
+                  try {
+                    await onDisconnect();
+                  } finally {
+                    setDisconnecting(false);
+                    setConfirmDisconnect(false);
+                  }
+                }}
+              />
+              <Button
+                label="Cancel"
+                variant="secondary"
+                onPress={() => setConfirmDisconnect(false)}
+              />
+            </View>
+          ) : (
+            <View style={{ marginTop: 16 }}>
+              <Button
+                label="End this connection"
+                variant="secondary"
+                icon="close-circle-outline"
+                onPress={() => setConfirmDisconnect(true)}
+              />
+            </View>
+          )}
         </FormPage>
       </PremiumBackground>
     );
@@ -277,7 +316,7 @@ export function CoupleSetupScreen({
               </View>
             </View>
             <Field
-              label="Partner’s phone number"
+              label="Partner's phone number"
               placeholder="+1 647 555 0198"
               keyboardType="phone-pad"
               value={phone}

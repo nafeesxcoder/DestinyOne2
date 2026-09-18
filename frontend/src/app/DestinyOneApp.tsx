@@ -1444,6 +1444,48 @@ function DestinyOneApp() {
       );
     }
   };
+  const disconnectCoupleConnection = async () => {
+    if (accessToken) {
+      try {
+        await coupleApi.disconnect(accessToken);
+      } catch (error) {
+        setAppNotice({
+          title: "Could not disconnect",
+          body:
+            error instanceof Error
+              ? error.message
+              : "Please try again.",
+          icon: "cloud-offline-outline",
+          tone: "ruby",
+        });
+        return;
+      }
+    }
+    const at = new Date().toISOString();
+    setCoupleMode((current) =>
+      reduceCoupleMode(current, { type: "disconnect_partner", at }),
+    );
+    setCoupleMode((current) =>
+      reduceCoupleMode(current, {
+        type: "select_experience",
+        mode: "seeking",
+        at,
+      }),
+    );
+    setChatLaunchTool(null);
+    setCoupleHub({
+      experienceMode: "seeking",
+      connection: null,
+      incomingRequests: [],
+      outgoingRequests: [],
+    });
+    setAppNotice({
+      title: "Disconnected",
+      body: "Your couple space has been closed. You can reconnect anytime.",
+      icon: "checkmark-circle-outline",
+      tone: "gold",
+    });
+  };
   const navigateTo = (target: Screen) => {
     if (coupleMode.experienceMode === "couple" && isCoupleModeRoute(target)) {
       const decision = guardCoupleModeRoute(coupleMode, target);
@@ -3040,6 +3082,7 @@ function DestinyOneApp() {
             onRequest={requestCoupleConnection}
             onRespond={respondCoupleConnection}
             onOpenSpace={() => setScreen("home")}
+            onDisconnect={disconnectCoupleConnection}
           />
         )}
         {screen === "profileSetup" && (
@@ -3529,6 +3572,7 @@ function DestinyOneApp() {
               if (await unmatchMatch(conversationPartner)) setScreen("home");
             }}
             navigate={navigateTo}
+            accessToken={accessToken}
           />
         )}
         {screen === "datePlan" && (

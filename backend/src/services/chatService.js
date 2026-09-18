@@ -101,14 +101,36 @@ async function editMessage(conversationId, userId, messageId, text) {
   const payload = parseJsonColumn(row.payload, {});
   payload.text = text;
   await query(
-    "UPDATE chat_messages SET payload = ?, edited_at = NOW(6) WHERE id = ? AND conversation_id = ?",
-    [JSON.stringify(payload), messageId, conversationId],
+    "UPDATE chat_messages SET payload = ?, edited_at = NOW(6), updated_at_ms = ? WHERE id = ? AND conversation_id = ?",
+    [JSON.stringify(payload), Date.now(), messageId, conversationId],
   );
   const [updated] = await query(
     "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
     [messageId, conversationId],
   );
   return rowToMessage(updated, userId);
+}
+
+const CLEARED_PAYLOAD = {
+  text: undefined,
+  uri: undefined,
+  gift: undefined,
+  snap: undefined,
+  sticker: undefined,
+  voice: undefined,
+  document: undefined,
+  location: undefined,
+  date: undefined,
+  linkPreview: undefined,
+};
+
+async function softDeleteMessages(conversationId, ids) {
+  if (!ids.length) return;
+  await query(
+    `UPDATE chat_messages SET payload = ?, deleted_at = NOW(6), deleted_for_everyone = 1, updated_at_ms = ?
+     WHERE conversation_id = ? AND id IN (${ids.map(() => "?").join(",")})`,
+    [JSON.stringify(CLEARED_PAYLOAD), Date.now(), conversationId, ...ids],
+  );
 }
 
 async function deleteMessage(conversationId, userId, messageId) {
@@ -118,22 +140,7 @@ async function deleteMessage(conversationId, userId, messageId) {
     err.status = 403;
     throw err;
   }
-  const cleared = {
-    text: undefined,
-    uri: undefined,
-    gift: undefined,
-    snap: undefined,
-    sticker: undefined,
-    voice: undefined,
-    document: undefined,
-    location: undefined,
-    date: undefined,
-    linkPreview: undefined,
-  };
-  await query(
-    "UPDATE chat_messages SET payload = ?, deleted_at = NOW(6), deleted_for_everyone = 1 WHERE id = ? AND conversation_id = ?",
-    [JSON.stringify(cleared), messageId, conversationId],
-  );
+  await softDeleteMessages(conversationId, [messageId]);
   const [updated] = await query(
     "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
     [messageId, conversationId],
@@ -149,6 +156,12 @@ async function setMessageState(conversationId, userId, messageId, input) {
       ? [...new Set([...starredBy, userId])]
       : starredBy.filter((id) => id !== userId);
   }
+  let hiddenBy = parseJsonColumn(row.hidden_by, []);
+  if (typeof input.hidden === "boolean") {
+    hiddenBy = input.hidden
+      ? [...new Set([...hiddenBy, userId])]
+      : hiddenBy.filter((id) => id !== userId);
+  }
   let pinnedAt = row.pinned_at;
   if (typeof input.pinned === "boolean") {
     pinnedAt = input.pinned ? new Date() : null;
@@ -159,11 +172,13 @@ async function setMessageState(conversationId, userId, messageId, input) {
     else delete reactionsMap[userId];
   }
   await query(
-    "UPDATE chat_messages SET starred_by = ?, pinned_at = ?, reactions = ? WHERE id = ? AND conversation_id = ?",
+    "UPDATE chat_messages SET starred_by = ?, hidden_by = ?, pinned_at = ?, reactions = ?, updated_at_ms = ? WHERE id = ? AND conversation_id = ?",
     [
       JSON.stringify(starredBy),
+      JSON.stringify(hiddenBy),
       pinnedAt,
       JSON.stringify(reactionsMap),
+      Date.now(),
       messageId,
       conversationId,
     ],
@@ -171,11 +186,30 @@ async function setMessageState(conversationId, userId, messageId, input) {
   return { ok: true };
 }
 
+async function getRetentionMode(conversationId, userId) {
+  const rows = await query(
+    "SELECT settings FROM chat_conversation_settings WHERE conversation_id = ? AND user_id = ?",
+    [conversationId, userId],
+  );
+  if (!rows.length) return "keep";
+  const settings = parseJsonColumn(rows[0].settings, {});
+  return settings.retentionMode || "keep";
+}
+
 async function listMessages(conversationId, userId, sinceMs) {
   await assertParticipant(conversationId, userId);
+  const expired = await query(
+    `SELECT id FROM chat_messages WHERE conversation_id = ? AND expires_at IS NOT NULL
+     AND expires_at <= NOW(6) AND deleted_for_everyone = 0`,
+    [conversationId],
+  );
+  await softDeleteMessages(
+    conversationId,
+    expired.map((row) => row.id),
+  );
   const rows = sinceMs
     ? await query(
-        `SELECT * FROM chat_messages WHERE conversation_id = ? AND created_at_ms > ?
+        `SELECT * FROM chat_messages WHERE conversation_id = ? AND updated_at_ms > ?
          ORDER BY created_at_ms ASC`,
         [conversationId, sinceMs],
       )
@@ -184,7 +218,18 @@ async function listMessages(conversationId, userId, sinceMs) {
          ORDER BY created_at_ms ASC`,
         [conversationId],
       );
-  return rows.map((row) => rowToMessage(row, userId));
+  const messages = rows.map((row) => rowToMessage(row, userId));
+  const seenNow = rows.filter(
+    (row) =>
+      row.delete_after_seen &&
+      row.sender_id !== userId &&
+      !row.deleted_for_everyone,
+  );
+  await softDeleteMessages(
+    conversationId,
+    seenNow.map((row) => row.id),
+  );
+  return messages;
 }
 
 async function sendMessage(conversationId, userId, message) {
@@ -205,9 +250,19 @@ async function sendMessage(conversationId, userId, message) {
     deletedForEveryone: _deletedForEveryone,
     ...payload
   } = message;
+  const retentionMode = await getRetentionMode(conversationId, userId);
+  let expiresAt = null;
+  let deleteAfterSeen = 0;
+  if (retentionMode === "24_hours") {
+    expiresAt = new Date(createdAtMs + 24 * 60 * 60 * 1000);
+  } else if (retentionMode === "7_days") {
+    expiresAt = new Date(createdAtMs + 7 * 24 * 60 * 60 * 1000);
+  } else if (retentionMode === "after_seen") {
+    deleteAfterSeen = 1;
+  }
   await query(
-    `INSERT INTO chat_messages (id, conversation_id, sender_id, message_type, payload, status, created_at_ms, updated_at_ms)
-     VALUES (?, ?, ?, ?, ?, 'sent', ?, ?)
+    `INSERT INTO chat_messages (id, conversation_id, sender_id, message_type, payload, status, created_at_ms, updated_at_ms, expires_at, delete_after_seen)
+     VALUES (?, ?, ?, ?, ?, 'sent', ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE payload = VALUES(payload)`,
     [
       id,
@@ -217,6 +272,8 @@ async function sendMessage(conversationId, userId, message) {
       JSON.stringify(payload),
       createdAtMs,
       createdAtMs,
+      expiresAt,
+      deleteAfterSeen,
     ],
   );
   const [row] = await query(
@@ -226,7 +283,9 @@ async function sendMessage(conversationId, userId, message) {
   const stored = rowToMessage(row, userId);
   const recipientId = participants.find((pid) => pid !== userId);
   if (recipientId) {
-    notifyRecipient(conversationId, userId, recipientId, stored).catch(() => undefined);
+    notifyRecipient(conversationId, userId, recipientId, stored).catch(
+      () => undefined,
+    );
   }
   return stored;
 }
@@ -241,7 +300,10 @@ async function notifyRecipient(conversationId, senderId, recipientId, message) {
     if (settings.notificationMode === "muted") return;
     if (settings.mutedUntil && Number(settings.mutedUntil) > Date.now()) return;
   }
-  const [profile] = await query("SELECT first_name FROM profiles WHERE user_id = ?", [senderId]);
+  const [profile] = await query(
+    "SELECT first_name FROM profiles WHERE user_id = ?",
+    [senderId],
+  );
   const senderName = profile?.first_name || "Someone";
   const preview = message.text
     ? String(message.text).slice(0, 120)

@@ -51,6 +51,8 @@ import {
 } from "../../components/premium/PremiumIcon";
 import { SheetHeader } from "../../components/sheets/SheetHeader";
 import { SafetyActions } from "../trust/screens/SafetyScreens";
+import { CallModal } from "./CallModalReal";
+import { callApi } from "../../api/callApi";
 import { matches, type Match } from "../../data";
 import type { PreviewState, Screen } from "../../app/navigation/types";
 import type {
@@ -65,7 +67,6 @@ import { defaultCoupleChatSettings } from "../../storage";
 import { colors } from "../../theme";
 import {
   aiStyles,
-  callStyles,
   chatPremiumStyles,
   chatStyles,
   coachStyles,
@@ -896,6 +897,7 @@ export function ChatScreen({
   onUnblock,
   onUnmatch,
   navigate,
+  accessToken,
 }: {
   runtimePorts: ChatRuntimePorts;
   previewState?: PreviewState;
@@ -952,6 +954,7 @@ export function ChatScreen({
   onUnblock: () => void;
   onUnmatch: () => void;
   navigate: (s: Screen) => void;
+  accessToken: string;
 }) {
   const {
     createOrder: createPhysicalGiftOrder,
@@ -1020,6 +1023,55 @@ export function ChatScreen({
     null,
   );
   const [incomingCallId, setIncomingCallId] = useState<string | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{
+    id: string;
+    callerName: string;
+    mode: "audio" | "video";
+  } | null>(null);
+  const [activeCallId, setActiveCallId] = useState<string | null>(null);
+  const [isCallOutgoing, setIsCallOutgoing] = useState(true);
+  const startRealCall = async (callMode: "audio" | "video") => {
+    if (!accessToken) return;
+    try {
+      const result = await callApi.start(
+        accessToken,
+        conversationIdFor(match),
+        callMode,
+      );
+      setActiveCallId(result.id);
+      setIsCallOutgoing(true);
+      setCallMode(callMode);
+    } catch {
+      // silent: person can retry the call button
+    }
+  };
+  useEffect(() => {
+    if (!accessToken || callMode) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const call = await callApi.getIncoming(accessToken);
+        if (!active) return;
+        if (call && call.conversationId === conversationIdFor(match)) {
+          setIncomingCall({
+            id: call.id,
+            callerName: call.callerName,
+            mode: call.mode,
+          });
+        } else {
+          setIncomingCall(null);
+        }
+      } catch {
+        // ignore transient errors; next poll retries
+      }
+    };
+    const timer = setInterval(() => void poll(), 3000);
+    void poll();
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [accessToken, callMode, match]);
   const [connectionOnline, setConnectionOnline] = useState(() =>
     Platform.OS !== "web" || typeof navigator === "undefined"
       ? true
@@ -2071,7 +2123,7 @@ export function ChatScreen({
               accessibilityRole="button"
               accessibilityLabel="Audio call"
               hitSlop={accessibilityHitSlop}
-              onPress={() => setCallMode("audio")}
+              onPress={() => void startRealCall("audio")}
               style={chatStyles.headerAction}
             >
               <Ionicons name="call-outline" size={20} color={colors.wine} />
@@ -2081,7 +2133,7 @@ export function ChatScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Video call"
                 hitSlop={accessibilityHitSlop}
-                onPress={() => setCallMode("video")}
+                onPress={() => void startRealCall("video")}
                 style={chatStyles.headerAction}
               >
                 <Ionicons
@@ -2136,17 +2188,17 @@ export function ChatScreen({
               </Pressable>
             </View>
           )}
-          {!!incomingCallId && !callMode && (
+          {!!incomingCall && !callMode && (
             <View accessibilityRole="alert" style={chatStyles.incomingCall}>
               <PremiumIcon
-                name={lastCallEvent?.mode === "video" ? "videocam" : "call"}
+                name={incomingCall?.mode === "video" ? "videocam" : "call"}
                 tone="ruby"
                 size={40}
                 iconSize={19}
               />
               <View style={{ flex: 1 }}>
                 <Text style={chatStyles.incomingCallTitle}>
-                  Incoming {lastCallEvent?.mode ?? "audio"} call
+                  Incoming {incomingCall?.mode ?? "audio"} call
                 </Text>
                 <Text style={chatStyles.incomingCallBody}>
                   {match.name} Â· Verified mutual match
@@ -2157,10 +2209,11 @@ export function ChatScreen({
                 accessibilityLabel="Decline call"
                 hitSlop={accessibilityHitSlop}
                 onPress={() => {
-                  if (lastCallEvent)
-                    void activeRealtimeSession
-                      ?.sendCall({ ...lastCallEvent, event: "reject" })
+                  if (incomingCall)
+                    void callApi
+                      .respond(accessToken, incomingCall.id, false)
                       .catch(() => undefined);
+                  setIncomingCall(null);
                   setIncomingCallId(null);
                 }}
                 style={chatStyles.callDecline}
@@ -2171,7 +2224,16 @@ export function ChatScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Accept call"
                 hitSlop={accessibilityHitSlop}
-                onPress={() => setCallMode(lastCallEvent?.mode ?? "audio")}
+                onPress={() => {
+                  if (!incomingCall) return;
+                  void callApi
+                    .respond(accessToken, incomingCall.id, true)
+                    .catch(() => undefined);
+                  setActiveCallId(incomingCall.id);
+                  setIsCallOutgoing(false);
+                  setCallMode(incomingCall.mode);
+                  setIncomingCall(null);
+                }}
                 style={chatStyles.callAccept}
               >
                 <Ionicons name="call" size={17} color={colors.textInverse} />
@@ -2877,9 +2939,12 @@ export function ChatScreen({
             mode={callMode}
             match={match}
             isCoupleMode={isCoupleMode}
-            incomingCallId={incomingCallId}
+            accessToken={accessToken}
+            callId={activeCallId}
+            isCaller={isCallOutgoing}
             onClose={() => {
               setIncomingCallId(null);
+              setActiveCallId(null);
               setCallMode(null);
             }}
           />
@@ -3589,30 +3654,7 @@ function ChatBubble({
   const openDocument = () => {
     if (message.uri) void Linking.openURL(message.uri).catch(() => undefined);
   };
-  if (message.deletedForEveryone)
-    return (
-      <View
-        accessible
-        accessibilityLabel="This message was deleted"
-        style={[
-          chatStyles.deletedMessage,
-          mine
-            ? chatStyles.deletedMessageMine
-            : chatStyles.deletedMessageTheirs,
-        ]}
-      >
-        <Ionicons name="ban-outline" size={15} color="#8C737B" />
-        <Text style={chatStyles.deletedMessageText}>
-          This message was deleted
-        </Text>
-        <Text style={chatStyles.deletedMessageTime}>
-          {new Date(message.deletedAt ?? message.createdAt).toLocaleTimeString(
-            undefined,
-            { hour: "numeric", minute: "2-digit" },
-          )}
-        </Text>
-      </View>
-    );
+  if (message.deletedForEveryone) return null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -9569,316 +9611,3 @@ function FaceEmojiStudio({
   );
 }
 
-function CallModal({
-  mode,
-  match,
-  isCoupleMode,
-  incomingCallId,
-  onClose,
-}: {
-  mode: "audio" | "video" | null;
-  match: Match;
-  isCoupleMode: boolean;
-  incomingCallId: string | null;
-  onClose: () => void;
-}) {
-  const [previewMuted, setPreviewMuted] = useState(false);
-  const [speaker, setSpeaker] = useState(true);
-  const [previewCamera, setPreviewCamera] = useState(mode === "video");
-  const [seconds, setSeconds] = useState(0);
-  const [previewCallState, setPreviewCallState] = useState<
-    "permission" | "ringing" | "connecting" | "connected" | "blocked"
-  >("permission");
-  const [permissionError, setPermissionError] = useState("");
-  const callState = previewCallState;
-  const muted = previewMuted;
-  const cameraOn = previewCamera;
-  const requestCallPermissions = async () => {
-    if (!mode) return;
-    setPermissionError("");
-    setPreviewCallState("permission");
-    try {
-      const microphone = await requestRecordingPermissionsAsync();
-      const camera =
-        mode === "video"
-          ? await ImagePicker.requestCameraPermissionsAsync()
-          : { granted: true };
-      if (!microphone.granted || !camera.granted) {
-        setPermissionError(
-          `${mode === "video" ? "Camera and microphone" : "Microphone"} access is required for this call.`,
-        );
-        setPreviewCallState("blocked");
-        return;
-      }
-      setPreviewCallState("ringing");
-    } catch {
-      setPermissionError(
-        "Device permissions could not be opened. Check browser or phone settings.",
-      );
-      setPreviewCallState("blocked");
-    }
-  };
-  useEffect(() => {
-    if (!mode) return;
-    setPreviewMuted(false);
-    setSpeaker(true);
-    setPreviewCamera(mode === "video");
-    setSeconds(0);
-    void requestCallPermissions();
-  }, [mode]);
-  useEffect(() => {
-    if (callState !== "ringing") return;
-    const connectingTimer = setTimeout(
-      () => setPreviewCallState("connecting"),
-      900,
-    );
-    const connectedTimer = setTimeout(
-      () => setPreviewCallState("connected"),
-      1900,
-    );
-    return () => {
-      clearTimeout(connectingTimer);
-      clearTimeout(connectedTimer);
-    };
-  }, [callState]);
-  useEffect(() => {
-    if (callState !== "connected") return;
-    const timer = setInterval(() => setSeconds((value) => value + 1), 1000);
-    return () => clearInterval(timer);
-  }, [callState]);
-  if (!mode) return null;
-  const elapsed = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-  const activeError = permissionError;
-  const stateLabel =
-    callState === "permission"
-      ? "Checking device permissionsâ€¦"
-      : callState === "ringing"
-        ? `Ringing ${match.name}â€¦`
-        : callState === "connecting"
-          ? incomingCallId
-            ? "Answering securelyâ€¦"
-            : "Creating secure connectionâ€¦"
-          : callState === "blocked"
-            ? "Connection needs attention"
-            : muted
-              ? "You are muted"
-              : mode === "video" && cameraOn
-                ? "Secure video connected"
-                : "Secure audio connected";
-  const toggleMute = () => setPreviewMuted((value) => !value);
-  const toggleCamera = () => setPreviewCamera((value) => !value);
-  return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <LinearGradient
-        colors={["#3A0714", "#150309", "#080103"]}
-        style={callStyles.backdrop}
-      >
-        <SafeAreaView style={callStyles.content}>
-          <View style={callStyles.topPill}>
-            <MiniPremiumIcon
-              name="shield-checkmark"
-              tone="gold"
-              size={28}
-              iconSize={13}
-            />
-            <Text style={callStyles.topPillText}>
-              {isCoupleMode ? "Private couple call" : "Mutual-match call"} Â·{" "}
-              {callState === "connected"
-                ? elapsed
-                : incomingCallId
-                  ? "Incoming"
-                  : "Securing"}
-            </Text>
-          </View>
-          <View style={callStyles.avatarWrap}>
-            {match.photo ? (
-              <Image
-                source={{ uri: match.photo }}
-                style={callStyles.callAvatar}
-              />
-            ) : (
-              <View style={[callStyles.callAvatar, chatStyles.initialAvatar]}>
-                <Text style={[chatStyles.initialAvatarText, { fontSize: 42 }]}>
-                  {match.name[0]?.toUpperCase()}
-                </Text>
-              </View>
-            )}
-            <View
-              style={[
-                callStyles.callPulse,
-                callState === "connected" && callStyles.callPulseConnected,
-              ]}
-            />
-          </View>
-          <Text style={callStyles.callName}>{match.name}</Text>
-          <Text style={callStyles.callStatus}>{stateLabel}</Text>
-          {!!activeError && (
-            <View style={callStyles.permissionCard}>
-              <Ionicons name="lock-closed-outline" size={18} color="#F4C5CD" />
-              <Text style={callStyles.permissionText}>{activeError}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Retry call permissions"
-                onPress={() => void requestCallPermissions()}
-                style={callStyles.retryPermission}
-              >
-                <Text style={callStyles.retryPermissionText}>Retry</Text>
-              </Pressable>
-            </View>
-          )}
-          {mode === "video" && callState !== "blocked" && (
-            <View style={callStyles.videoPreview}>
-              {cameraOn ? (
-                <>
-                  {match.photo ? (
-                    <Image
-                      source={{ uri: match.photo }}
-                      style={callStyles.videoRemote}
-                    />
-                  ) : (
-                    <View
-                      style={[callStyles.videoRemote, chatStyles.initialAvatar]}
-                    >
-                      <Text
-                        style={[chatStyles.initialAvatarText, { fontSize: 52 }]}
-                      >
-                        {match.name[0]?.toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <LinearGradient
-                    colors={["transparent", "rgba(8,0,3,.78)"]}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <View style={callStyles.selfPreview}>
-                    <PremiumIcon
-                      name="person"
-                      tone="dark"
-                      size={34}
-                      iconSize={16}
-                    />
-                    <Text style={callStyles.selfPreviewText}>You</Text>
-                  </View>
-                  <View style={callStyles.callStatePill}>
-                    <MiniPremiumIcon
-                      name={
-                        callState === "connected" ? "videocam" : "lock-closed"
-                      }
-                      tone="gold"
-                      size={24}
-                      iconSize={11}
-                    />
-                    <Text style={callStyles.callStateText}>
-                      {callState === "connected" ? "Camera on" : "Connecting"}
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <PremiumIcon
-                    name="videocam-off"
-                    tone="ruby"
-                    size={58}
-                    iconSize={27}
-                  />
-                  <Text
-                    style={[
-                      styles.helper,
-                      { textAlign: "center", color: "#EBCED4" },
-                    ]}
-                  >
-                    Camera is off. Audio continues.
-                  </Text>
-                </>
-              )}
-            </View>
-          )}
-          <View style={callStyles.callActions}>
-            <CallAction
-              active={muted}
-              icon={muted ? "mic-off" : "mic-outline"}
-              label={muted ? "Muted" : "Mute"}
-              onPress={toggleMute}
-            />
-            <CallAction
-              active={mode === "video" ? cameraOn : speaker}
-              icon={
-                mode === "video"
-                  ? cameraOn
-                    ? "videocam"
-                    : "videocam-off"
-                  : speaker
-                    ? "volume-high"
-                    : "volume-mute"
-              }
-              label={
-                mode === "video"
-                  ? cameraOn
-                    ? "Camera on"
-                    : "Camera off"
-                  : speaker
-                    ? "Speaker"
-                    : "Earpiece"
-              }
-              onPress={() =>
-                mode === "video"
-                  ? toggleCamera()
-                  : setSpeaker((value) => !value)
-              }
-            />
-            <CallAction danger icon="call" label="End" onPress={onClose} />
-          </View>
-          <View style={callStyles.secureNote}>
-            <Ionicons name="lock-closed" size={13} color="#D6B35B" />
-            <Text style={callStyles.callFine}>
-              Frontend preview only. Your developer can connect authenticated
-              signaling and media through the realtime port.
-            </Text>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
-    </Modal>
-  );
-}
-
-function CallAction({
-  icon,
-  label,
-  onPress,
-  danger,
-  active,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-  danger?: boolean;
-  active?: boolean;
-}) {
-  return (
-    <Pressable onPress={onPress} style={callStyles.callAction}>
-      <View
-        style={[
-          callStyles.callActionFrame,
-          active && callStyles.callActionFrameOn,
-          danger && callStyles.callActionFrameDanger,
-        ]}
-      >
-        <PremiumIcon
-          name={icon}
-          tone={danger ? "ruby" : active ? "gold" : "dark"}
-          size={58}
-          iconSize={24}
-        />
-      </View>
-      <Text
-        style={[
-          callStyles.callActionText,
-          active && { color: colors.gold },
-          danger && { color: colors.danger },
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}

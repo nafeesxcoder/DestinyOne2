@@ -1,4 +1,4 @@
-import {
+﻿import {
   parseCoupleConnectionHub,
   parseCoupleConnectionRequest,
   parseCouplePartnerSummary,
@@ -63,6 +63,12 @@ export const coupleApi = {
     return authFetch("/couple/mode", accessToken, {
       method: "PUT",
       body: JSON.stringify({ enabled }),
+    });
+  },
+
+  async disconnect(accessToken: string) {
+    return authFetch("/couple/disconnect", accessToken, {
+      method: "POST",
     });
   },
 };

@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+﻿const crypto = require('crypto');
 const { query } = require('../config/db');
 
 const REQUEST_TTL_DAYS = 7;
@@ -172,10 +172,29 @@ async function setMode(userId, enabled) {
   );
 }
 
+async function disconnectConnection(userId) {
+  const active = await findActiveConnection(userId);
+  if (!active) return { ok: true };
+  await query(`UPDATE couple_connections SET status = 'removed' WHERE id = ?`, [active.id]);
+  const otherId = active.requester_id === userId ? active.partner_id : active.requester_id;
+  await query(
+    `INSERT INTO experience_mode (user_id, mode) VALUES (?, 'seeking')
+     ON DUPLICATE KEY UPDATE mode = 'seeking'`,
+    [userId],
+  );
+  await query(
+    `INSERT INTO experience_mode (user_id, mode) VALUES (?, 'seeking')
+     ON DUPLICATE KEY UPDATE mode = 'seeking'`,
+    [otherId],
+  );
+  return { ok: true };
+}
+
 module.exports = {
   searchByPhone,
   createRequest,
   respondToRequest,
   getHub,
   setMode,
+  disconnectConnection,
 };
