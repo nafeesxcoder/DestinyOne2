@@ -84,6 +84,11 @@ import {
   type GiftDeliveryAddress,
   type GiftOrderResponse,
 } from "../features/gifts/adapters/previewGiftRuntime";
+import {
+  createPhysicalGiftOrderLive,
+  respondToPhysicalGiftOrderLive,
+  confirmPhysicalGiftPaymentLive,
+} from "../features/gifts/adapters/liveGiftRuntime";
 import { requestGiftConciergeV2 } from "../features/gifts/adapters/previewGiftConcierge";
 import {
   fetchPersistedChatMessages as fetchPersistedChatMessagesPreview,
@@ -1184,6 +1189,45 @@ function DestinyOneApp() {
         // interrupt anything else in the app.
       }
     })();
+  }, [accessToken]);
+  useEffect(() => {
+    if (!accessToken || Platform.OS !== "web" || typeof window === "undefined")
+      return;
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get("giftOrderId");
+    const sessionId = params.get("session_id");
+    const cancelledOrderId = params.get("giftOrderCancelled");
+    if (!orderId && !cancelledOrderId) return;
+    if (orderId && sessionId) {
+      void confirmPhysicalGiftPaymentLive(accessToken, orderId, sessionId)
+        .then(() => {
+          setAppNotice({
+            title: "Gift order confirmed",
+            body: "Payment went through. DestinyOne will arrange delivery and keep you posted.",
+            icon: "gift-outline",
+            tone: "gold",
+          });
+        })
+        .catch((error) => {
+          setAppNotice({
+            title: "Could not confirm payment",
+            body:
+              error instanceof Error
+                ? error.message
+                : "Please contact support with your order ID.",
+            icon: "alert-circle-outline",
+            tone: "ruby",
+          });
+        });
+    } else if (cancelledOrderId) {
+      setAppNotice({
+        title: "Payment cancelled",
+        body: "Your gift order was not charged.",
+        icon: "close-circle-outline",
+        tone: "ruby",
+      });
+    }
+    window.history.replaceState({}, "", window.location.pathname);
   }, [accessToken]);
   useEffect(() => {
     if (!hydrated || !["coupleSetup", "home", "profile"].includes(screen))
@@ -3204,8 +3248,14 @@ function DestinyOneApp() {
               createIdempotencyKey: createGiftIdempotencyKey,
               estimateQuote: estimateGiftOrderQuote,
               formatMoney: formatGiftMoney,
-              createOrder: createPhysicalGiftOrder,
-              recordRecommendationFeedback: recordGiftRecommendationFeedback,
+              createOrder: (input: Parameters<typeof createPhysicalGiftOrder>[0]) =>
+                accessToken
+                  ? createPhysicalGiftOrderLive(
+                      accessToken,
+                      conversationIdFor(conversationPartner),
+                      input,
+                    )
+                  : createPhysicalGiftOrder(input),              recordRecommendationFeedback: recordGiftRecommendationFeedback,
               requestConcierge: requestGiftConciergeV2,
             }}
             recipient={conversationPartner}
@@ -3477,8 +3527,20 @@ function DestinyOneApp() {
                 estimateQuote: estimateGiftOrderQuote,
                 buildFulfillmentPlan: buildGiftFulfillmentPlan,
                 orderSummary: giftOrderSummary,
-                createOrder: createPhysicalGiftOrder,
-                respondToOrder: respondToPhysicalGiftOrder,
+                createOrder: (input: Parameters<typeof createPhysicalGiftOrder>[0]) =>
+                  accessToken
+                    ? createPhysicalGiftOrderLive(
+                        accessToken,
+                        conversationIdFor(conversationPartner),
+                        input,
+                      )
+                    : createPhysicalGiftOrder(input),
+                respondToOrder: (
+                  input: Parameters<typeof respondToPhysicalGiftOrder>[0],
+                ) =>
+                  accessToken
+                    ? respondToPhysicalGiftOrderLive(accessToken, input)
+                    : respondToPhysicalGiftOrder(input),
                 searchAddresses: searchGiftDeliveryAddresses,
                 validateAddress: validateGiftDeliveryAddress,
                 openIssue: openGiftOrderIssue,

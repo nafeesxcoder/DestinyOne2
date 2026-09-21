@@ -7,6 +7,8 @@ const matchRoutes = require("./routes/matchRoutes"); // Directly import match ro
 const coupleRoutes = require("./routes/coupleRoutes"); // Directly import couple routes
 const chatRoutes = require("./routes/chatRoutes"); // Directly import chat routes
 const pushRoutes = require("./routes/pushRoutes"); // Directly import push notification routes
+const callRoutes = require("./routes/callRoutes"); // Directly import call routes
+const giftRoutes = require("./routes/giftRoutes"); // Directly import gift ordering routes
 const safetyRoutes = require("./routes/safetyRoutes"); // Directly import safety routes
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
 const app = express();
@@ -25,6 +27,8 @@ app.use("/matches", matchRoutes);
 app.use("/couple", coupleRoutes);
 app.use("/chat", chatRoutes);
 app.use("/push", pushRoutes);
+app.use("/calls", callRoutes);
+app.use("/gifts", giftRoutes);
 app.use("/safety", safetyRoutes);
 // If you have other route modules (like gifts, users, etc.), mount them here
 // app.use('/gifts', giftRoutes);

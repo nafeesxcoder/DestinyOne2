@@ -75,6 +75,11 @@ module.exports = {
     privateKey: required("VAPID_PRIVATE_KEY", ""),
     subject: required("VAPID_SUBJECT", "mailto:support@destinyone.co"),
   },
+
+  stripe: {
+    secretKey: required("STRIPE_SECRET_KEY", ""),
+    publishableKey: required("STRIPE_PUBLISHABLE_KEY", ""),
+  },
 };
 
 console.log(
