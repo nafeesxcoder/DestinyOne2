@@ -89,6 +89,7 @@ import {
   respondToPhysicalGiftOrderLive,
   confirmPhysicalGiftPaymentLive,
 } from "../features/gifts/adapters/liveGiftRuntime";
+import { giftApi } from "../api/giftApi";
 import { requestGiftConciergeV2 } from "../features/gifts/adapters/previewGiftConcierge";
 import {
   fetchPersistedChatMessages as fetchPersistedChatMessagesPreview,
@@ -2203,11 +2204,17 @@ function DestinyOneApp() {
     if (!message?.gift?.physical || !message.gift.orderId)
       return { ok: false, error: "This gift request is unavailable." };
     try {
-      const response = await respondToPhysicalGiftOrder({
-        orderId: message.gift.orderId,
-        accept: input.accept,
-        dropoff: input.dropoff,
-      });
+      const response = accessToken
+        ? await respondToPhysicalGiftOrderLive(accessToken, {
+            orderId: message.gift.orderId,
+            accept: input.accept,
+            dropoff: input.dropoff,
+          })
+        : await respondToPhysicalGiftOrder({
+            orderId: message.gift.orderId,
+            accept: input.accept,
+            dropoff: input.dropoff,
+          });
       replaceChatMessage(match.id, messageId, (current) => {
         if (!current.gift) return current;
         const nextSteps = current.gift.steps?.map((step) =>
@@ -2242,6 +2249,53 @@ function DestinyOneApp() {
       };
     }
   };
+  useEffect(() => {
+    if (!accessToken || screen !== "chat") return;
+    const messages = chatMessages[conversationPartner.id] ?? [];
+    const pending = messages.filter(
+      (message) =>
+        message.mine &&
+        message.gift?.physical &&
+        message.gift.orderId &&
+        message.gift.deliveryStatus !== "merchant_preparing" &&
+        message.gift.deliveryStatus !== "delivered" &&
+        message.gift.deliveryStatus !== "cancelled" &&
+        message.gift.deliveryStatus !== "failed",
+    );
+    if (!pending.length) return;
+    let active = true;
+    const poll = async () => {
+      for (const message of pending) {
+        const orderId = message.gift!.orderId!;
+        try {
+          const order = await giftApi.getOrder(accessToken, orderId);
+          if (!active) return;
+          if (order.status === "recipient_accepted") {
+            const origin =
+              typeof window !== "undefined"
+                ? window.location.origin
+                : "https://destinyone.co";
+            const { checkoutUrl } = await giftApi.checkout(
+              accessToken,
+              orderId,
+              `${origin}/?giftOrderId=${orderId}`,
+              `${origin}/?giftOrderCancelled=${orderId}`,
+            );
+            if (typeof window !== "undefined") window.location.href = checkoutUrl;
+            return;
+          }
+        } catch {
+          // ignore; will retry on next poll
+        }
+      }
+    };
+    const timer = setInterval(() => void poll(), 4000);
+    void poll();
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [accessToken, screen, conversationPartner.id, chatMessages]);
   const updateDatePlanStatus = async (
     matchId: string,
     messageId: string,
