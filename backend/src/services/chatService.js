@@ -218,6 +218,21 @@ async function listMessages(conversationId, userId, sinceMs) {
          ORDER BY created_at_ms ASC`,
         [conversationId],
       );
+  const toMarkRead = rows.filter(
+    (row) =>
+      row.sender_id !== userId && row.status !== "read" && !row.deleted_for_everyone,
+  );
+  if (toMarkRead.length) {
+    const readIds = toMarkRead.map((row) => row.id);
+    await query(
+      `UPDATE chat_messages SET status = 'read', updated_at_ms = ?
+       WHERE conversation_id = ? AND id IN (${readIds.map(() => "?").join(",")})`,
+      [Date.now(), conversationId, ...readIds],
+    );
+    toMarkRead.forEach((row) => {
+      row.status = "read";
+    });
+  }
   const messages = rows.map((row) => rowToMessage(row, userId));
   const seenNow = rows.filter(
     (row) =>
@@ -291,6 +306,11 @@ async function sendMessage(conversationId, userId, message) {
 }
 
 async function notifyRecipient(conversationId, senderId, recipientId, message) {
+  await query(
+    `UPDATE chat_messages SET status = 'delivered', updated_at_ms = ?
+     WHERE id = ? AND conversation_id = ? AND status = 'sent'`,
+    [Date.now(), message.id, conversationId],
+  );
   const settingsRows = await query(
     "SELECT settings FROM chat_conversation_settings WHERE conversation_id = ? AND user_id = ?",
     [conversationId, recipientId],

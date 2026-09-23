@@ -140,4 +140,27 @@ export const chatApi = {
       body: JSON.stringify(settings),
     }) as Promise<PersistenceResult<{ ok: boolean }>>;
   },
+
+  async uploadMedia(
+    accessToken: string,
+    localUri: string,
+    fileName: string,
+  ): Promise<string> {
+    const response = await fetch(localUri);
+    const blob = await response.blob();
+    const formData = new FormData();
+    formData.append("file", blob, fileName);
+    const uploadResponse = await fetch(`${API_URL}/chat/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    });
+    const data = await uploadResponse.json();
+    if (!uploadResponse.ok) {
+      throw new Error(data.error || "Could not upload the file.");
+    }
+    return data.url as string;
+  },
 };

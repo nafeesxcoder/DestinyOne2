@@ -1,6 +1,13 @@
 ﻿const asyncHandler = require('../utils/asyncHandler');
 const { ApiError } = require('../middleware/errorHandler');
 const chatService = require('../services/chatService');
+const env = require('../config/env');
+
+const uploadMedia = asyncHandler(async (req, res) => {
+  if (!req.file) throw new ApiError(400, 'No file was received');
+  const publicUrl = `${env.apiUrl}/uploads/chat/${req.file.filename}`;
+  res.json({ ok: true, url: publicUrl, mimeType: req.file.mimetype });
+});
 
 function wrap(fn) {
   return asyncHandler(async (req, res) => {
@@ -76,4 +83,5 @@ module.exports = {
   putMessageState,
   getSettingsHandler,
   putSettingsHandler,
+  uploadMedia,
 };

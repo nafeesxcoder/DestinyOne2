@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const chatController = require('../controllers/chatController');
 const { requireAuth } = require('../middleware/auth');
+const chatUpload = require('../middleware/chatUpload');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -15,5 +16,6 @@ router.delete('/:conversationId/messages/:messageId', chatController.deleteMessa
 router.put('/:conversationId/messages/:messageId/state', chatController.putMessageState);
 router.get('/:conversationId/settings', chatController.getSettingsHandler);
 router.put('/:conversationId/settings', chatController.putSettingsHandler);
+router.post('/upload', chatUpload.single('file'), chatController.uploadMedia);
 
 module.exports = router;

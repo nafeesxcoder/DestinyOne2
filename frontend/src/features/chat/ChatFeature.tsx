@@ -53,6 +53,7 @@ import { SheetHeader } from "../../components/sheets/SheetHeader";
 import { SafetyActions } from "../trust/screens/SafetyScreens";
 import { CallModal } from "./CallModalReal";
 import { callApi } from "../../api/callApi";
+import { chatApi } from "../../api/chatApi";
 import { matches, type Match } from "../../data";
 import type { PreviewState, Screen } from "../../app/navigation/types";
 import type {
@@ -1392,13 +1393,18 @@ export function ChatScreen({
       } catch {}
       speechRecognitionRef.current = null;
       await setAudioModeAsync({ allowsRecording: false });
-      if (recorder.uri)
+      if (recorder.uri) {
+        const uploadedUri = accessToken
+          ? await chatApi
+              .uploadMedia(accessToken, recorder.uri, `voice-${Date.now()}.m4a`)
+              .catch(() => recorder.uri!)
+          : recorder.uri;
         await dispatchMessage(
           createMessage({
             type: "voice",
-            uri: recorder.uri,
+            uri: uploadedUri,
             voice: {
-              uri: recorder.uri,
+              uri: uploadedUri,
               durationMs,
               transcript: voiceTranscriptRef.current || undefined,
               transcriptStatus: voiceTranscriptRef.current
@@ -1407,7 +1413,7 @@ export function ChatScreen({
             },
           }),
         );
-      else
+      } else
         setChatError(
           "The recording could not be saved. Please record it again.",
         );
@@ -1491,13 +1497,17 @@ export function ChatScreen({
         setChatError("Choose a photo or video smaller than 100 MB.");
         return;
       }
+      const name =
+        asset.fileName?.trim() ||
+        `DestinyOne-media-${Date.now()}.${asset.type === "video" ? "mp4" : "jpg"}`;
+      const uploadedUri = accessToken
+        ? await chatApi.uploadMedia(accessToken, asset.uri, name).catch(() => asset.uri)
+        : asset.uri;
       if (asset.type === "video") {
-        const name =
-          asset.fileName?.trim() || `DestinyOne-video-${Date.now()}.mp4`;
         await dispatchMessage(
           createMessage({
             type: "document",
-            uri: asset.uri,
+            uri: uploadedUri,
             text: "Video",
             document: {
               name,
@@ -1511,7 +1521,7 @@ export function ChatScreen({
         await dispatchMessage(
           createMessage({
             type: "image",
-            uri: asset.uri,
+            uri: uploadedUri,
             text: asset.fileName?.trim() || "Photo",
           }),
         );
@@ -1539,8 +1549,13 @@ export function ChatScreen({
       aspect: [4, 5],
     });
     if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const name = asset.fileName?.trim() || `DestinyOne-photo-${Date.now()}.jpg`;
+      const uploadedUri = accessToken
+        ? await chatApi.uploadMedia(accessToken, asset.uri, name).catch(() => asset.uri)
+        : asset.uri;
       await dispatchMessage(
-        createMessage({ type: "image", uri: result.assets[0].uri }),
+        createMessage({ type: "image", uri: uploadedUri }),
       );
       setShowAttachments(false);
     }
@@ -1561,10 +1576,15 @@ export function ChatScreen({
         return;
       }
       const isVideo = asset.mimeType?.startsWith("video/") ?? false;
+      const uploadedUri = accessToken
+        ? await chatApi
+            .uploadMedia(accessToken, asset.uri, asset.name || `document-${Date.now()}`)
+            .catch(() => asset.uri)
+        : asset.uri;
       await dispatchMessage(
         createMessage({
           type: "document",
-          uri: asset.uri,
+          uri: uploadedUri,
           text: isVideo ? "Video" : "Document",
           document: {
             name: asset.name || "Shared document",
