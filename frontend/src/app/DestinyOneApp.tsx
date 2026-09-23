@@ -1444,6 +1444,53 @@ function DestinyOneApp() {
       active = false;
     };
   }, [hydrated, screen, conversationPartner.id, accessToken]);
+  useEffect(() => {
+    if (!accessToken || screen !== "chat") return;
+    const messages = chatMessages[conversationPartner.id] ?? [];
+    const pending = messages.filter(
+      (message) =>
+        message.mine &&
+        message.gift?.physical &&
+        message.gift.orderId &&
+        message.gift.deliveryStatus !== "merchant_preparing" &&
+        message.gift.deliveryStatus !== "delivered" &&
+        message.gift.deliveryStatus !== "cancelled" &&
+        message.gift.deliveryStatus !== "failed",
+    );
+    if (!pending.length) return;
+    let active = true;
+    const poll = async () => {
+      for (const message of pending) {
+        const orderId = message.gift!.orderId!;
+        try {
+          const order = await giftApi.getOrder(accessToken, orderId);
+          if (!active) return;
+          if (order.status === "recipient_accepted") {
+            const origin =
+              typeof window !== "undefined"
+                ? window.location.origin
+                : "https://destinyone.co";
+            const { checkoutUrl } = await giftApi.checkout(
+              accessToken,
+              orderId,
+              `${origin}/?giftOrderId=${orderId}`,
+              `${origin}/?giftOrderCancelled=${orderId}`,
+            );
+            if (typeof window !== "undefined") window.location.href = checkoutUrl;
+            return;
+          }
+        } catch {
+          // ignore; will retry on next poll
+        }
+      }
+    };
+    const timer = setInterval(() => void poll(), 4000);
+    void poll();
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [accessToken, screen, conversationPartner.id, chatMessages]);
   if (!poppins || !satisfy)
     return <View style={{ flex: 1, backgroundColor: colors.black }} />;
   const chooseExperienceMode = (mode: ExperienceMode) => {
@@ -2249,53 +2296,6 @@ function DestinyOneApp() {
       };
     }
   };
-  useEffect(() => {
-    if (!accessToken || screen !== "chat") return;
-    const messages = chatMessages[conversationPartner.id] ?? [];
-    const pending = messages.filter(
-      (message) =>
-        message.mine &&
-        message.gift?.physical &&
-        message.gift.orderId &&
-        message.gift.deliveryStatus !== "merchant_preparing" &&
-        message.gift.deliveryStatus !== "delivered" &&
-        message.gift.deliveryStatus !== "cancelled" &&
-        message.gift.deliveryStatus !== "failed",
-    );
-    if (!pending.length) return;
-    let active = true;
-    const poll = async () => {
-      for (const message of pending) {
-        const orderId = message.gift!.orderId!;
-        try {
-          const order = await giftApi.getOrder(accessToken, orderId);
-          if (!active) return;
-          if (order.status === "recipient_accepted") {
-            const origin =
-              typeof window !== "undefined"
-                ? window.location.origin
-                : "https://destinyone.co";
-            const { checkoutUrl } = await giftApi.checkout(
-              accessToken,
-              orderId,
-              `${origin}/?giftOrderId=${orderId}`,
-              `${origin}/?giftOrderCancelled=${orderId}`,
-            );
-            if (typeof window !== "undefined") window.location.href = checkoutUrl;
-            return;
-          }
-        } catch {
-          // ignore; will retry on next poll
-        }
-      }
-    };
-    const timer = setInterval(() => void poll(), 4000);
-    void poll();
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [accessToken, screen, conversationPartner.id, chatMessages]);
   const updateDatePlanStatus = async (
     matchId: string,
     messageId: string,
