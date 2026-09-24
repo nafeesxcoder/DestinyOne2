@@ -3,6 +3,7 @@ const Stripe = require("stripe");
 const { query } = require("../config/db");
 const env = require("../config/env");
 const chatService = require("./chatService");
+const pushService = require("./pushService");
 
 const stripe = env.stripe.secretKey ? new Stripe(env.stripe.secretKey) : null;
 
@@ -43,6 +44,42 @@ function toClientOrder(order, viewerId) {
   };
 }
 
+async function notifyGiftOrderCreated(order) {
+  const isReady = order.status === "recipient_accepted";
+  await pushService.notifyUser(order.recipient_id, {
+    title: "You received a gift! 🎁",
+    body: isReady
+      ? `Someone sent you a gift: ${order.product_name}`
+      : `Someone wants to send you a gift: ${order.product_name}. Tap to respond.`,
+    data: {
+      type: "gift_order",
+      orderId: order.id,
+      conversationId: order.conversation_id,
+    },
+  });
+}
+
+async function notifyGiftPaymentConfirmed(order) {
+  await pushService.notifyUser(order.recipient_id, {
+    title: "Your gift is on the way! 🎁",
+    body: `${order.product_name} has been paid for and is being prepared.`,
+    data: {
+      type: "gift_payment_confirmed",
+      orderId: order.id,
+      conversationId: order.conversation_id,
+    },
+  });
+  await pushService.notifyUser(order.sender_id, {
+    title: "Payment confirmed",
+    body: `Your gift order for ${order.product_name} is being prepared.`,
+    data: {
+      type: "gift_payment_confirmed",
+      orderId: order.id,
+      conversationId: order.conversation_id,
+    },
+  });
+}
+
 async function createOrder(conversationId, senderId, input) {
   const participants = await chatService.assertParticipant(
     conversationId,
@@ -81,6 +118,7 @@ async function createOrder(conversationId, senderId, input) {
     ],
   );
   const order = await getOrderOr404(id, senderId);
+  notifyGiftOrderCreated(order).catch(() => undefined);
   return toClientOrder(order, senderId);
 }
 
@@ -181,12 +219,12 @@ async function confirmPayment(orderId, userId, sessionId) {
     [String(session.payment_intent || ""), orderId],
   );
   const updated = await getOrderOr404(orderId, userId);
+  notifyGiftPaymentConfirmed(updated).catch(() => undefined);
   return toClientOrder(updated, userId);
 }
 
 async function getOrder(orderId, userId) {
   const order = await getOrderOr404(orderId, userId);
-  return toClientOrder(order, userId);
 }
 
 module.exports = {
