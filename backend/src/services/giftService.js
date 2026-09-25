@@ -4,6 +4,7 @@ const { query } = require("../config/db");
 const env = require("../config/env");
 const chatService = require("./chatService");
 const pushService = require("./pushService");
+const { computeGiftOrderTotal, productRules } = require("./giftPricing");
 
 const stripe = env.stripe.secretKey ? new Stripe(env.stripe.secretKey) : null;
 
@@ -91,12 +92,20 @@ async function createOrder(conversationId, senderId, input) {
     err.status = 400;
     throw err;
   }
-  const totalCents = Math.round(Number(input.totalCents));
-  if (!Number.isFinite(totalCents) || totalCents <= 0) {
-    const err = new Error("A valid order amount is required.");
+  if (!productRules[input.productId]) {
+    const err = new Error("Unknown gift product.");
     err.status = 400;
     throw err;
   }
+  // SECURITY: totalCents is always computed server-side from the catalog. The client's
+  // totalCents (if any) is ignored entirely so a tampered request cannot change the charge.
+  const priced = computeGiftOrderTotal({
+    productId: input.productId,
+    currency: input.currency,
+    deliveryWindow: input.deliveryWindow,
+    tipCents: input.tipCents,
+    marketCountry: input.marketCountry,
+  });
   const id = crypto.randomUUID();
   const address = input.deliveryAddress;
   const hasAddress = !!(address && address.line1 && address.city);
@@ -108,11 +117,11 @@ async function createOrder(conversationId, senderId, input) {
       conversationId,
       senderId,
       recipientId,
-      String(input.productId || "gift"),
-      String(input.productName || "Gift"),
+      String(input.productId),
+      priced.productName,
       input.note ? String(input.note).slice(0, 500) : null,
-      String(input.currency || "USD"),
-      totalCents,
+      priced.currency,
+      priced.totalCents,
       hasAddress ? "recipient_accepted" : "recipient_pending",
       hasAddress ? JSON.stringify(address) : null,
     ],
