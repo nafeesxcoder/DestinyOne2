@@ -1037,6 +1037,10 @@ export function ChatScreen({
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [activeRealtimeSession, setActiveRealtimeSession] =
     useState<MatchRealtimeSession | null>(null);
+  const latestMessagesRef = useRef(messages);
+  useEffect(() => {
+    latestMessagesRef.current = messages;
+  }, [messages]);
   const [lastCallEvent, setLastCallEvent] = useState<RealtimeCallEvent | null>(
     null,
   );
@@ -1165,7 +1169,7 @@ export function ChatScreen({
         onReceipt: (status) =>
           setDeliveryOverrides((current) => {
             const next = { ...current };
-            messages.forEach((message) => {
+            latestMessagesRef.current.forEach((message) => {
               if (message.mine !== false) next[message.id] = status;
             });
             return next;
