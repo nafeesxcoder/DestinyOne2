@@ -13,7 +13,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { Match } from "../../data";
-import { MiniPremiumIcon, PremiumIcon } from "../../components/premium/PremiumIcon";
+import {
+  MiniPremiumIcon,
+  PremiumIcon,
+} from "../../components/premium/PremiumIcon";
 import { callStyles, chatStyles } from "../../theme/appStyles";
 import { useCallEngine } from "./useCallEngine";
 
@@ -44,6 +47,25 @@ function RTCVideoView({
       objectFit: "cover",
       transform: mirrored ? "scaleX(-1)" : undefined,
     },
+  });
+}
+
+// Plays the remote audio track. This is attached for EVERY call (audio-only
+// and video), because a MediaStream must be attached to a media element to
+// actually be heard. Previously this only happened for video calls, so a
+// voice call would connect ("Secure audio connected") but never play sound.
+function RTCAudioSink({ stream }: { stream: MediaStream | null }) {
+  const ref = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.srcObject = stream as any;
+    }
+  }, [stream]);
+  if (Platform.OS !== "web") return null;
+  return React.createElement("audio", {
+    ref,
+    autoPlay: true,
+    playsInline: true,
   });
 }
 
@@ -99,6 +121,9 @@ export function CallModal({
   onClose: () => void;
 }) {
   const [seconds, setSeconds] = useState(0);
+  // WhatsApp-style swap: tapping the small PIP box makes it the main
+  // full-screen view and moves the other feed into the PIP box.
+  const [mainView, setMainView] = useState<"remote" | "self">("remote");
   const engine = useCallEngine({
     accessToken,
     callId,
@@ -135,6 +160,26 @@ export function CallModal({
                   ? "Secure video connected"
                   : "Secure audio connected";
 
+  const hasRemoteVideo =
+    mode === "video" && !!engine.remoteStream && engine.phase === "connected";
+  const hasSelfVideo =
+    mode === "video" && !!engine.localStream && engine.cameraEnabled;
+
+  const mainIsSelf = mainView === "self" && hasSelfVideo;
+  const mainStream = mainIsSelf
+    ? engine.localStream
+    : hasRemoteVideo
+      ? engine.remoteStream
+      : null;
+  const pipIsSelf = !mainIsSelf;
+  const pipStream = mainIsSelf
+    ? hasRemoteVideo
+      ? engine.remoteStream
+      : null
+    : hasSelfVideo
+      ? engine.localStream
+      : null;
+
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <LinearGradient
@@ -142,6 +187,8 @@ export function CallModal({
         style={callStyles.backdrop}
       >
         <SafeAreaView style={callStyles.content}>
+          {/* Always play the remote party's audio, even for a pure voice call. */}
+          {mode === "audio" && <RTCAudioSink stream={engine.remoteStream} />}
           <View style={callStyles.topPill}>
             <MiniPremiumIcon
               name="shield-checkmark"
@@ -151,12 +198,19 @@ export function CallModal({
             />
             <Text style={callStyles.topPillText}>
               {isCoupleMode ? "Private couple call" : "Mutual-match call"} ·{" "}
-              {engine.phase === "connected" ? elapsed : isCaller ? "Calling" : "Incoming"}
+              {engine.phase === "connected"
+                ? elapsed
+                : isCaller
+                  ? "Calling"
+                  : "Incoming"}
             </Text>
           </View>
           <View style={callStyles.avatarWrap}>
             {match.photo ? (
-              <Image source={{ uri: match.photo }} style={callStyles.callAvatar} />
+              <Image
+                source={{ uri: match.photo }}
+                style={callStyles.callAvatar}
+              />
             ) : (
               <View style={[callStyles.callAvatar, chatStyles.initialAvatar]}>
                 <Text style={[chatStyles.initialAvatarText, { fontSize: 42 }]}>
@@ -173,7 +227,8 @@ export function CallModal({
           </View>
           <Text style={callStyles.callName}>{match.name}</Text>
           <Text style={callStyles.callStatus}>{stateLabel}</Text>
-          {(engine.phase === "permission-error" || engine.phase === "unsupported") && (
+          {(engine.phase === "permission-error" ||
+            engine.phase === "unsupported") && (
             <View style={callStyles.permissionCard}>
               <Ionicons name="lock-closed-outline" size={18} color="#F4C5CD" />
               <Text style={callStyles.permissionText}>
@@ -193,13 +248,24 @@ export function CallModal({
             engine.phase !== "permission-error" &&
             engine.phase !== "unsupported" && (
               <View style={callStyles.videoPreview}>
-                {engine.remoteStream && engine.phase === "connected" ? (
-                  <RTCVideoView stream={engine.remoteStream} />
+                {mainStream ? (
+                  <RTCVideoView
+                    stream={mainStream}
+                    mirrored={mainIsSelf}
+                    muted={mainIsSelf}
+                  />
                 ) : match.photo ? (
-                  <Image source={{ uri: match.photo }} style={callStyles.videoRemote} />
+                  <Image
+                    source={{ uri: match.photo }}
+                    style={callStyles.videoRemote}
+                  />
                 ) : (
-                  <View style={[callStyles.videoRemote, chatStyles.initialAvatar]}>
-                    <Text style={[chatStyles.initialAvatarText, { fontSize: 52 }]}>
+                  <View
+                    style={[callStyles.videoRemote, chatStyles.initialAvatar]}
+                  >
+                    <Text
+                      style={[chatStyles.initialAvatarText, { fontSize: 52 }]}
+                    >
                       {match.name[0]?.toUpperCase()}
                     </Text>
                   </View>
@@ -208,19 +274,35 @@ export function CallModal({
                   colors={["transparent", "rgba(8,0,3,.78)"]}
                   style={StyleSheet.absoluteFill}
                 />
-                <View style={callStyles.selfPreview}>
-                  {engine.localStream && engine.cameraEnabled ? (
-                    <RTCVideoView stream={engine.localStream} mirrored muted />
+                <Pressable
+                  style={callStyles.selfPreview}
+                  onPress={() => setMainView(pipIsSelf ? "self" : "remote")}
+                >
+                  {pipStream ? (
+                    <RTCVideoView
+                      stream={pipStream}
+                      mirrored={pipIsSelf}
+                      muted={pipIsSelf}
+                    />
                   ) : (
                     <>
-                      <PremiumIcon name="person" tone="dark" size={34} iconSize={16} />
-                      <Text style={callStyles.selfPreviewText}>You</Text>
+                      <PremiumIcon
+                        name="person"
+                        tone="dark"
+                        size={34}
+                        iconSize={16}
+                      />
+                      <Text style={callStyles.selfPreviewText}>
+                        {pipIsSelf ? "You" : match.name}
+                      </Text>
                     </>
                   )}
-                </View>
+                </Pressable>
                 <View style={callStyles.callStatePill}>
                   <MiniPremiumIcon
-                    name={engine.phase === "connected" ? "videocam" : "lock-closed"}
+                    name={
+                      engine.phase === "connected" ? "videocam" : "lock-closed"
+                    }
                     tone="gold"
                     size={24}
                     iconSize={11}
