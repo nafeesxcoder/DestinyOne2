@@ -171,7 +171,12 @@ const digitalGifts = [
     coins: 200,
     caption: "Something meaningful",
   },
-  { name: "Promise", emoji: "ðŸ’", coins: 300, caption: "For a special moment" },
+  {
+    name: "Promise",
+    emoji: "ðŸ’",
+    coins: 300,
+    caption: "For a special moment",
+  },
 ];
 export const physicalGifts = giftCatalogJson
   .filter((gift) => gift.active)
@@ -525,7 +530,18 @@ const emojiSearchGroups = [
   },
   {
     keywords: "laugh funny haha smile happy",
-    emojis: ["ðŸ˜‚", "ðŸ¤£", "ðŸ˜„", "ðŸ˜", "ðŸ˜†", "ðŸ˜…", "ðŸ˜œ", "ðŸ¤ª", "ðŸ˜Ž", "ðŸ¥³"],
+    emojis: [
+      "ðŸ˜‚",
+      "ðŸ¤£",
+      "ðŸ˜„",
+      "ðŸ˜",
+      "ðŸ˜†",
+      "ðŸ˜…",
+      "ðŸ˜œ",
+      "ðŸ¤ª",
+      "ðŸ˜Ž",
+      "ðŸ¥³",
+    ],
   },
   {
     keywords: "sad cry upset miss",
@@ -1002,6 +1018,7 @@ export function ChatScreen({
     null,
   );
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [viewerImageUri, setViewerImageUri] = useState<string | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [hiddenMessageIds, setHiddenMessageIds] = useState<string[]>([]);
@@ -1501,7 +1518,9 @@ export function ChatScreen({
         asset.fileName?.trim() ||
         `DestinyOne-media-${Date.now()}.${asset.type === "video" ? "mp4" : "jpg"}`;
       const uploadedUri = accessToken
-        ? await chatApi.uploadMedia(accessToken, asset.uri, name).catch(() => asset.uri)
+        ? await chatApi
+            .uploadMedia(accessToken, asset.uri, name)
+            .catch(() => asset.uri)
         : asset.uri;
       if (asset.type === "video") {
         await dispatchMessage(
@@ -1550,13 +1569,14 @@ export function ChatScreen({
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      const name = asset.fileName?.trim() || `DestinyOne-photo-${Date.now()}.jpg`;
+      const name =
+        asset.fileName?.trim() || `DestinyOne-photo-${Date.now()}.jpg`;
       const uploadedUri = accessToken
-        ? await chatApi.uploadMedia(accessToken, asset.uri, name).catch(() => asset.uri)
+        ? await chatApi
+            .uploadMedia(accessToken, asset.uri, name)
+            .catch(() => asset.uri)
         : asset.uri;
-      await dispatchMessage(
-        createMessage({ type: "image", uri: uploadedUri }),
-      );
+      await dispatchMessage(createMessage({ type: "image", uri: uploadedUri }));
       setShowAttachments(false);
     }
   };
@@ -1578,7 +1598,11 @@ export function ChatScreen({
       const isVideo = asset.mimeType?.startsWith("video/") ?? false;
       const uploadedUri = accessToken
         ? await chatApi
-            .uploadMedia(accessToken, asset.uri, asset.name || `document-${Date.now()}`)
+            .uploadMedia(
+              accessToken,
+              asset.uri,
+              asset.name || `document-${Date.now()}`,
+            )
             .catch(() => asset.uri)
         : asset.uri;
       await dispatchMessage(
@@ -2562,9 +2586,52 @@ export function ChatScreen({
                   onGameReply={(answer) => sendGameReply(message, answer)}
                   onGiftResponse={(input) => onGiftResponse(message.id, input)}
                   onPress={() => selectMessage(message)}
+                  onOpenImage={(uri) => setViewerImageUri(uri)}
                 />
               </View>
             ))}
+            <Modal
+              visible={!!viewerImageUri}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setViewerImageUri(null)}
+            >
+              <Pressable
+                style={{
+                  flex: 1,
+                  backgroundColor: "#000",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onPress={() => setViewerImageUri(null)}
+              >
+                {viewerImageUri && (
+                  <Image
+                    source={{ uri: viewerImageUri }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
+                  />
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  onPress={() => setViewerImageUri(null)}
+                  style={{
+                    position: "absolute",
+                    top: 48,
+                    right: 20,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name="close" size={24} color="#FFF" />
+                </Pressable>
+              </Pressable>
+            </Modal>
             {!!normalizedSearch && !visibleMessages.length && (
               <View style={chatStyles.emptySearch}>
                 <Ionicons
@@ -3631,6 +3698,7 @@ function ChatBubble({
   onGameReply,
   onGiftResponse,
   onPress,
+  onOpenImage,
 }: {
   message: ChatMessage;
   status: ChatMessage["status"];
@@ -3647,6 +3715,7 @@ function ChatBubble({
     dropoff?: GiftDeliveryAddress;
   }) => Promise<{ ok: boolean; error?: string }>;
   onPress?: () => void;
+  onOpenImage?: (uri: string) => void;
 }) {
   const mine = message.mine !== false;
   const gamePayload =
@@ -3693,7 +3762,15 @@ function ChatBubble({
           ? openDocument
           : gamePayload || (message.type === "gift" && message.gift?.physical)
             ? undefined
-            : onPress
+            : (message.type === "image" || message.type === "snap") &&
+                message.uri
+              ? () => onOpenImage?.(message.uri!)
+              : onPress
+      }
+      onLongPress={
+        (message.type === "image" || message.type === "snap") && message.uri
+          ? onPress
+          : undefined
       }
       style={[
         mine ? styles.myBubble : styles.theirBubble,
@@ -7023,7 +7100,8 @@ function EmojiMediaPanel({
             ))}
             {!visibleEmoji.length && (
               <Text style={chatStyles.emojiEmpty}>
-                No emoji found. Try â€œloveâ€, â€œlaughâ€, â€œfoodâ€ or â€œtravelâ€.
+                No emoji found. Try â€œloveâ€, â€œlaughâ€, â€œfoodâ€ or
+                â€œtravelâ€.
               </Text>
             )}
           </>
@@ -8108,8 +8186,8 @@ function GiftShop({
                       {selectedGift.name}
                     </Text>
                     <Text style={giftFlowStyles.quoteMeta}>
-                      {selectedQuote.serviceLevelLabel} Â· DestinyOne delivery Â·
-                      ETA {selectedQuote.etaLabel}
+                      {selectedQuote.serviceLevelLabel} Â· DestinyOne delivery
+                      Â· ETA {selectedQuote.etaLabel}
                     </Text>
                   </View>
                   <View style={giftFlowStyles.totalPill}>
@@ -9630,4 +9708,3 @@ function FaceEmojiStudio({
     </Modal>
   );
 }
-
