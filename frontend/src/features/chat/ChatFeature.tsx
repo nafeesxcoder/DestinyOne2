@@ -2815,28 +2815,6 @@ export function ChatScreen({
                 />
               ) : (
                 <>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showAttachments ? "Close attachments" : "Add attachment"
-                    }
-                    accessibilityState={{ expanded: showAttachments }}
-                    hitSlop={accessibilityHitSlop}
-                    onPress={() => {
-                      setShowAttachments((value) => {
-                        if (!value) setAttachmentPage("main");
-                        return !value;
-                      });
-                      setShowEmoji(false);
-                    }}
-                  >
-                    <PremiumIcon
-                      name={showAttachments ? "close" : "add-circle-outline"}
-                      tone={showAttachments ? "ruby" : "dark"}
-                      size={36}
-                      iconSize={17}
-                    />
-                  </Pressable>
                   <View
                     style={[
                       chatStyles.inputWrap,
@@ -2847,18 +2825,6 @@ export function ChatScreen({
                       },
                     ]}
                   >
-                    <TextInput
-                      accessibilityLabel="Message"
-                      accessibilityHint="Type a message to this mutual match"
-                      value={text}
-                      onChangeText={updateText}
-                      onSubmitEditing={() => void sendText()}
-                      returnKeyType="send"
-                      placeholder={sending ? "Sending…" : "Message…"}
-                      placeholderTextColor="#8C7888"
-                      editable={!sending}
-                      style={[styles.chatInput, chatPremiumStyles.chatInput]}
-                    />
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={
@@ -2873,10 +2839,69 @@ export function ChatScreen({
                     >
                       <Ionicons
                         name={showEmoji ? "close" : "happy-outline"}
-                        size={21}
+                        size={22}
                         color={showEmoji ? colors.gold : "#B59DA4"}
                       />
                     </Pressable>
+                    <TextInput
+                      accessibilityLabel="Message"
+                      accessibilityHint="Type a message to this mutual match"
+                      value={text}
+                      onChangeText={updateText}
+                      onSubmitEditing={() => void sendText()}
+                      returnKeyType="send"
+                      placeholder={sending ? "Sending…" : "Message…"}
+                      placeholderTextColor="#8C7888"
+                      editable={!sending}
+                      style={[
+                        styles.chatInput,
+                        chatPremiumStyles.chatInput,
+                        chatStyles.chatInputInline,
+                      ]}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showAttachments ? "Close attachments" : "Add attachment"
+                      }
+                      accessibilityState={{ expanded: showAttachments }}
+                      hitSlop={accessibilityHitSlop}
+                      onPress={() => {
+                        setShowAttachments((value) => {
+                          if (!value) setAttachmentPage("main");
+                          return !value;
+                        });
+                        setShowEmoji(false);
+                      }}
+                    >
+                      <Ionicons
+                        name={showAttachments ? "close" : "attach"}
+                        size={22}
+                        color={showAttachments ? colors.gold : "#B59DA4"}
+                      />
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Send a gift"
+                      hitSlop={accessibilityHitSlop}
+                      onPress={() => openAttachment("gift")}
+                    >
+                      <Ionicons name="gift-outline" size={21} color="#B59DA4" />
+                    </Pressable>
+                    {!text.trim() && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Take a photo"
+                        hitSlop={accessibilityHitSlop}
+                        onPress={() => openAttachment("camera")}
+                      >
+                        <Ionicons
+                          name="camera-outline"
+                          size={22}
+                          color="#B59DA4"
+                        />
+                      </Pressable>
+                    )}
                   </View>
                   <Pressable
                     disabled={sending}
