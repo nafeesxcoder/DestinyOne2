@@ -99,11 +99,16 @@ async function replacePhotos(userId, photoUrls) {
 }
 async function replaceVibes(userId, vibes) {
   await query("DELETE FROM profile_vibes WHERE user_id = ?", [userId]);
-  for (const vibe of vibes) {
-    await query("INSERT INTO profile_vibes (user_id, vibe) VALUES (?, ?)", [
-      userId,
-      vibe,
-    ]);
+  // De-dupe: the client can send the same vibe twice (e.g. a fast
+  // double-tap on the same chip before its selected state updates),
+  // which previously crashed this request with a duplicate-key error
+  // on (user_id, vibe) and left the update only partially applied.
+  const uniqueVibes = [...new Set(vibes)];
+  for (const vibe of uniqueVibes) {
+    await query(
+      "INSERT IGNORE INTO profile_vibes (user_id, vibe) VALUES (?, ?)",
+      [userId, vibe],
+    );
   }
 }
 async function upsertIntent(userId, input) {
