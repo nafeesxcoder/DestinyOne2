@@ -531,18 +531,7 @@ const emojiSearchGroups = [
   },
   {
     keywords: "laugh funny haha smile happy",
-    emojis: [
-      "😂",
-      "🤣",
-      "😄",
-      "😁",
-      "😆",
-      "😅",
-      "😜",
-      "🤪",
-      "😎",
-      "🥳",
-    ],
+    emojis: ["😂", "🤣", "😄", "😁", "😆", "😅", "😜", "🤪", "😎", "🥳"],
   },
   {
     keywords: "sad cry upset miss",
@@ -3023,7 +3012,9 @@ export function ChatScreen({
                         key={item}
                         accessibilityRole="button"
                         accessibilityLabel={`React ${item}`}
-                        accessibilityState={{ selected: activeReaction === item }}
+                        accessibilityState={{
+                          selected: activeReaction === item,
+                        }}
                         onPress={() => {
                           void reactToMessage(quickReactFor.message.id, item);
                           setQuickReactFor(null);
@@ -7205,8 +7196,7 @@ function EmojiMediaPanel({
             ))}
             {!visibleEmoji.length && (
               <Text style={chatStyles.emojiEmpty}>
-                No emoji found. Try “love”, “laugh”, “food” or
-                “travel”.
+                No emoji found. Try “love”, “laugh”, “food” or “travel”.
               </Text>
             )}
           </>
