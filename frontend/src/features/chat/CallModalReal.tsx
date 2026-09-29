@@ -337,10 +337,7 @@ export function CallModal({
           </View>
           <View style={callStyles.secureNote}>
             <Ionicons name="lock-closed" size={13} color="#D6B35B" />
-            <Text style={callStyles.callFine}>
-              Peer-to-peer encrypted media. Signaling passes through DestinyOne
-              only to connect the call.
-            </Text>
+            <Text style={callStyles.callFine}>End-to-end encrypted call</Text>
           </View>
         </SafeAreaView>
       </LinearGradient>

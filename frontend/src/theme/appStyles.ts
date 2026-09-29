@@ -1917,8 +1917,8 @@ export const pricingStyles=StyleSheet.create({
 export const callStyles=StyleSheet.create({
   backdrop:{flex:1},
   content:{flex:1,alignItems:'center',justifyContent:'center',padding:24,gap:18},
-  topPill:{flexDirection:'row',alignItems:'center',gap:7,paddingHorizontal:12,paddingVertical:8,borderRadius:18,backgroundColor:'rgba(255,255,255,.06)',borderWidth:1,borderColor:colors.line},
-  topPillText:{fontFamily:'Poppins_700Bold',fontSize:10,letterSpacing:.8,color:'#E8D7AC'},
+  topPill:{flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:0,paddingVertical:0,backgroundColor:'transparent'},
+  topPillText:{fontFamily:'Poppins_600SemiBold',fontSize:12,letterSpacing:.4,color:'#E8D7AC'},
   avatarWrap:{width:155,height:155,borderRadius:78,alignItems:'center',justifyContent:'center'},
   callAvatar:{width:138,height:138,borderRadius:69,borderWidth:4,borderColor:colors.pink},
   callPulse:{position:'absolute',width:155,height:155,borderRadius:78,borderWidth:1,borderColor:'rgba(229,9,47,.45)'},
