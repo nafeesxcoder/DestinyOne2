@@ -3070,6 +3070,10 @@ export function ChatScreen({
               setOptionsOpen(false);
               setSafetyOpen(true);
             }}
+            onSelectMessages={() => {
+              setOptionsOpen(false);
+              startMultiSelect();
+            }}
           />
           <SafetyActions
             mode={experienceMode}
@@ -5953,6 +5957,7 @@ function ChatOptionsSheet({
   onDate,
   onSettings,
   onSafety,
+  onSelectMessages,
 }: {
   visible: boolean;
   retentionLabel: string;
@@ -5963,47 +5968,51 @@ function ChatOptionsSheet({
   onDate: () => void;
   onSettings: () => void;
   onSafety: () => void;
+  onSelectMessages: () => void;
 }) {
   const options = [
     {
-      label: "Conversation inbox",
-      body: "Open active, pinned and archived conversations.",
-      icon: "file-tray-full-outline" as const,
-      onPress: onInbox,
-    },
-    {
-      label: "Search conversation",
-      body: "Find messages, dates and shared items.",
+      label: "Search",
       icon: "search-outline" as const,
       onPress: onSearch,
     },
     {
-      label: "Date Marketplace",
-      body: "Browse nearby places, packages and events.",
-      icon: "calendar-outline" as const,
-      onPress: onDate,
-    },
-    {
-      label: "Chat appearance",
-      body: "Nickname and private DestinyOne couple theme.",
-      icon: "color-palette-outline" as const,
-      onPress: onSettings,
+      label: "Select messages",
+      icon: "checkmark-done-outline" as const,
+      onPress: onSelectMessages,
     },
     {
       label: `Disappearing messages · ${retentionLabel}`,
-      body: "Choose after seen, 24 hours, 7 days, or keep messages.",
       icon: "timer-outline" as const,
       onPress: onSettings,
     },
     {
+      label: "Mute notifications",
+      icon: "notifications-off-outline" as const,
+      onPress: onSettings,
+    },
+    {
+      label: "Chat appearance",
+      icon: "color-palette-outline" as const,
+      onPress: onSettings,
+    },
+    {
+      label: "Date Marketplace",
+      icon: "calendar-outline" as const,
+      onPress: onDate,
+    },
+    {
+      label: "Conversation inbox",
+      icon: "file-tray-full-outline" as const,
+      onPress: onInbox,
+    },
+    {
       label: `Screenshot alerts · ${screenshotAlerts ? "On" : "Off"}`,
-      body: "Supported native captures notify both people; web capture can be undetectable.",
       icon: "scan-outline" as const,
       onPress: onSettings,
     },
     {
-      label: "Safety and privacy",
-      body: "Report, block, unmatch or open the Safety Center.",
+      label: "Report or block",
       icon: "shield-checkmark-outline" as const,
       onPress: onSafety,
     },
@@ -6031,21 +6040,10 @@ function ChatOptionsSheet({
               onPress={option.onPress}
               style={chatStyles.optionRow}
             >
-              <MiniPremiumIcon
-                name={option.icon}
-                tone={
-                  option.label.includes("Date") || option.label.includes("24h")
-                    ? "gold"
-                    : "rose"
-                }
-                size={36}
-                iconSize={16}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={chatStyles.optionTitle}>{option.label}</Text>
-                <Text style={chatStyles.optionBody}>{option.body}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+              <Ionicons name={option.icon} size={20} color={colors.text} />
+              <Text style={[chatStyles.optionTitle, { flex: 1 }]}>
+                {option.label}
+              </Text>
             </Pressable>
           ))}
         </View>
