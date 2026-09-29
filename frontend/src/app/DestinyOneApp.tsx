@@ -417,10 +417,10 @@ const showcaseChatSeed: Record<string, ChatMessage[]> =
             id: "preview-recipient-gift",
             mine: false,
             type: "gift",
-            text: "From Anika: â€œA little reminder that Iâ€™m thinking of you â¤ï¸â€",
+            text: "From Anika: “A little reminder that I’m thinking of you ❤️”",
             gift: {
               name: "Velvet Ruby Roses",
-              emoji: "ðŸŒ¹",
+              emoji: "🌹",
               physical: true,
               orderId: "demo-gift-recipient-preview",
               deliveryStatus: "recipient_pending",
@@ -479,8 +479,8 @@ const showcaseChatSeed: Record<string, ChatMessage[]> =
               date: {
                 venue: "Public-first dinner",
                 category: "Restaurant",
-                area: "Downtown Â· near your profile city",
-                time: "Saturday Â· 7:00 PM",
+                area: "Downtown · near your profile city",
+                time: "Saturday · 7:00 PM",
                 safetyCheckIn: true,
                 planStatus: showcaseDateStatus,
               },
@@ -491,7 +491,7 @@ const showcaseChatSeed: Record<string, ChatMessage[]> =
         }
       : {};
 type MemberMatchLoadState = "preview" | "loading" | "ready" | "error";
-const icebreakerQuestion = "Coffee date â˜• or road trip ðŸš—?";
+const icebreakerQuestion = "Coffee date ☕ or road trip 🚗?";
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const coupleModeRepository = createLocalCoupleModeRepository(AsyncStorage);
 const showcaseCoupleModeState: CoupleModeState =
@@ -1916,7 +1916,7 @@ function DestinyOneApp() {
     if (result.saved && isIcebreakerWaitingForOtherAnswer(result.data)) {
       setAppNotice({
         title: "Answer saved",
-        body: `Chat unlocks as soon as ${selected.name} answers the same icebreaker. Weâ€™ll keep it pressure-free.`,
+        body: `Chat unlocks as soon as ${selected.name} answers the same icebreaker. We’ll keep it pressure-free.`,
         icon: "sparkles",
         tone: "gold",
       });
@@ -1966,7 +1966,7 @@ function DestinyOneApp() {
     id: `spark-${Date.now()}`,
     type: "gift",
     text: note,
-    gift: { name: "Golden Spark", emoji: "âœ¨" },
+    gift: { name: "Golden Spark", emoji: "✨" },
     createdAt: Date.now(),
     status: "sent",
   });
@@ -2209,7 +2209,7 @@ function DestinyOneApp() {
       id: `gift-${order.orderId}`,
       mine: true,
       type: "gift",
-      text: `From ${senderName}: â€œ${note}â€`,
+      text: `From ${senderName}: “${note}”`,
       gift: {
         name: gift.name,
         emoji: gift.emoji,
@@ -3020,7 +3020,7 @@ function DestinyOneApp() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      {/* ðŸš€ Static background.png removed, entire app wrapped in Premium Gradient */}
+      {/* 🚀 Static background.png removed, entire app wrapped in Premium Gradient */}
       <PremiumBackground>
         {screen === "splash" && <SplashScreen />}
         {screen === "welcome" && (
@@ -3038,7 +3038,7 @@ function DestinyOneApp() {
             }}
             onSocialContinue={async (provider) => {
               if (provider === "Apple") {
-                // Apple abhi wire nahi hua â€” placeholder
+                // Apple abhi wire nahi hua — placeholder
                 await new Promise((resolve) => setTimeout(resolve, 450));
                 setAuthDestination(
                   `${provider.toLowerCase()}@destinyone.preview`,

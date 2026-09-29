@@ -135,7 +135,7 @@ import type {
 import { track } from "../../lib/telemetry";
 import giftCatalogJson from "../../../shared/gift-catalog.json";
 
-// ðŸš€ BACKGROUND IMAGE ADDED HERE
+// 🚀 BACKGROUND IMAGE ADDED HERE
 const backgroundImage = require("../../../assets/background.png");
 
 export type RoseAvailability = { freeAvailable: boolean; paidCredits: number };
@@ -156,24 +156,24 @@ const useChatRuntime = () => {
 };
 
 const digitalGifts = [
-  { name: "A Rose", emoji: "ðŸŒ¹", coins: 40, caption: "A little romance" },
-  { name: "Flowers", emoji: "ðŸ’", coins: 80, caption: "Thinking of you" },
-  { name: "Teddy", emoji: "ðŸ§¸", coins: 120, caption: "A warm hug" },
+  { name: "A Rose", emoji: "🌹", coins: 40, caption: "A little romance" },
+  { name: "Flowers", emoji: "💐", coins: 80, caption: "Thinking of you" },
+  { name: "Teddy", emoji: "🧸", coins: 120, caption: "A warm hug" },
   {
     name: "Celebration",
-    emoji: "ðŸ¥‚",
+    emoji: "🥂",
     coins: 160,
     caption: "To new beginnings",
   },
   {
     name: "Golden Heart",
-    emoji: "ðŸ’›",
+    emoji: "💛",
     coins: 200,
     caption: "Something meaningful",
   },
   {
     name: "Promise",
-    emoji: "ðŸ’",
+    emoji: "💍",
     coins: 300,
     caption: "For a special moment",
   },
@@ -210,247 +210,247 @@ function digitalGiftIcon(name: string): keyof typeof Ionicons.glyphMap {
   return "gift";
 }
 const quickEmojis = [
-  "ðŸ˜€",
-  "ðŸ˜ƒ",
-  "ðŸ˜„",
-  "ðŸ˜",
-  "ðŸ˜†",
-  "ðŸ˜…",
-  "ðŸ˜‚",
-  "ðŸ¤£",
-  "ðŸ˜Š",
-  "ðŸ˜‡",
-  "ðŸ™‚",
-  "ðŸ™ƒ",
-  "ðŸ˜‰",
-  "ðŸ˜Œ",
-  "ðŸ˜",
-  "ðŸ¥°",
-  "ðŸ˜˜",
-  "ðŸ˜—",
-  "ðŸ˜™",
-  "ðŸ˜š",
-  "ðŸ˜‹",
-  "ðŸ˜›",
-  "ðŸ˜",
-  "ðŸ˜œ",
-  "ðŸ¤ª",
-  "ðŸ¤¨",
-  "ðŸ§",
-  "ðŸ¤“",
-  "ðŸ˜Ž",
-  "ðŸ¥¸",
-  "ðŸ¤©",
-  "ðŸ¥³",
-  "ðŸ™‚â€â†•️",
-  "ðŸ˜",
-  "ðŸ˜’",
-  "ðŸ™‚â€â†”️",
-  "ðŸ˜ž",
-  "ðŸ˜”",
-  "ðŸ˜Ÿ",
-  "ðŸ˜•",
-  "ðŸ™",
-  "â˜¹ï¸",
-  "ðŸ˜£",
-  "ðŸ˜–",
-  "ðŸ˜«",
-  "ðŸ˜©",
-  "ðŸ¥º",
-  "ðŸ˜¢",
-  "ðŸ˜­",
-  "ðŸ˜¤",
-  "ðŸ˜ ",
-  "ðŸ˜¡",
-  "ðŸ¤¬",
-  "ðŸ¤¯",
-  "ðŸ˜³",
-  "ðŸ¥µ",
-  "ðŸ¥¶",
-  "ðŸ˜±",
-  "ðŸ˜¨",
-  "ðŸ˜°",
-  "ðŸ˜¥",
-  "ðŸ˜“",
-  "ðŸ¤—",
-  "ðŸ¤”",
-  "ðŸ«£",
-  "ðŸ¤­",
-  "ðŸ«¢",
-  "ðŸ«¡",
-  "ðŸ¤«",
-  "ðŸ« ",
-  "ðŸ¤¥",
-  "ðŸ˜¶",
-  "ðŸ˜",
-  "ðŸ˜‘",
-  "ðŸ˜¬",
-  "ðŸ™„",
-  "ðŸ˜¯",
-  "ðŸ˜¦",
-  "ðŸ˜§",
-  "ðŸ˜®",
-  "ðŸ˜²",
-  "ðŸ¥±",
-  "ðŸ˜´",
-  "ðŸ¤¤",
-  "ðŸ˜ª",
-  "ðŸ˜®â€ðŸ’¨",
-  "ðŸ˜µ",
-  "ðŸ˜µâ€ðŸ’«",
-  "ðŸ¤",
-  "ðŸ¥´",
-  "ðŸ¤¢",
-  "ðŸ¤®",
-  "ðŸ¤§",
-  "ðŸ˜·",
-  "ðŸ¤’",
-  "ðŸ¤•",
-  "ðŸ¤‘",
-  "ðŸ¤ ",
-  "ðŸ˜ˆ",
-  "ðŸ‘¿",
-  "ðŸ‘‹",
-  "ðŸ¤š",
-  "ðŸ–ï¸",
-  "âœ‹",
-  "ðŸ––",
-  "ðŸ‘Œ",
-  "ðŸ¤Œ",
-  "ðŸ¤",
-  "âœŒ️",
-  "ðŸ¤ž",
-  "ðŸ«°",
-  "ðŸ¤Ÿ",
-  "ðŸ¤˜",
-  "ðŸ¤™",
-  "ðŸ‘ˆ",
-  "ðŸ‘‰",
-  "ðŸ‘†",
-  "ðŸ‘‡",
-  "â˜ï¸",
-  "ðŸ‘",
-  "ðŸ‘Ž",
-  "âœŠ",
-  "ðŸ‘Š",
-  "ðŸ¤›",
-  "ðŸ¤œ",
-  "ðŸ‘",
-  "ðŸ™Œ",
-  "ðŸ«¶",
-  "ðŸ«¶ðŸ½",
-  "ðŸ¤²",
-  "ðŸ™",
-  "âœï¸",
-  "ðŸ’…",
-  "ðŸ¤",
-  "ðŸ’ª",
-  "ðŸ«µ",
-  "ðŸ«‚",
-  "ðŸ‘€",
-  "ðŸ‘ï¸",
-  "ðŸ‘„",
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "😆",
+  "😅",
+  "😂",
+  "🤣",
+  "😊",
+  "😇",
+  "🙂",
+  "🙃",
+  "😉",
+  "😌",
+  "😍",
+  "🥰",
+  "😘",
+  "😗",
+  "😙",
+  "😚",
+  "😋",
+  "😛",
+  "😝",
+  "😜",
+  "🤪",
+  "🤨",
+  "🧐",
+  "🤓",
+  "😎",
+  "🥸",
+  "🤩",
+  "🥳",
+  "🙂‍↕️",
+  "😏",
+  "😒",
+  "🙂‍↔️",
+  "😞",
+  "😔",
+  "😟",
+  "😕",
+  "🙁",
+  "☹️",
+  "😣",
+  "😖",
+  "😫",
+  "😩",
+  "🥺",
+  "😢",
+  "😭",
+  "😤",
+  "😠",
+  "😡",
+  "🤬",
+  "🤯",
+  "😳",
+  "🥵",
+  "🥶",
+  "😱",
+  "😨",
+  "😰",
+  "😥",
+  "😓",
+  "🤗",
+  "🤔",
+  "🫣",
+  "🤭",
+  "🫢",
+  "🫡",
+  "🤫",
+  "🫠",
+  "🤥",
+  "😶",
+  "😐",
+  "😑",
+  "😬",
+  "🙄",
+  "😯",
+  "😦",
+  "😧",
+  "😮",
+  "😲",
+  "🥱",
+  "😴",
+  "🤤",
+  "😪",
+  "😮‍💨",
+  "😵",
+  "😵‍💫",
+  "🤐",
+  "🥴",
+  "🤢",
+  "🤮",
+  "🤧",
+  "😷",
+  "🤒",
+  "🤕",
+  "🤑",
+  "🤠",
+  "😈",
+  "👿",
+  "👋",
+  "🤚",
+  "🖐️",
+  "✋",
+  "🖖",
+  "👌",
+  "🤌",
+  "🤏",
+  "✌️",
+  "🤞",
+  "🫰",
+  "🤟",
+  "🤘",
+  "🤙",
+  "👈",
+  "👉",
+  "👆",
+  "👇",
+  "☝️",
+  "👍",
+  "👎",
+  "✊",
+  "👊",
+  "🤛",
+  "🤜",
+  "👏",
+  "🙌",
+  "🫶",
+  "🫶🏽",
+  "🤲",
+  "🙏",
+  "✍️",
+  "💅",
+  "🤝",
+  "💪",
+  "🫵",
+  "🫂",
+  "👀",
+  "👁️",
+  "👄",
   "❤️",
-  "ðŸ©·",
-  "ðŸ§¡",
-  "ðŸ’›",
-  "ðŸ’š",
-  "ðŸ’™",
-  "ðŸ©µ",
-  "ðŸ’œ",
-  "ðŸ¤Ž",
-  "ðŸ–¤",
-  "ðŸ©¶",
-  "ðŸ¤",
-  "ðŸ’”",
-  "â¤ï¸â€ðŸ”¥",
-  "â¤ï¸â€ðŸ©¹",
-  "ðŸ’•",
-  "ðŸ’ž",
-  "ðŸ’“",
-  "ðŸ’—",
-  "ðŸ’–",
-  "ðŸ’˜",
-  "ðŸ’",
-  "ðŸ’Ÿ",
-  "ðŸ’Œ",
-  "ðŸ’‹",
-  "ðŸ’¯",
-  "ðŸ’¢",
-  "ðŸ’¥",
-  "ðŸ’«",
-  "ðŸ’¦",
-  "ðŸ’¨",
-  "ðŸ•³ï¸",
-  "ðŸ’¬",
-  "ðŸ‘‘",
-  "ðŸ’",
-  "ðŸ’Ž",
-  "âœ¨",
+  "🩷",
+  "🧡",
+  "💛",
+  "💚",
+  "💙",
+  "🩵",
+  "💜",
+  "🤎",
+  "🖤",
+  "🩶",
+  "🤍",
+  "💔",
+  "❤️‍🔥",
+  "❤️‍🩹",
+  "💕",
+  "💞",
+  "💓",
+  "💗",
+  "💖",
+  "💘",
+  "💝",
+  "💟",
+  "💌",
+  "💋",
+  "💯",
+  "💢",
+  "💥",
+  "💫",
+  "💦",
+  "💨",
+  "🕳️",
+  "💬",
+  "👑",
+  "💍",
+  "💎",
+  "✨",
   "⭐",
-  "ðŸŒŸ",
-  "ðŸ”¥",
-  "ðŸŒ¹",
-  "ðŸ’",
-  "ðŸŒ·",
-  "ðŸŒ¸",
-  "ðŸŒº",
-  "ðŸŒ»",
-  "ðŸŒ¼",
-  "ðŸª·",
-  "ðŸ€",
-  "â˜•",
-  "ðŸ«–",
-  "ðŸµ",
-  "ðŸ•",
-  "ðŸ”",
-  "ðŸŸ",
-  "ðŸŒ®",
-  "ðŸœ",
-  "ðŸ",
-  "ðŸ›",
-  "ðŸ«",
-  "ðŸ°",
-  "ðŸ§",
-  "ðŸ¦",
-  "ðŸ¿",
-  "ðŸ¥‚",
-  "ðŸ·",
-  "ðŸ¹",
-  "ðŸŽ‚",
-  "ðŸŽ‰",
-  "ðŸŽŠ",
-  "ðŸŽ",
-  "ðŸŽˆ",
-  "ðŸª©",
-  "ðŸŽµ",
-  "ðŸŽ¶",
-  "ðŸŽ¬",
-  "ðŸ“¸",
-  "ðŸš—",
-  "âœˆ️",
-  "ðŸ¡",
-  "ðŸŒ",
-  "ðŸŒ™",
-  "â˜€️",
-  "ðŸŒ§ï¸",
-  "ðŸŒˆ",
-  "âš¡",
-  "ðŸ’ƒðŸ½",
-  "ðŸ•º",
-  "ðŸ‹️",
-  "ðŸ§˜â€â™€️",
-  "ðŸ¶",
-  "ðŸ±",
-  "ðŸ¼",
-  "ðŸ¦",
-  "ðŸ¦„",
-  "ðŸ¦‹",
-  "ðŸ¥",
-  "ðŸ’",
-  "ðŸ™ˆ",
-  "ðŸ™‰",
-  "ðŸ™Š",
+  "🌟",
+  "🔥",
+  "🌹",
+  "💐",
+  "🌷",
+  "🌸",
+  "🌺",
+  "🌻",
+  "🌼",
+  "🪷",
+  "🍀",
+  "☕",
+  "🫖",
+  "🍵",
+  "🍕",
+  "🍔",
+  "🍟",
+  "🌮",
+  "🍜",
+  "🍝",
+  "🍛",
+  "🍫",
+  "🍰",
+  "🧁",
+  "🍦",
+  "🍿",
+  "🥂",
+  "🍷",
+  "🍹",
+  "🎂",
+  "🎉",
+  "🎊",
+  "🎁",
+  "🎈",
+  "🪩",
+  "🎵",
+  "🎶",
+  "🎬",
+  "📸",
+  "🚗",
+  "✈️",
+  "🏡",
+  "🌍",
+  "🌙",
+  "☀️",
+  "🌧️",
+  "🌈",
+  "⚡",
+  "💃🏽",
+  "🕺",
+  "🏋️",
+  "🧘‍♀️",
+  "🐶",
+  "🐱",
+  "🐼",
+  "🦁",
+  "🦄",
+  "🦋",
+  "🐥",
+  "🐒",
+  "🙈",
+  "🙉",
+  "🙊",
 ];
 type EmojiCategoryId =
   | "recent"
@@ -472,23 +472,23 @@ const emojiCategories: Array<{
     icon: "time-outline",
     emojis: [
       "❤️",
-      "ðŸ˜‚",
-      "ðŸ¥°",
-      "ðŸ˜˜",
-      "ðŸ˜Š",
-      "ðŸ™",
-      "ðŸ”¥",
-      "ðŸ’",
-      "â˜•",
-      "âœ¨",
-      "ðŸ«¶",
-      "ðŸ˜",
-      "ðŸ¤£",
-      "ðŸ’Œ",
-      "ðŸŒ¹",
-      "ðŸ¥º",
-      "ðŸŽ‰",
-      "ðŸ™ˆ",
+      "😂",
+      "🥰",
+      "😘",
+      "😊",
+      "🙏",
+      "🔥",
+      "💐",
+      "☕",
+      "✨",
+      "🫶",
+      "😍",
+      "🤣",
+      "💌",
+      "🌹",
+      "🥺",
+      "🎉",
+      "🙈",
     ],
   },
   {
@@ -531,21 +531,21 @@ const emojiSearchGroups = [
   {
     keywords: "laugh funny haha smile happy",
     emojis: [
-      "ðŸ˜‚",
-      "ðŸ¤£",
-      "ðŸ˜„",
-      "ðŸ˜",
-      "ðŸ˜†",
-      "ðŸ˜…",
-      "ðŸ˜œ",
-      "ðŸ¤ª",
-      "ðŸ˜Ž",
-      "ðŸ¥³",
+      "😂",
+      "🤣",
+      "😄",
+      "😁",
+      "😆",
+      "😅",
+      "😜",
+      "🤪",
+      "😎",
+      "🥳",
     ],
   },
   {
     keywords: "sad cry upset miss",
-    emojis: ["ðŸ¥º", "ðŸ˜¢", "ðŸ˜­", "ðŸ˜ž", "ðŸ˜”", "ðŸ’”", "ðŸ˜¥", "ðŸ˜“"],
+    emojis: ["🥺", "😢", "😭", "😞", "😔", "💔", "😥", "😓"],
   },
   {
     keywords: "food coffee chai date dinner cake",
@@ -561,7 +561,7 @@ const emojiSearchGroups = [
   },
 ];
 const isAnimatedEmojiText = (value = "") => {
-  const trimmed = value.trim().replace(/^âœ¨STICKER\|/, "");
+  const trimmed = value.trim().replace(/^✨STICKER\|/, "");
   return (
     !!trimmed &&
     !/[\p{L}\p{N}]/u.test(trimmed) &&
@@ -597,36 +597,36 @@ const snapFilters = [
   { name: "Crown Mode", color: "rgba(212,175,55,.22)" },
 ];
 const faceEmojiOptions = [
-  "ðŸ˜‚",
-  "ðŸ¤£",
-  "ðŸ˜Ž",
-  "ðŸ‘‘",
-  "ðŸ¥¸",
-  "ðŸ¤ ",
-  "ðŸ¤“",
-  "ðŸ¤¡",
-  "ðŸ˜ˆ",
-  "ðŸ‘½",
-  "ðŸ¤–",
-  "ðŸ¦„",
-  "ðŸ¶",
-  "ðŸ±",
-  "ðŸ¼",
-  "ðŸ¦",
-  "ðŸµ",
-  "ðŸ™ˆ",
-  "ðŸ’˜",
-  "ðŸ˜",
-  "ðŸ˜˜",
-  "ðŸ¤­",
-  "ðŸ˜œ",
-  "ðŸ˜‡",
-  "ðŸ•¶ï¸",
-  "ðŸŽ©",
-  "ðŸ’ƒðŸ½",
-  "ðŸª©",
-  "ðŸ”¥",
-  "âœ¨",
+  "😂",
+  "🤣",
+  "😎",
+  "👑",
+  "🥸",
+  "🤠",
+  "🤓",
+  "🤡",
+  "😈",
+  "👽",
+  "🤖",
+  "🦄",
+  "🐶",
+  "🐱",
+  "🐼",
+  "🦁",
+  "🐵",
+  "🙈",
+  "💘",
+  "😍",
+  "😘",
+  "🤭",
+  "😜",
+  "😇",
+  "🕶️",
+  "🎩",
+  "💃🏽",
+  "🪩",
+  "🔥",
+  "✨",
 ];
 const chatCoachSuggestions = [
   {
@@ -662,7 +662,7 @@ type CoupleGame = {
 };
 type GameReplyPayload = { parentId: string; gameTitle: string; answer: string };
 const parseGameReply = (message: ChatMessage): GameReplyPayload | null => {
-  if (message.type !== "text" || !message.text?.startsWith("ðŸŽ®REPLY|"))
+  if (message.type !== "text" || !message.text?.startsWith("🎮REPLY|"))
     return null;
   const parts = message.text.split("|");
   return {
@@ -672,7 +672,7 @@ const parseGameReply = (message: ChatMessage): GameReplyPayload | null => {
   };
 };
 const parseQuotedReply = (text?: string) => {
-  if (!text?.startsWith("â†©REPLY|")) return null;
+  if (!text?.startsWith("↩REPLY|")) return null;
   const parts = text.split("|");
   return {
     parentId: parts[1] ?? "",
@@ -706,7 +706,7 @@ const coupleGames: CoupleGame[] = [
       "Which small everyday gesture makes you feel genuinely considered?",
       "What does a peaceful Sunday in your future look like?",
       "What is something you are learning to communicate more clearly?",
-      "Which family tradition would you love to keepâ€”or thoughtfully reinvent?",
+      "Which family tradition would you love to keep—or thoughtfully reinvent?",
       "What kind of support helps you most on a difficult day?",
       "What is one dream that feels more exciting when shared?",
     ],
@@ -721,10 +721,10 @@ const coupleGames: CoupleGame[] = [
     howToPlay:
       "One person answers privately in their head; the other gets one guess and one hint.",
     prompts: [
-      "EMOJI CLUE Â· â˜•ðŸŒ§ï¸ðŸ“š â€” invent the perfect date hidden in these emojis.",
+      "EMOJI CLUE · ☕🌧️📚 — invent the perfect date hidden in these emojis.",
       "RIDDLE · I can fill a room but take up no space. What am I?",
       "GUESS ME · Give three clues about your comfort food without naming it.",
-      "EMOJI STORY Â· ðŸ§³ðŸŒ„ðŸŽµðŸœ â€” where did our imaginary weekend go?",
+      "EMOJI STORY · 🧳🌄🎵🍜 — where did our imaginary weekend go?",
       "TWO CLUES · Describe your dream city using only weather + one sound.",
       "MYSTERY · Pick an object near you; give one true clue and one tricky clue.",
     ],
@@ -737,14 +737,14 @@ const coupleGames: CoupleGame[] = [
     tag: "QUICK PICKS",
     description: "Fast choices that reveal the reason behind the answer.",
     howToPlay:
-      "Choose first, explain why second. No â€œbothâ€ answers for this round.",
+      "Choose first, explain why second. No “both” answers for this round.",
     prompts: [
-      "Cozy coffee â˜• or spontaneous road trip ðŸš— â€” and what makes it your pick?",
-      "Sunrise walk ðŸŒ… or late-night dessert ðŸ°?",
-      "Plan every detail ðŸ—“ï¸ or leave one surprise âœ¨?",
-      "Cook together ðŸ or find a hidden local restaurant ðŸ¥¢?",
-      "Mountain cabin ðŸ”ï¸ or city weekend ðŸŒ†?",
-      "Voice note ðŸŽ™ï¸ or handwritten letter ðŸ’Œ?",
+      "Cozy coffee ☕ or spontaneous road trip 🚗 — and what makes it your pick?",
+      "Sunrise walk 🌅 or late-night dessert 🍰?",
+      "Plan every detail 🗓️ or leave one surprise ✨?",
+      "Cook together 🍝 or find a hidden local restaurant 🥢?",
+      "Mountain cabin 🏔️ or city weekend 🌆?",
+      "Voice note 🎙️ or handwritten letter 💌?",
     ],
   },
   {
@@ -776,7 +776,7 @@ const coupleGames: CoupleGame[] = [
       "Both send one caption. The next person chooses the winner and starts another round.",
     prompts: [
       "Caption this: we arrived at the restaurant wearing the exact same color.",
-      "Caption this: our â€œquick coffeeâ€ somehow became a four-hour conversation.",
+      "Caption this: our “quick coffee” somehow became a four-hour conversation.",
       "Caption this: the GPS said two minutes; we are now beside a goat farm.",
       "Caption this: both families joined the video call five minutes early.",
       "Caption this: we tried cooking together and the smoke alarm became the referee.",
@@ -1243,11 +1243,11 @@ export function ChatScreen({
   });
   const messageSummary = (message: ChatMessage) => {
     const sticker = parseStickerPayload(message.text);
-    return message.text?.startsWith("ðŸŽ®GAME|")
+    return message.text?.startsWith("🎮GAME|")
       ? `Game: ${message.text.split("|")[1] ?? "Couple game"}`
-      : message.text?.startsWith("ðŸŽ®REPLY|")
+      : message.text?.startsWith("🎮REPLY|")
         ? `Game answer: ${parseGameReply(message)?.answer ?? ""}`
-        : message.text?.startsWith("â†©REPLY|")
+        : message.text?.startsWith("↩REPLY|")
           ? (parseQuotedReply(message.text)?.body ?? "Reply")
           : sticker
             ? `${sticker.label} ${sticker.emoji}`
@@ -1313,7 +1313,7 @@ export function ChatScreen({
     const value = text.trim();
     if (!value || sending) return;
     const messageText = replyTarget
-      ? `â†©REPLY|${replyTarget.id}|${messageSummary(replyTarget).slice(0, 64)}|${value}`
+      ? `↩REPLY|${replyTarget.id}|${messageSummary(replyTarget).slice(0, 64)}|${value}`
       : value;
     setSending(true);
     try {
@@ -1745,7 +1745,7 @@ export function ChatScreen({
   };
   const startGame = (game: CoupleGame, prompt: string) => {
     void dispatchMessage(
-      createMessage({ type: "text", text: `ðŸŽ®GAME|${game.title}|${prompt}` }),
+      createMessage({ type: "text", text: `🎮GAME|${game.title}|${prompt}` }),
     );
     setGamesOpen(false);
     setShowAttachments(false);
@@ -1757,7 +1757,7 @@ export function ChatScreen({
     void dispatchMessage(
       createMessage({
         type: "text",
-        text: `ðŸŽ®REPLY|${parent.id}|${gameTitle}|${value}`,
+        text: `🎮REPLY|${parent.id}|${gameTitle}|${value}`,
       }),
     );
   };
@@ -1789,13 +1789,13 @@ export function ChatScreen({
     }
     if (id === "contact") {
       sendQuickShare(
-        `ðŸ‘¤ Trusted contact card\n${match.name} Â· DestinyOne verified match`,
+        `👤 Trusted contact card\n${match.name} · DestinyOne verified match`,
       );
       return;
     }
     if (id === "poll") {
       sendQuickShare(
-        "ðŸ“Š Which date feels best?\nâ˜• CafÃ©   ðŸ½ï¸ Dinner   ðŸŽ¨ Activity",
+        "📊 Which date feels best?\n☕ Café   🍽️ Dinner   🎨 Activity",
       );
       return;
     }
@@ -2547,7 +2547,7 @@ export function ChatScreen({
                   <Text style={styles.kicker}>ICEBREAKER REVEALED</Text>
                   <Text style={styles.revealText}>
                     You both chose:{" "}
-                    <Text style={{ color: colors.text }}>Road trip ðŸš—</Text>
+                    <Text style={{ color: colors.text }}>Road trip 🚗</Text>
                   </Text>
                 </View>
                 <Text style={chatStyles.dayLabel}>TODAY</Text>
@@ -2555,7 +2555,7 @@ export function ChatScreen({
                   style={[styles.theirBubble, chatPremiumStyles.theirBubble]}
                 >
                   <Text style={styles.bubbleText}>
-                    Okay, excellent choice. Mountains or coast? ðŸ˜Š
+                    Okay, excellent choice. Mountains or coast? 😊
                   </Text>
                   <Text style={styles.time}>7:42 PM</Text>
                 </View>
@@ -2642,7 +2642,7 @@ export function ChatScreen({
                   color={colors.muted}
                 />
                 <Text style={chatStyles.emptySearchText}>
-                  No messages match â€œ{searchQuery}â€.
+                  No messages match “{searchQuery}”.
                 </Text>
               </View>
             )}
@@ -2843,7 +2843,7 @@ export function ChatScreen({
                       onChangeText={updateText}
                       onSubmitEditing={() => void sendText()}
                       returnKeyType="send"
-                      placeholder={sending ? "Sendingâ€¦" : "Messageâ€¦"}
+                      placeholder={sending ? "Sending…" : "Message…"}
                       placeholderTextColor="#8C7888"
                       editable={!sending}
                       style={[styles.chatInput, chatPremiumStyles.chatInput]}
@@ -3725,7 +3725,7 @@ function ChatBubble({
 }) {
   const mine = message.mine !== false;
   const gamePayload =
-    message.type === "text" && message.text?.startsWith("ðŸŽ®GAME|")
+    message.type === "text" && message.text?.startsWith("🎮GAME|")
       ? message.text.split("|")
       : null;
   const gameTitle = gamePayload?.[1] ?? "";
@@ -4192,11 +4192,11 @@ function IncomingMessageSafety({ scan }: { scan: MessageSafetyScan }) {
 }
 
 function messageSummaryForAccessibility(message: ChatMessage) {
-  if (message.text?.startsWith("ðŸŽ®GAME|"))
+  if (message.text?.startsWith("🎮GAME|"))
     return `Couple game ${message.text.split("|")[1] ?? ""}`;
-  if (message.text?.startsWith("ðŸŽ®REPLY|"))
+  if (message.text?.startsWith("🎮REPLY|"))
     return `Game answer ${parseGameReply(message)?.answer ?? ""}`;
-  if (message.text?.startsWith("â†©REPLY|"))
+  if (message.text?.startsWith("↩REPLY|"))
     return `Reply ${parseQuotedReply(message.text)?.body ?? ""}`;
   const sticker = parseStickerPayload(message.text);
   if (sticker) return `${sticker.label} sticker ${sticker.emoji}`;
@@ -4323,16 +4323,16 @@ function AnimatedEmojiMessage({
     outputRange: [0.7, 1.15, 0.82],
   });
   const glyphs: Record<EmojiMotion, [string, string]> = {
-    laugh: ["ðŸ’§", "ðŸ’§"],
-    cry: ["ðŸ’§", "ðŸ’§"],
-    love: ["â™¥", "â™¡"],
-    kiss: ["â™¥", "ðŸ’‹"],
-    angry: ["ðŸ’¨", "ðŸ’¢"],
-    party: ["âœ¦", "â—"],
-    surprise: ["!", "âœ¦"],
+    laugh: ["💧", "💧"],
+    cry: ["💧", "💧"],
+    love: ["♥", "♡"],
+    kiss: ["♥", "💋"],
+    angry: ["💨", "💢"],
+    party: ["✦", "●"],
+    surprise: ["!", "✦"],
     sleep: ["Z", "z"],
-    celebrate: ["âœ¦", "â˜…"],
-    bounce: ["âœ¦", ""],
+    celebrate: ["✦", "★"],
+    bounce: ["✦", ""],
   };
   const [particleOne, particleTwo] = glyphs[emotion];
   const tone = sticker?.tone ?? "rose";
@@ -4428,7 +4428,7 @@ function AnimatedEmojiMessage({
             },
           ]}
         >
-          ðŸ’‹
+          💋
         </Animated.Text>
       )}
       <Animated.View
@@ -4499,11 +4499,11 @@ function AnimatedEmojiMessage({
 function CatalogGifMessage({ gif }: { gif: ChatGifCatalogItem }) {
   const sticker: CustomChatSticker = {
     id: gif.id,
-    emoji: gif.previewEmoji ?? "âœ¨",
+    emoji: gif.previewEmoji ?? "✨",
     label: gif.title.toUpperCase(),
     caption: `${gif.style} animated reaction`,
     tone: catalogGifTone(gif),
-    motion: classifyEmojiMotion(gif.previewEmoji ?? "âœ¨"),
+    motion: classifyEmojiMotion(gif.previewEmoji ?? "✨"),
     tags: gif.searchText,
   };
   return (
@@ -4633,7 +4633,7 @@ function GameChatCard({
             onChangeText={setAnswer}
             onSubmitEditing={send}
             returnKeyType="send"
-            placeholder="Type your answer inside this roundâ€¦"
+            placeholder="Type your answer inside this round…"
             placeholderTextColor={mine ? "rgba(255,255,255,.65)" : "#8F7980"}
             style={[
               chatStyles.gameReplyInput,
@@ -5174,7 +5174,7 @@ function GiftRecipientDecisionPanelV2({
               ]}
             >
               <Text style={giftFlowStyles.recipientAcceptText}>
-                {submitting ? "Savingâ€¦" : "Yes, decline"}
+                {submitting ? "Saving…" : "Yes, decline"}
               </Text>
             </Pressable>
           </View>
@@ -5222,7 +5222,7 @@ function GiftRecipientDecisionPanelV2({
                   />
                   {searching && (
                     <Text style={giftFlowStyles.addressSearching}>
-                      Searchingâ€¦
+                      Searching…
                     </Text>
                   )}
                 </View>
@@ -5377,7 +5377,7 @@ function GiftRecipientDecisionPanelV2({
               <Ionicons name="lock-closed" size={13} color="#FFF" />
               <Text style={giftFlowStyles.recipientAcceptText}>
                 {submitting
-                  ? "Securingâ€¦"
+                  ? "Securing…"
                   : knownAddress
                     ? "Confirm & accept"
                     : "Save & accept"}
@@ -5668,7 +5668,7 @@ function VoiceNote({
                   !mine && chatStyles.voiceSpeedTextTheirs,
                 ]}
               >
-                {rate}Ã—
+                {rate}×
               </Text>
             </Pressable>
             <Pressable
@@ -5712,7 +5712,7 @@ function VoiceNote({
           >
             {transcript ||
               (transcriptStatus === "processing"
-                ? "Transcription is processing securelyâ€¦"
+                ? "Transcription is processing securely…"
                 : "A transcript was not captured for this message.")}
           </Text>
         </View>
@@ -6065,9 +6065,9 @@ export function RoseComposer({
   onClose: () => void;
   onSend: (note: string) => void;
 }) {
-  const [note, setNote] = useState("A Golden Spark for something real âœ¨");
+  const [note, setNote] = useState("A Golden Spark for something real ✨");
   useEffect(() => {
-    if (visible) setNote("A Golden Spark for something real âœ¨");
+    if (visible) setNote("A Golden Spark for something real ✨");
   }, [visible]);
   const canSend = availability.freeAvailable || availability.paidCredits > 0;
   return (
@@ -6108,7 +6108,7 @@ export function RoseComposer({
           onChangeText={setNote}
           multiline
           maxLength={120}
-          placeholder="Write a short noteâ€¦"
+          placeholder="Write a short note…"
           placeholderTextColor="#8C7888"
           style={aiStyles.roseNote}
         />
@@ -6118,7 +6118,7 @@ export function RoseComposer({
           variant={canSend ? "primary" : "gold"}
           onPress={() =>
             canSend
-              ? onSend(note.trim() || "A Golden Spark for something real âœ¨")
+              ? onSend(note.trim() || "A Golden Spark for something real ✨")
               : onSend(note.trim())
           }
         />
@@ -6177,9 +6177,9 @@ export function RoseReceivedPopup({
           <Pressable onPress={onClose} style={rosePopupStyles.close}>
             <PremiumIcon name="close" tone="dark" size={36} iconSize={17} />
           </Pressable>
-          <Text style={rosePopupStyles.petal}>âœ¦</Text>
+          <Text style={rosePopupStyles.petal}>✦</Text>
           <Text style={[rosePopupStyles.petal, rosePopupStyles.petalRight]}>
-            âœ§
+            ✧
           </Text>
           <Animated.View
             style={[rosePopupStyles.bloom, { transform: [{ scale }] }]}
@@ -6190,7 +6190,7 @@ export function RoseReceivedPopup({
           <Text style={rosePopupStyles.title}>
             {data.match.name} gets this moment
           </Text>
-          <Text style={rosePopupStyles.note}>â€œ{data.note}â€</Text>
+          <Text style={rosePopupStyles.note}>“{data.note}”</Text>
           <View style={rosePopupStyles.pushPreview}>
             <PremiumIcon
               name="notifications"
@@ -6339,7 +6339,7 @@ function GifResultTile({
         />
       ) : (
         <View style={chatStyles.gifUnavailable}>
-          <Text style={chatStyles.gifUnavailableEmoji}>âœ¨</Text>
+          <Text style={chatStyles.gifUnavailableEmoji}>✨</Text>
           <Text style={chatStyles.gifUnavailableText}>Preview unavailable</Text>
         </View>
       )}
@@ -6403,7 +6403,7 @@ function CatalogGifArtwork({
   compact?: boolean;
 }) {
   const motion = useRef(new Animated.Value(0)).current;
-  const emotion = classifyEmojiMotion(gif.previewEmoji ?? "âœ¨");
+  const emotion = classifyEmojiMotion(gif.previewEmoji ?? "✨");
   useEffect(() => {
     motion.setValue(0);
     const fast = ["laugh", "angry", "party"].includes(emotion);
@@ -6480,7 +6480,7 @@ function CatalogGifArtwork({
             { opacity: motion, transform: [{ translateY }] },
           ]}
         >
-          ðŸ’§
+          💧
         </Animated.Text>
       )}
       {emotion === "laugh" && (
@@ -6500,7 +6500,7 @@ function CatalogGifArtwork({
             { opacity: motion, transform: [{ translateY }] },
           ]}
         >
-          ðŸ’‹
+          💋
         </Animated.Text>
       )}
       <Animated.Text
@@ -6512,7 +6512,7 @@ function CatalogGifArtwork({
           },
         ]}
       >
-        {gif.previewEmoji ?? "âœ¨"}
+        {gif.previewEmoji ?? "✨"}
       </Animated.Text>
     </LinearGradient>
   );
@@ -6610,7 +6610,7 @@ function CatalogGifPager({
         <Ionicons name="chevron-back" size={15} color="#8A1732" />
       </Pressable>
       <Text style={chatStyles.catalogGifPageText}>
-        {offset + 1}â€“{end} of {total.toLocaleString()}
+        {offset + 1}–{end} of {total.toLocaleString()}
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -6828,7 +6828,7 @@ function GifPicker({
                 autoFocus
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Try good morning, hug, kiss, loveâ€¦"
+                placeholder="Try good morning, hug, kiss, love…"
                 placeholderTextColor="#8A767D"
                 style={chatStyles.gifSearchInput}
               />
@@ -6855,12 +6855,12 @@ function GifPicker({
               : libraryMode === "favourites"
                 ? "YOUR FAVOURITES"
                 : query.trim()
-                  ? `RESULTS FOR â€œ${query.trim().toUpperCase()}â€`
+                  ? `RESULTS FOR “${query.trim().toUpperCase()}”`
                   : "DAILY REACTIONS"}
           </Text>
           <Text style={chatStyles.gifResultCount}>
             {provider.loading && libraryMode === "all"
-              ? "Searchingâ€¦"
+              ? "Searching…"
               : count.toLocaleString()}
           </Text>
         </View>
@@ -6911,7 +6911,7 @@ function GifPicker({
             >
               <Ionicons name="add-circle-outline" size={17} color="#A40B31" />
               <Text style={chatStyles.gifLoadMoreText}>
-                {provider.loadingMore ? "Loadingâ€¦" : "Load 36 more"}
+                {provider.loadingMore ? "Loading…" : "Load 36 more"}
               </Text>
             </Pressable>
           )}
@@ -7100,8 +7100,8 @@ function EmojiMediaPanel({
             ))}
             {!visibleEmoji.length && (
               <Text style={chatStyles.emojiEmpty}>
-                No emoji found. Try â€œloveâ€, â€œlaughâ€, â€œfoodâ€ or
-                â€œtravelâ€.
+                No emoji found. Try “love”, “laugh”, “food” or
+                “travel”.
               </Text>
             )}
           </>
@@ -7114,7 +7114,7 @@ function EmojiMediaPanel({
               </Text>
               <Text style={chatStyles.emojiSectionCount}>
                 {provider.loading
-                  ? "â€¦"
+                  ? "…"
                   : gifSearchConfigured
                     ? provider.totalCount.toLocaleString()
                     : catalogMatches.length.toLocaleString()}
@@ -7159,7 +7159,7 @@ function EmojiMediaPanel({
                 style={chatStyles.inlineGifMore}
               >
                 <Text style={chatStyles.inlineGifMoreText}>
-                  {provider.loadingMore ? "Loadingâ€¦" : "Load 36 more"}
+                  {provider.loadingMore ? "Loading…" : "Load 36 more"}
                 </Text>
               </Pressable>
             )}
@@ -7212,7 +7212,7 @@ function EmojiMediaPanel({
                     <Text style={chatStyles.customStickerEmoji}>
                       {sticker.emoji}
                     </Text>
-                    <Text style={chatStyles.customStickerSpark}>âœ¦</Text>
+                    <Text style={chatStyles.customStickerSpark}>✦</Text>
                   </View>
                   <Text numberOfLines={1} style={chatStyles.customStickerLabel}>
                     {sticker.label}
@@ -7338,7 +7338,7 @@ function MessageActionSheet({
     },
     ...(message?.mine !== false &&
     message?.type === "text" &&
-    !message?.text?.startsWith("ðŸŽ®")
+    !message?.text?.startsWith("🎮")
       ? [
           {
             label: "Edit",
@@ -7422,7 +7422,7 @@ function MessageActionSheet({
           </Pressable>
         </View>
         <View style={chatStyles.quickReactionRow}>
-          {["ðŸ‘", "â¤ï¸", "ðŸ˜‚", "ðŸ˜®", "ðŸ¥º", "ðŸ™"].map((item) => (
+          {["👍", "❤️", "😂", "😮", "🥺", "🙏"].map((item) => (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`React ${item}`}
@@ -7624,7 +7624,7 @@ function EditMessageSheet({
         >
           <Ionicons name="checkmark-circle" size={18} color="#FFF" />
           <Text style={chatStyles.primarySheetButtonText}>
-            {saving ? "Savingâ€¦" : "Save changes"}
+            {saving ? "Saving…" : "Save changes"}
           </Text>
         </Pressable>
       </SafeAreaView>
@@ -8224,7 +8224,7 @@ function GiftShop({
                   onChangeText={setNote}
                   multiline
                   maxLength={120}
-                  placeholder="Add a short noteâ€¦"
+                  placeholder="Add a short note…"
                   placeholderTextColor="#8C7888"
                   style={giftFlowStyles.noteInput}
                 />
@@ -8260,7 +8260,7 @@ function GiftShop({
                     {physicalMode === "blocked"
                       ? "Delivery connection required"
                       : ordering
-                        ? "Creating secure requestâ€¦"
+                        ? "Creating secure request…"
                         : `Send request · ${formatGiftMoney(selectedQuote.totalCents)}`}
                   </Text>
                 </Pressable>
@@ -9207,7 +9207,7 @@ function CoupleSettingsSheet({
               <Text style={coupleStyles.limitText}>
                 Web browsers and some operating-system capture methods cannot be
                 detected reliably. DestinyOne will never show a false
-                â€œscreenshot takenâ€ alert.
+                “screenshot taken” alert.
               </Text>
             </View>
           </View>
@@ -9294,14 +9294,14 @@ function SnapStudio({
 }) {
   const [uri, setUri] = useState("");
   const [filter, setFilter] = useState(snapFilters[0]!.name);
-  const [sticker, setSticker] = useState("ðŸ’˜");
+  const [sticker, setSticker] = useState("💘");
   const [viewOnce, setViewOnce] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
     if (visible) {
       setUri("");
       setFilter(snapFilters[0]!.name);
-      setSticker("ðŸ’˜");
+      setSticker("💘");
       setViewOnce(true);
       setError("");
     }
@@ -9508,7 +9508,7 @@ function FaceEmojiStudio({
   onSend: (uri: string, emoji: string, filter: string) => void;
 }) {
   const [uri, setUri] = useState("");
-  const [emoji, setEmoji] = useState("ðŸ˜‚");
+  const [emoji, setEmoji] = useState("😂");
   const [filter, setFilter] = useState(snapFilters[5]!.name);
   const [error, setError] = useState("");
   const autoLaunch = useRef(false);
@@ -9516,7 +9516,7 @@ function FaceEmojiStudio({
     if (visible) {
       autoLaunch.current = false;
       setUri("");
-      setEmoji("ðŸ˜‚");
+      setEmoji("😂");
       setFilter(snapFilters[5]!.name);
       setError("");
     }
@@ -9615,7 +9615,7 @@ function FaceEmojiStudio({
             style={snapStyles.empty}
           >
             <PremiumIcon name="camera" tone="ruby" size={76} iconSize={35} />
-            <Text style={snapStyles.emptyTitle}>Opening cameraâ€¦</Text>
+            <Text style={snapStyles.emptyTitle}>Opening camera…</Text>
             <Text style={[styles.helper, { textAlign: "center" }]}>
               Funny Cam starts with camera. If your browser blocks it, tap Open
               camera below.
