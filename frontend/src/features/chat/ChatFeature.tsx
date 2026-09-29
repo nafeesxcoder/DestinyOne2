@@ -242,10 +242,10 @@ const quickEmojis = [
   "ðŸ¥¸",
   "ðŸ¤©",
   "ðŸ¥³",
-  "ðŸ™‚â€â†•ï¸",
+  "ðŸ™‚â€â†•️",
   "ðŸ˜",
   "ðŸ˜’",
-  "ðŸ™‚â€â†”ï¸",
+  "ðŸ™‚â€â†”️",
   "ðŸ˜ž",
   "ðŸ˜”",
   "ðŸ˜Ÿ",
@@ -318,7 +318,7 @@ const quickEmojis = [
   "ðŸ‘Œ",
   "ðŸ¤Œ",
   "ðŸ¤",
-  "âœŒï¸",
+  "âœŒ️",
   "ðŸ¤ž",
   "ðŸ«°",
   "ðŸ¤Ÿ",
@@ -350,7 +350,7 @@ const quickEmojis = [
   "ðŸ‘€",
   "ðŸ‘ï¸",
   "ðŸ‘„",
-  "â¤ï¸",
+  "❤️",
   "ðŸ©·",
   "ðŸ§¡",
   "ðŸ’›",
@@ -387,7 +387,7 @@ const quickEmojis = [
   "ðŸ’",
   "ðŸ’Ž",
   "âœ¨",
-  "â­",
+  "⭐",
   "ðŸŒŸ",
   "ðŸ”¥",
   "ðŸŒ¹",
@@ -428,18 +428,18 @@ const quickEmojis = [
   "ðŸŽ¬",
   "ðŸ“¸",
   "ðŸš—",
-  "âœˆï¸",
+  "âœˆ️",
   "ðŸ¡",
   "ðŸŒ",
   "ðŸŒ™",
-  "â˜€ï¸",
+  "â˜€️",
   "ðŸŒ§ï¸",
   "ðŸŒˆ",
   "âš¡",
   "ðŸ’ƒðŸ½",
   "ðŸ•º",
-  "ðŸ‹ï¸",
-  "ðŸ§˜â€â™€ï¸",
+  "ðŸ‹️",
+  "ðŸ§˜â€â™€️",
   "ðŸ¶",
   "ðŸ±",
   "ðŸ¼",
@@ -471,7 +471,7 @@ const emojiCategories: Array<{
     label: "Recent",
     icon: "time-outline",
     emojis: [
-      "â¤ï¸",
+      "❤️",
       "ðŸ˜‚",
       "ðŸ¥°",
       "ðŸ˜˜",
@@ -637,7 +637,7 @@ const chatCoachSuggestions = [
   {
     label: "Date idea",
     message: (match: Match) =>
-      `This may be early, but ${match.city.split(",")[0]} has some great cafÃ©s. Want to plan a simple public coffee sometime?`,
+      `This may be early, but ${match.city.split(",")[0]} has some great cafés. Want to plan a simple public coffee sometime?`,
   },
   {
     label: "Values check",
@@ -722,11 +722,11 @@ const coupleGames: CoupleGame[] = [
       "One person answers privately in their head; the other gets one guess and one hint.",
     prompts: [
       "EMOJI CLUE Â· â˜•ðŸŒ§ï¸ðŸ“š â€” invent the perfect date hidden in these emojis.",
-      "RIDDLE Â· I can fill a room but take up no space. What am I?",
-      "GUESS ME Â· Give three clues about your comfort food without naming it.",
+      "RIDDLE · I can fill a room but take up no space. What am I?",
+      "GUESS ME · Give three clues about your comfort food without naming it.",
       "EMOJI STORY Â· ðŸ§³ðŸŒ„ðŸŽµðŸœ â€” where did our imaginary weekend go?",
-      "TWO CLUES Â· Describe your dream city using only weather + one sound.",
-      "MYSTERY Â· Pick an object near you; give one true clue and one tricky clue.",
+      "TWO CLUES · Describe your dream city using only weather + one sound.",
+      "MYSTERY · Pick an object near you; give one true clue and one tricky clue.",
     ],
   },
   {
@@ -1485,7 +1485,7 @@ export function ChatScreen({
         location: {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          label: "Live location Â· tracking for 30 min",
+          label: "Live location · tracking for 30 min",
           live: true,
           expiresAt: Date.now() + 30 * 60 * 1000,
           accuracy: position.coords.accuracy ?? undefined,
@@ -1684,7 +1684,7 @@ export function ChatScreen({
     await dispatchMessage(
       createMessage({
         type: "gift",
-        text: `${gift.name} requested Â· ${order.quote.etaLabel}`,
+        text: `${gift.name} requested · ${order.quote.etaLabel}`,
         gift: {
           name: gift.name,
           emoji: gift.emoji,
@@ -1855,7 +1855,7 @@ export function ChatScreen({
       ? isCoupleMode
         ? "Private couple space"
         : settings.nickname.trim()
-          ? `${match.name} Â· Online`
+          ? `${match.name} · Online`
           : "Online now"
       : !connectionOnline
         ? "You are offline"
@@ -2249,7 +2249,7 @@ export function ChatScreen({
                   Incoming {incomingCall?.mode ?? "audio"} call
                 </Text>
                 <Text style={chatStyles.incomingCallBody}>
-                  {match.name} Â· Verified mutual match
+                  {match.name} · Verified mutual match
                 </Text>
               </View>
               <Pressable
@@ -2327,7 +2327,7 @@ export function ChatScreen({
                 {isCoupleMode
                   ? "Our space"
                   : disappearingMessages
-                    ? `${retentionShort} Â· Path`
+                    ? `${retentionShort} · Path`
                     : "Relationship path"}
               </Text>
             </Pressable>
@@ -2782,7 +2782,7 @@ export function ChatScreen({
                     color={colors.muted}
                   />
                   <Text style={chatStyles.offlineText}>
-                    Offline Â· message will send when connected
+                    Offline · message will send when connected
                   </Text>
                 </View>
               )}
@@ -2920,7 +2920,7 @@ export function ChatScreen({
             onInfo={() =>
               setMessageActionNotice(
                 selectedMessage
-                  ? `${selectedMessage.mine === false ? "Received" : "Sent"} ${new Date(selectedMessage.createdAt).toLocaleString()} Â· ${deliveryOverrides[selectedMessage.id] ?? selectedMessage.status}${selectedMessage.editedAt ? " Â· Edited" : ""}`
+                  ? `${selectedMessage.mine === false ? "Received" : "Sent"} ${new Date(selectedMessage.createdAt).toLocaleString()} · ${deliveryOverrides[selectedMessage.id] ?? selectedMessage.status}${selectedMessage.editedAt ? " · Edited" : ""}`
                   : "",
               )
             }
@@ -3343,7 +3343,7 @@ function RelationshipJourneySheet({
                       : "Waiting for mutual confirmation"}
                   </Text>
                   <Text style={journeyStyles.reflectionBody}>
-                    {dateMessage?.date?.venue} Â· {dateMessage?.date?.time}
+                    {dateMessage?.date?.venue} · {dateMessage?.date?.time}
                   </Text>
                 </View>
               </View>
@@ -3674,10 +3674,10 @@ function MessageReceipt({ status }: { status: ChatMessage["status"] }) {
   const read = status === "read";
   const label =
     status === "sent"
-      ? "Sent Â· one tick"
+      ? "Sent · one tick"
       : status === "delivered"
-        ? "Delivered Â· two ticks"
-        : "Read Â· blue ticks";
+        ? "Delivered · two ticks"
+        : "Read · blue ticks";
   return (
     <View accessibilityLabel={label} style={chatStyles.receipt}>
       <Ionicons
@@ -3856,7 +3856,7 @@ function ChatBubble({
                 mine && chatStyles.quotedReplyLabelMine,
               ]}
             >
-              Reply Â· tap to view
+              Reply · tap to view
             </Text>
             <Text
               numberOfLines={2}
@@ -3947,7 +3947,7 @@ function ChatBubble({
               iconSize={10}
             />
             <Text style={chatStyles.snapBadgeText}>
-              {message.snap.viewOnce ? "VIEW ONCE" : "24H SNAP"} Â·{" "}
+              {message.snap.viewOnce ? "VIEW ONCE" : "24H SNAP"} ·{" "}
               {message.snap.filter}
             </Text>
           </View>
@@ -4563,7 +4563,7 @@ function GameChatCard({
               !mine && chatStyles.gameMessageEyebrowTheirs,
             ]}
           >
-            COUPLE GAME Â· ROUND READY
+            COUPLE GAME · ROUND READY
           </Text>
           <Text
             numberOfLines={1}
@@ -4875,7 +4875,7 @@ function PhysicalGiftChatCard({
         )}
         <View style={giftFlowStyles.orderHeroCopy}>
           <Text style={giftFlowStyles.orderEyebrow}>
-            DESTINYONE GIFT Â· #{orderShort}
+            DESTINYONE GIFT · #{orderShort}
           </Text>
           <Text style={giftFlowStyles.orderTitle}>{gift.name}</Text>
           <View style={giftFlowStyles.orderHeroMeta}>
@@ -5118,7 +5118,7 @@ function GiftRecipientDecisionPanelV2({
             Would you like to receive this gift?
           </Text>
           <Text style={giftFlowStyles.recipientFine}>
-            {minutesLeft} min left Â· the sender never sees your address
+            {minutesLeft} min left · the sender never sees your address
           </Text>
         </View>
       </View>
@@ -5446,7 +5446,7 @@ function GiftTrackingMini({
         <View style={{ flex: 1 }}>
           <Text style={giftFlowStyles.chatTrackTitle}>Order progress</Text>
           <Text style={giftFlowStyles.chatTrackFine}>
-            {gift.provider ?? "DestinyOne delivery"} Â·{" "}
+            {gift.provider ?? "DestinyOne delivery"} ·{" "}
             {gift.acceptanceWindowMinutes ?? 30} min acceptance window
           </Text>
         </View>
@@ -5551,7 +5551,7 @@ function GiftTrackingMini({
       <View style={giftFlowStyles.chatPrivacy}>
         <Ionicons name="lock-closed" size={12} color="#8A6817" />
         <Text style={giftFlowStyles.chatPrivacyText}>
-          No charge before acceptance Â· recipient address stays private
+          No charge before acceptance · recipient address stays private
         </Text>
       </View>
     </View>
@@ -5845,7 +5845,7 @@ function LiveLocationCard({
           <Text style={chatStyles.locationTitle}>Live location</Text>
           <Text style={chatStyles.locationSubtitle}>{location.label}</Text>
           <Text style={chatStyles.locationFine}>
-            {expiresIn > 0 ? `${expiresIn} min left Â· ` : "Expired Â· "}
+            {expiresIn > 0 ? `${expiresIn} min left · ` : "Expired · "}
             approximate area shared
           </Text>
         </View>
@@ -5992,13 +5992,13 @@ function ChatOptionsSheet({
       onPress: onSettings,
     },
     {
-      label: `Disappearing messages Â· ${retentionLabel}`,
+      label: `Disappearing messages · ${retentionLabel}`,
       body: "Choose after seen, 24 hours, 7 days, or keep messages.",
       icon: "timer-outline" as const,
       onPress: onSettings,
     },
     {
-      label: `Screenshot alerts Â· ${screenshotAlerts ? "On" : "Off"}`,
+      label: `Screenshot alerts · ${screenshotAlerts ? "On" : "Off"}`,
       body: "Supported native captures notify both people; web capture can be undetectable.",
       icon: "scan-outline" as const,
       onPress: onSettings,
@@ -6203,7 +6203,7 @@ export function RoseReceivedPopup({
               iconSize={17}
             />
             <Text style={rosePopupStyles.pushPreviewText}>
-              Push notification queued Â· opens to this romantic animation
+              Push notification queued · opens to this romantic animation
             </Text>
           </View>
           <View style={{ width: "100%", gap: 10 }}>
@@ -6655,7 +6655,7 @@ function GifProviderLine({ live, error }: { live: boolean; error?: string }) {
         ]}
       >
         {error ||
-          `${live ? "Live exact search" : "Built-in animated catalog"} Â· ${live ? `Powered by ${gifSearch.providerName}` : "1,000 GIF reactions available now"}`}
+          `${live ? "Live exact search" : "Built-in animated catalog"} · ${live ? `Powered by ${gifSearch.providerName}` : "1,000 GIF reactions available now"}`}
       </Text>
     </View>
   );
@@ -7685,7 +7685,7 @@ function ForwardSelectorSheet({
       <SafeAreaView style={[chatStyles.sheet, { maxHeight: "88%" }]}>
         <SheetHeader
           title="Forward messages"
-          subtitle={`${messages.length} ${messages.length === 1 ? "message" : "messages"} Â· choose a verified conversation`}
+          subtitle={`${messages.length} ${messages.length === 1 ? "message" : "messages"} · choose a verified conversation`}
           onClose={onClose}
         />
         <View style={chatStyles.gifSearchWrap}>
@@ -7729,7 +7729,7 @@ function ForwardSelectorSheet({
               <View style={{ flex: 1 }}>
                 <Text style={chatStyles.forwardName}>{person.name}</Text>
                 <Text style={chatStyles.forwardMeta}>
-                  {person.city} Â· Verified match
+                  {person.city} · Verified match
                 </Text>
               </View>
               <View style={chatStyles.forwardButton}>
@@ -7792,7 +7792,7 @@ function PinnedMessagesSheet({
                 style={{ flex: 1 }}
               >
                 <Text style={chatStyles.pinnedMessageLabel}>
-                  {message.mine === false ? "FROM YOUR MATCH" : "FROM YOU"} Â·{" "}
+                  {message.mine === false ? "FROM YOUR MATCH" : "FROM YOU"} ·{" "}
                   {new Date(message.createdAt).toLocaleDateString()}
                 </Text>
                 <Text numberOfLines={3} style={chatStyles.pinnedMessageText}>
@@ -7910,7 +7910,7 @@ function ConversationInboxSheet({
                 ]}
               >
                 {item[0]?.toUpperCase()}
-                {item.slice(1)} Â· {counts[item]}
+                {item.slice(1)} · {counts[item]}
               </Text>
             </Pressable>
           ))}
@@ -7977,7 +7977,7 @@ function ConversationInboxSheet({
                     )}
                   </View>
                   <Text style={chatStyles.forwardMeta}>
-                    {person.city} Â·{" "}
+                    {person.city} ·{" "}
                     {person.id === current.id
                       ? "Open now"
                       : "Verified conversation"}
@@ -8042,7 +8042,7 @@ function GiftShop({
   } = useChatRuntime().gifts;
   const [tab, setTab] = useState<"delivered" | "digital">("delivered");
   const [selectedGift, setSelectedGift] = useState<PhysicalGift | null>(null);
-  const [note, setNote] = useState("Thinking of you â¤ï¸");
+  const [note, setNote] = useState("Thinking of you ❤️");
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState("");
   const selectedQuote = selectedGift
@@ -8058,7 +8058,7 @@ function GiftShop({
     if (visible) {
       setTab("delivered");
       setSelectedGift(null);
-      setNote("Thinking of you â¤ï¸");
+      setNote("Thinking of you ❤️");
       setError("");
     }
   }, [visible]);
@@ -8190,8 +8190,8 @@ function GiftShop({
                       {selectedGift.name}
                     </Text>
                     <Text style={giftFlowStyles.quoteMeta}>
-                      {selectedQuote.serviceLevelLabel} Â· DestinyOne delivery
-                      Â· ETA {selectedQuote.etaLabel}
+                      {selectedQuote.serviceLevelLabel} · DestinyOne delivery
+                      · ETA {selectedQuote.etaLabel}
                     </Text>
                   </View>
                   <View style={giftFlowStyles.totalPill}>
@@ -8265,7 +8265,7 @@ function GiftShop({
                       ? "Delivery connection required"
                       : ordering
                         ? "Creating secure requestâ€¦"
-                        : `Send request Â· ${formatGiftMoney(selectedQuote.totalCents)}`}
+                        : `Send request · ${formatGiftMoney(selectedQuote.totalCents)}`}
                   </Text>
                 </Pressable>
                 <Text style={giftFlowStyles.quoteFine}>
@@ -8454,7 +8454,7 @@ function GiftQuoteInfo({ quote }: { quote: GiftOrderQuote }) {
       <GiftQuoteInfoRow icon="bicycle" text={quote.providerRecommendation} />
       <GiftQuoteInfoRow
         icon="hourglass-outline"
-        text={`${quote.etaConfidence} ETA confidence Â· recipient acceptance expires privately at ${new Date(quote.acceptanceExpiresAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`}
+        text={`${quote.etaConfidence} ETA confidence · recipient acceptance expires privately at ${new Date(quote.acceptanceExpiresAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`}
       />
       <GiftQuoteInfoRow icon="card" text={quote.paymentPolicy} />
       <GiftQuoteInfoRow icon="refresh-circle" text={quote.cancellationPolicy} />
@@ -8521,7 +8521,7 @@ function GameSheet({
   };
   const sendCustom = () => {
     const value = customPrompt.trim();
-    if (selected && value) onPlay(selected, `CUSTOM ROUND Â· ${value}`);
+    if (selected && value) onPlay(selected, `CUSTOM ROUND · ${value}`);
   };
   return (
     <Modal
@@ -8747,7 +8747,7 @@ function GameSheet({
               ))}
             </ScrollView>
             <Text style={gameStyles.privacyNote}>
-              100 original Truth or Dare rounds Â· custom prompts Â· private to
+              100 original Truth or Dare rounds · custom prompts · private to
               this mutual chat.
             </Text>
           </>
@@ -8933,7 +8933,7 @@ function CoupleSettingsSheet({
                 {nickname.trim() || match.name}
               </Text>
               <Text style={coupleStyles.previewMeta}>
-                {match.name} Â· {activeTheme.name}
+                {match.name} · {activeTheme.name}
               </Text>
             </View>
             <PremiumIcon name="heart" tone="gold" size={44} iconSize={19} />
