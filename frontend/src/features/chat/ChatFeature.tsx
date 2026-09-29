@@ -1089,6 +1089,73 @@ export function ChatScreen({
       clearInterval(timer);
     };
   }, [accessToken, callMode, match]);
+  // Play an audible ring + vibrate whenever an incoming call is detected.
+  // There was previously no sound or vibration at all when a call arrived —
+  // the banner appeared silently, so "the ring doesn't reach" really meant
+  // "the ring never makes a sound". No ringtone asset exists in the app, so
+  // this synthesizes a two-tone ring with the Web Audio API and repeats it
+  // (plus a matching vibration pattern where supported) until the incoming
+  // call is answered, declined, or otherwise clears.
+  const ringAudioCtxRef = useRef<AudioContext | null>(null);
+  const ringTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    const stopRinging = () => {
+      if (ringTimerRef.current) {
+        clearInterval(ringTimerRef.current);
+        ringTimerRef.current = null;
+      }
+      if (ringAudioCtxRef.current) {
+        void ringAudioCtxRef.current.close().catch(() => undefined);
+        ringAudioCtxRef.current = null;
+      }
+      if (
+        Platform.OS === "web" &&
+        typeof navigator !== "undefined" &&
+        navigator.vibrate
+      ) {
+        navigator.vibrate(0);
+      }
+    };
+    if (!incomingCall || Platform.OS !== "web") {
+      stopRinging();
+      return;
+    }
+    const AudioContextCtor =
+      (window as unknown as { AudioContext?: typeof AudioContext })
+        .AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextCtor) return;
+    const playTone = () => {
+      try {
+        const ctx: AudioContext =
+          ringAudioCtxRef.current ?? new AudioContextCtor();
+        ringAudioCtxRef.current = ctx;
+        const now = ctx.currentTime;
+        [0, 0.45].forEach((offset) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = 480;
+          gain.gain.setValueAtTime(0, now + offset);
+          gain.gain.linearRampToValueAtTime(0.22, now + offset + 0.02);
+          gain.gain.linearRampToValueAtTime(0, now + offset + 0.38);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.4);
+        });
+      } catch {
+        // some browsers block audio without a direct user gesture; ignore
+      }
+    };
+    playTone();
+    ringTimerRef.current = setInterval(playTone, 2000);
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate([400, 200, 400, 200, 400]);
+    }
+    return stopRinging;
+  }, [incomingCall]);
   const [connectionOnline, setConnectionOnline] = useState(() =>
     Platform.OS !== "web" || typeof navigator === "undefined"
       ? true
@@ -1555,10 +1622,19 @@ export function ChatScreen({
   };
   const sendCameraPhoto = async () => {
     setChatError("");
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      setChatError("Camera permission is needed to take a photo.");
-      return;
+    // On web, permission is always pre-granted (there is no native prompt),
+    // so this call is a no-op — but awaiting it here yields to a microtask
+    // and drops the "user activation" from the tap that started this
+    // function. Without that activation, the browser silently refuses to
+    // open the camera capture dialog a moment later, so the button appeared
+    // to do nothing. Skip the await entirely on web and only ask for
+    // permission on native, where it's a real OS-level prompt.
+    if (Platform.OS !== "web") {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        setChatError("Camera permission is needed to take a photo.");
+        return;
+      }
     }
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
