@@ -1850,7 +1850,7 @@ export function ChatScreen({
   const displayName = settings.nickname.trim() || match.name;
   const partnerIsOnline = isChatPreview ? connectionOnline : partnerOnline;
   const presenceLabel = partnerTyping
-    ? `${match.name} is typingâ€¦`
+    ? `${match.name} is typing…`
     : partnerIsOnline
       ? isCoupleMode
         ? "Private couple space"
@@ -1859,9 +1859,7 @@ export function ChatScreen({
           : "Online now"
       : !connectionOnline
         ? "You are offline"
-        : realtimeConnected
-          ? "Last seen recently"
-          : "Connecting securelyâ€¦";
+        : "Last seen recently";
   const messageSafety = scanMessageSafety(text);
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const previewMessages: ChatMessage[] =
@@ -8190,8 +8188,8 @@ function GiftShop({
                       {selectedGift.name}
                     </Text>
                     <Text style={giftFlowStyles.quoteMeta}>
-                      {selectedQuote.serviceLevelLabel} · DestinyOne delivery
-                      · ETA {selectedQuote.etaLabel}
+                      {selectedQuote.serviceLevelLabel} · DestinyOne delivery ·
+                      ETA {selectedQuote.etaLabel}
                     </Text>
                   </View>
                   <View style={giftFlowStyles.totalPill}>
