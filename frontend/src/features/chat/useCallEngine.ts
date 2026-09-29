@@ -120,8 +120,26 @@ export function useCallEngine({
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: mode === "video",
+          // Explicit constraints instead of a bare `true`: on several mobile
+          // browsers (notably iOS Safari / in-app webviews), requesting
+          // audio+video together without explicit audio processing
+          // constraints can silently disable echo cancellation, which is
+          // what caused the very loud mic feedback/noise heard during
+          // video calls even when nobody was speaking.
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          video:
+            mode === "video"
+              ? {
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  frameRate: { ideal: 30, max: 30 },
+                  facingMode: "user",
+                }
+              : false,
         });
       } catch {
         if (!active) return;
