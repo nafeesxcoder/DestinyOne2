@@ -22,6 +22,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import type { GestureResponderEvent } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -978,7 +979,7 @@ export function ChatScreen({
     digitalWalletMode: digitalGiftWalletMode,
     physicalMode: physicalGiftOrderingMode,
   } = runtimePorts.gifts;
-  const { width: chatWidth } = useWindowDimensions();
+  const { width: chatWidth, height: chatHeight } = useWindowDimensions();
   const messagesRef = useRef<ScrollView | null>(null);
   const [text, setText] = useState("");
   const [showAttachments, setShowAttachments] = useState(
@@ -1019,6 +1020,11 @@ export function ChatScreen({
   );
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [viewerImageUri, setViewerImageUri] = useState<string | null>(null);
+  const [quickReactFor, setQuickReactFor] = useState<{
+    message: ChatMessage;
+    pageX: number;
+    pageY: number;
+  } | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [hiddenMessageIds, setHiddenMessageIds] = useState<string[]>([]);
@@ -2589,6 +2595,11 @@ export function ChatScreen({
                   onGiftResponse={(input) => onGiftResponse(message.id, input)}
                   onPress={() => selectMessage(message)}
                   onOpenImage={(uri) => setViewerImageUri(uri)}
+                  onQuickReact={(event) => {
+                    if (multiSelectMode || message.deletedForEveryone) return;
+                    const { pageX, pageY } = event.nativeEvent;
+                    setQuickReactFor({ message, pageX, pageY });
+                  }}
                 />
               </View>
             ))}
@@ -2950,6 +2961,72 @@ export function ChatScreen({
               if (selectedMessage) void hideForMe(selectedMessage.id);
             }}
           />
+          {!!quickReactFor &&
+            (() => {
+              const barWidth = 296;
+              const barHeight = 56;
+              const left = Math.min(
+                Math.max(quickReactFor.pageX - barWidth / 2, 12),
+                chatWidth - barWidth - 12,
+              );
+              const top = Math.min(
+                Math.max(quickReactFor.pageY - barHeight - 24, 60),
+                chatHeight - barHeight - 100,
+              );
+              const activeReaction = quickReactFor.message.reactions?.me;
+              return (
+                <Modal
+                  visible
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setQuickReactFor(null)}
+                >
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Close quick reactions"
+                    style={chatStyles.floatReactBackdrop}
+                    onPress={() => setQuickReactFor(null)}
+                  />
+                  <View
+                    style={[
+                      chatStyles.floatReactBar,
+                      { left, top, width: barWidth },
+                    ]}
+                  >
+                    {["❤️", "😂", "😮", "😢", "🙏", "👍"].map((item) => (
+                      <Pressable
+                        key={item}
+                        accessibilityRole="button"
+                        accessibilityLabel={`React ${item}`}
+                        accessibilityState={{ selected: activeReaction === item }}
+                        onPress={() => {
+                          void reactToMessage(quickReactFor.message.id, item);
+                          setQuickReactFor(null);
+                        }}
+                        style={[
+                          chatStyles.floatReactButton,
+                          activeReaction === item &&
+                            chatStyles.floatReactButtonOn,
+                        ]}
+                      >
+                        <Text style={chatStyles.floatReactEmoji}>{item}</Text>
+                      </Pressable>
+                    ))}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="More message actions"
+                      onPress={() => {
+                        setSelectedMessageId(quickReactFor.message.id);
+                        setQuickReactFor(null);
+                      }}
+                      style={chatStyles.floatReactMoreButton}
+                    >
+                      <Ionicons name="add" size={20} color="#5B454C" />
+                    </Pressable>
+                  </View>
+                </Modal>
+              );
+            })()}
           <EditMessageSheet
             message={editTarget}
             onClose={() => setEditTarget(null)}
@@ -3705,6 +3782,7 @@ function ChatBubble({
   onGiftResponse,
   onPress,
   onOpenImage,
+  onQuickReact,
 }: {
   message: ChatMessage;
   status: ChatMessage["status"];
@@ -3722,6 +3800,7 @@ function ChatBubble({
   }) => Promise<{ ok: boolean; error?: string }>;
   onPress?: () => void;
   onOpenImage?: (uri: string) => void;
+  onQuickReact?: (event: GestureResponderEvent) => void;
 }) {
   const mine = message.mine !== false;
   const gamePayload =
@@ -3774,10 +3853,11 @@ function ChatBubble({
               : onPress
       }
       onLongPress={
-        (message.type === "image" || message.type === "snap") && message.uri
-          ? onPress
-          : undefined
+        gamePayload || (message.type === "gift" && message.gift?.physical)
+          ? undefined
+          : (event) => onQuickReact?.(event)
       }
+      delayLongPress={280}
       style={[
         mine ? styles.myBubble : styles.theirBubble,
         message.type === "text" &&
