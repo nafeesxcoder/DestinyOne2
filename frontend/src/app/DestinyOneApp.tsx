@@ -1733,10 +1733,10 @@ function DestinyOneApp() {
     accessToken
       ? chatApi.setMessageState(accessToken, conversationId, messageId, input)
       : persistMessageUserStatePreview(conversationId, messageId, input);
-  const searchCouplePartner = (phone: string) =>
+  const searchCouplePartner = (identifier: string) =>
     accessToken
-      ? coupleApi.searchByPhone(accessToken, phone)
-      : searchCouplePartnerByPhonePreview(phone);
+      ? coupleApi.searchPartner(accessToken, identifier)
+      : searchCouplePartnerByPhonePreview(identifier);
   const requestCoupleConnection = async (member: CouplePartnerSummary) => {
     const request = accessToken
       ? await coupleApi.sendRequest(accessToken, member.memberId)

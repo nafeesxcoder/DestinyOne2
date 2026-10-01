@@ -116,6 +116,21 @@ export function useCallEngine({
     }
     let active = true;
 
+    // This hook's refs live on the CallModal component instance, which
+    // stays mounted for the whole chat screen — it isn't remounted between
+    // one call and the next. endedRef in particular used to stay `true`
+    // forever after the FIRST call ended, so on every call after that,
+    // hangUp()/finish() would see it already "ended" and silently return
+    // without closing the peer connection, stopping the mic track, or
+    // calling onEnded. That's what made a second call need a full page
+    // refresh before audio worked again. remoteDescriptionSetRef and
+    // pendingCandidatesRef are likewise per-call signaling state that must
+    // start clean for each new callId, not carry over from the last call.
+    endedRef.current = false;
+    remoteDescriptionSetRef.current = false;
+    pendingCandidatesRef.current = [];
+    sinceMsRef.current = 0;
+
     const run = async () => {
       let stream: MediaStream;
       try {
@@ -130,6 +145,20 @@ export function useCallEngine({
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            channelCount: 1,
+            // Legacy Chrome-prefixed equivalents. Several Android WebViews
+            // and older Chrome builds only actually enable acoustic echo
+            // cancellation when these are present alongside the standard
+            // constraints above — without them, the other side can hear
+            // their own voice looped back (the "hello hello" echo), mainly
+            // when the call is on speakerphone instead of an earpiece/
+            // headset.
+            ...({
+              googEchoCancellation: true,
+              googAutoGainControl: true,
+              googNoiseSuppression: true,
+              googHighpassFilter: true,
+            } as MediaTrackConstraints),
           },
           video:
             mode === "video"

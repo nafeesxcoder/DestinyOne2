@@ -23,10 +23,16 @@ async function findActiveConnection(userId) {
   return rows[0] || null;
 }
 
-async function searchByPhone(phone, selfUserId) {
+// Accepts either a phone number or an email address and looks the partner
+// up by whichever one was given, so a couple can connect with either —
+// previously only a phone-number match was supported here.
+async function searchByIdentifier(identifier, selfUserId) {
+  const isEmail = identifier.includes('@');
+  const column = isEmail ? 'email' : 'phone';
+  const value = isEmail ? identifier.toLowerCase() : identifier;
   const users = await query(
-    'SELECT id FROM users WHERE phone = ? AND id != ? LIMIT 1',
-    [phone, selfUserId],
+    `SELECT id FROM users WHERE ${column} = ? AND id != ? LIMIT 1`,
+    [value, selfUserId],
   );
   if (!users.length) return null;
   const targetId = users[0].id;
@@ -191,7 +197,7 @@ async function disconnectConnection(userId) {
 }
 
 module.exports = {
-  searchByPhone,
+  searchByIdentifier,
   createRequest,
   respondToRequest,
   getHub,

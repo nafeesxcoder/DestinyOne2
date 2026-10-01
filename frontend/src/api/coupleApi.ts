@@ -25,12 +25,22 @@ async function authFetch(path: string, accessToken: string, options: RequestInit
 }
 
 export const coupleApi = {
-  async searchByPhone(accessToken: string, phone: string): Promise<CouplePartnerSummary> {
-    const data = await authFetch(
-      `/couple/search?phone=${encodeURIComponent(phone)}`,
-      accessToken,
-    );
-    if (isCoupleSearchMiss(data)) throw new Error("No member found with that phone number.");
+  // Accepts either a phone number or an email address — whichever the
+  // partner used to search with — and asks the backend for a match on
+  // that identifier.
+  async searchPartner(accessToken: string, identifier: string): Promise<CouplePartnerSummary> {
+    const trimmed = identifier.trim();
+    const isEmail = trimmed.includes("@");
+    const query = isEmail
+      ? `email=${encodeURIComponent(trimmed.toLowerCase())}`
+      : `phone=${encodeURIComponent(trimmed)}`;
+    const data = await authFetch(`/couple/search?${query}`, accessToken);
+    if (isCoupleSearchMiss(data))
+      throw new Error(
+        isEmail
+          ? "No member found with that email address."
+          : "No member found with that phone number.",
+      );
     return parseCouplePartnerSummary(data);
   },
 

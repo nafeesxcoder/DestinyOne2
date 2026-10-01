@@ -3,10 +3,13 @@ const { ApiError } = require('../middleware/errorHandler');
 const coupleService = require('../services/coupleService');
 
 const searchPartner = asyncHandler(async (req, res) => {
-  const { phone } = req.query;
-  if (!phone || typeof phone !== 'string')
-    throw new ApiError(400, 'phone query parameter is required');
-  const partner = await coupleService.searchByPhone(phone.trim(), req.user.id);
+  // Either query param works now — a couple can be found by phone number
+  // or by the email address they log in with.
+  const { phone, email } = req.query;
+  const identifier = (typeof email === 'string' && email.trim()) || (typeof phone === 'string' && phone.trim());
+  if (!identifier)
+    throw new ApiError(400, 'phone or email query parameter is required');
+  const partner = await coupleService.searchByIdentifier(identifier, req.user.id);
   if (!partner) return res.json({ ok: true, found: false });
   res.json({ ok: true, found: true, ...partner });
 });

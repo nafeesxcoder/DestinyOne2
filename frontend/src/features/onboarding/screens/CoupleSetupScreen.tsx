@@ -71,7 +71,13 @@ export function CoupleSetupScreen({
   const [city, setCity] = useState(profile.city);
   const [profession, setProfession] = useState(profile.profession);
   const [profileEnabled, setProfileEnabled] = useState(false);
-  const [phone, setPhone] = useState("");
+  // The partner can be found by either their phone number or the email
+  // address they log in with — searchMethod picks which one this field
+  // means right now.
+  const [searchMethod, setSearchMethod] = useState<"phone" | "email">(
+    "phone",
+  );
+  const [identifier, setIdentifier] = useState("");
   const [result, setResult] = useState<CouplePartnerSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -87,7 +93,7 @@ export function CoupleSetupScreen({
     try {
       await onSaveProfile({ firstName: memberName, age, city, profession });
       setProfileEnabled(true);
-      setStatus("Details saved. Now enter your partner's phone number below.");
+      setStatus("Details saved. Now find your partner below.");
     } catch (value) {
       setError(
         value instanceof Error ? value.message : "Could not save your details.",
@@ -102,12 +108,14 @@ export function CoupleSetupScreen({
     setStatus("");
     setResult(null);
     try {
-      setResult(await onSearch(phone));
+      setResult(await onSearch(identifier));
     } catch (value) {
       setError(
         value instanceof Error
           ? value.message
-          : "We could not find a Couple Mode account with that phone number.",
+          : searchMethod === "email"
+            ? "We could not find a Couple Mode account with that email address."
+            : "We could not find a Couple Mode account with that phone number.",
       );
     } finally {
       setBusy(false);
@@ -232,7 +240,7 @@ export function CoupleSetupScreen({
           </Text>
           <Text style={[shared.body, { textAlign: "center" }]}>
             Both of you need a DestinyOne account. Save your details, then
-            search the phone number your partner uses to log in.
+            search the phone number or email your partner uses to log in.
           </Text>
         </View>
         <View style={coupleModeStyles.profileSetupCard}>
@@ -310,24 +318,70 @@ export function CoupleSetupScreen({
                   Step 2 of 2 · Find your partner
                 </Text>
                 <Text style={styles.helper}>
-                  Enter the phone number they use to log in, including the
-                  country code.
+                  Search by the phone number or the email address they use to
+                  log in.
                 </Text>
               </View>
             </View>
-            <Field
-              label="Partner's phone number"
-              placeholder="+1 647 555 0198"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={(value: string) => {
-                setPhone(value);
-                setResult(null);
-                setError("");
-              }}
-            />
+            <View style={styles.twoCol}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Phone number"
+                  icon="call-outline"
+                  variant={searchMethod === "phone" ? "gold" : "secondary"}
+                  onPress={() => {
+                    setSearchMethod("phone");
+                    setIdentifier("");
+                    setResult(null);
+                    setError("");
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Email address"
+                  icon="mail-outline"
+                  variant={searchMethod === "email" ? "gold" : "secondary"}
+                  onPress={() => {
+                    setSearchMethod("email");
+                    setIdentifier("");
+                    setResult(null);
+                    setError("");
+                  }}
+                />
+              </View>
+            </View>
+            {searchMethod === "phone" ? (
+              <Field
+                label="Partner's phone number"
+                placeholder="+1 647 555 0198"
+                keyboardType="phone-pad"
+                value={identifier}
+                onChangeText={(value: string) => {
+                  setIdentifier(value);
+                  setResult(null);
+                  setError("");
+                }}
+              />
+            ) : (
+              <Field
+                label="Partner's email address"
+                placeholder="partner@email.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={identifier}
+                onChangeText={(value: string) => {
+                  setIdentifier(value);
+                  setResult(null);
+                  setError("");
+                }}
+              />
+            )}
             <Button
-              disabled={busy || phone.trim().length < 8}
+              disabled={
+                busy ||
+                identifier.trim().length < (searchMethod === "email" ? 5 : 8)
+              }
               label={busy ? "Searching…" : "Search for my partner"}
               icon="search"
               onPress={() => void search()}
@@ -359,7 +413,9 @@ export function CoupleSetupScreen({
                 {result.profession} · {result.city}
               </Text>
               <Text style={coupleModeStyles.phoneVerified}>
-                Verified phone account
+                {searchMethod === "email"
+                  ? "Verified email account"
+                  : "Verified phone account"}
               </Text>
             </View>
             <Button
@@ -479,13 +535,13 @@ export function CoupleSetupScreen({
           {[
             [
               "key-outline",
-              "Search uses their phone number",
+              "Search uses their phone or email",
               "You cannot search by name.",
             ],
             [
               "eye-off-outline",
-              "Phone numbers stay hidden",
-              "Neither phone number is shown to the other person.",
+              "Contact details stay hidden",
+              "Neither person's phone number or email is shown to the other.",
             ],
             [
               "shield-checkmark-outline",
@@ -508,7 +564,8 @@ export function CoupleSetupScreen({
           ))}
         </View>
         <Text style={styles.legal}>
-          For safety, searches use the full phone number and are limited.
+          For safety, searches use the full phone number or email address and
+          are limited.
         </Text>
       </FormPage>
     </PremiumBackground>
