@@ -1915,36 +1915,33 @@ export const pricingStyles=StyleSheet.create({
 });
 
 export const callStyles=StyleSheet.create({
-  backdrop:{flex:1},
-  content:{flex:1,alignItems:'center',justifyContent:'center',padding:24,gap:18},
-  topPill:{flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:0,paddingVertical:0,backgroundColor:'transparent'},
-  topPillText:{fontFamily:'Poppins_600SemiBold',fontSize:12,letterSpacing:.4,color:'#E8D7AC'},
+  // Full-screen WhatsApp-style call layout: the video (or, for an audio
+  // call, a plain gradient) fills the entire screen, with a top name/status
+  // bar and a bottom control bar that float over it and auto-hide/tap-to-
+  // reveal during a connected video call.
+  fullScreenRoot:{flex:1,backgroundColor:'#0A0103'},
+  fullScreenMedia:{...StyleSheet.absoluteFillObject,width:'100%',height:'100%',alignItems:'center',justifyContent:'center'},
+  fullScreenSafe:{flex:1,justifyContent:'space-between'},
+  topBarFull:{alignItems:'center',paddingTop:6,paddingHorizontal:20,gap:2},
+  topBarNameFull:{fontFamily:'Poppins_700Bold',fontSize:18,color:'#FFFDFC',textAlign:'center'},
+  topBarStatusFull:{fontFamily:'Poppins_400Regular',fontSize:12.5,color:'#E8CBD1',textAlign:'center'},
   avatarWrap:{width:155,height:155,borderRadius:78,alignItems:'center',justifyContent:'center'},
   callAvatar:{width:138,height:138,borderRadius:69,borderWidth:4,borderColor:colors.pink},
   callPulse:{position:'absolute',width:155,height:155,borderRadius:78,borderWidth:1,borderColor:'rgba(229,9,47,.45)'},
   callPulseConnected:{borderColor:'rgba(89,211,136,.72)',shadowColor:'#59D388',shadowOpacity:.35,shadowRadius:16},
-  callName:{fontFamily:'Poppins_700Bold',fontSize:24,lineHeight:30,letterSpacing:0,color:'#FFFDFC'},
-  callStatus:{fontFamily:'Poppins_400Regular',fontSize:13,color:'#E8CBD1'},
-  videoPreview:{width:'100%',minHeight:120,borderRadius:24,borderWidth:1,borderColor:colors.line,backgroundColor:'rgba(255,255,255,.04)',alignItems:'center',justifyContent:'center',gap:8,padding:16},
-  videoRemote:{...StyleSheet.absoluteFillObject,width:'100%',height:'100%'},
-  selfPreview:{position:'absolute',right:12,bottom:12,width:82,height:104,borderRadius:18,backgroundColor:'rgba(255,255,255,.10)',borderWidth:1,borderColor:'rgba(255,255,255,.18)',alignItems:'center',justifyContent:'center',gap:5,overflow:'hidden'},
-  selfPreviewText:{fontFamily:'Poppins_700Bold',fontSize:9,color:'#FFFDFC'},
-  callStatePill:{position:'absolute',left:12,top:12,paddingHorizontal:9,paddingVertical:6,borderRadius:14,backgroundColor:'rgba(9,0,3,.68)',flexDirection:'row',alignItems:'center',gap:5},
-  callStateText:{fontFamily:'Poppins_700Bold',fontSize:9,color:'#FFFDFC'},
-  callActions:{flexDirection:'row',gap:18,marginTop:8},
-  callAction:{alignItems:'center',gap:8},
-  callActionFrame:{width:62,height:62,borderRadius:31,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(255,255,255,.06)',borderWidth:1,borderColor:'rgba(255,255,255,.10)'},
-  callActionFrameOn:{backgroundColor:'rgba(212,175,55,.10)',borderColor:'rgba(212,175,55,.32)'},
-  callActionFrameDanger:{backgroundColor:'rgba(228,107,114,.12)',borderColor:'rgba(228,107,114,.34)'},
-  callActionIcon:{width:58,height:58,borderRadius:29,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(255,255,255,.09)',borderWidth:1,borderColor:colors.line},
-  callEnd:{backgroundColor:colors.danger,borderColor:colors.danger},
-  callActionText:{fontFamily:'Poppins_600SemiBold',fontSize:10.5,color:'#E8CBD1'},
+  audioCenter:{alignItems:'center',justifyContent:'center',gap:16,paddingHorizontal:24,paddingTop:36},
+  pipBoxFull:{position:'absolute',right:16,width:92,height:124,borderRadius:16,backgroundColor:'rgba(255,255,255,.10)',borderWidth:1,borderColor:'rgba(255,255,255,.22)',alignItems:'center',justifyContent:'center',overflow:'hidden'},
+  bottomBarFull:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:18,paddingBottom:22,paddingTop:12},
+  circleBtn:{width:56,height:56,borderRadius:28,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(255,255,255,.16)'},
+  circleBtnOn:{backgroundColor:'rgba(212,175,55,.32)'},
+  circleBtnDanger:{backgroundColor:colors.danger},
+  circleBtnBig:{width:66,height:66,borderRadius:33},
   callFine:{fontFamily:'Poppins_400Regular',fontSize:10.5,lineHeight:16,color:'#DCC1C7',textAlign:'center',maxWidth:310},
   permissionCard:{maxWidth:360,padding:12,borderRadius:18,backgroundColor:'rgba(180,35,67,.16)',borderWidth:1,borderColor:'rgba(244,197,205,.28)',flexDirection:'row',alignItems:'center',gap:9},
   permissionText:{flex:1,fontFamily:'Poppins_600SemiBold',fontSize:10.5,lineHeight:15,color:'#F4DCE0'},
   retryPermission:{paddingHorizontal:12,paddingVertical:7,borderRadius:15,backgroundColor:'#FFFDFC'},
   retryPermissionText:{fontFamily:'Poppins_700Bold',fontSize:9.5,color:'#8F1730'},
-  secureNote:{maxWidth:350,flexDirection:'row',alignItems:'flex-start',justifyContent:'center',gap:7},
+  secureNoteFull:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,paddingBottom:10},
 });
 
 export const aiStyles=StyleSheet.create({
@@ -3064,8 +3061,7 @@ Object.assign(dateStyles as Record<string, any>, {
 });
 
 Object.assign(callStyles as Record<string, any>, {
-  callStatus:{...callStyles.callStatus,fontFamily:'Poppins_700Bold'},
-  callActionText:{...callStyles.callActionText,fontFamily:'Poppins_700Bold'},
+  topBarStatusFull:{...callStyles.topBarStatusFull,fontFamily:'Poppins_700Bold'},
   callFine:{...callStyles.callFine,fontFamily:'Poppins_600SemiBold'},
   permissionText:{...callStyles.permissionText,fontFamily:'Poppins_700Bold'},
 });
