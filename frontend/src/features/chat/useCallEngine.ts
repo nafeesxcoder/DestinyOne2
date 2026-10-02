@@ -144,7 +144,15 @@ export function useCallEngine({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: true,
+            // autoGainControl automatically boosts the mic's gain when the
+            // input is quiet — which is exactly what was making distant
+            // background sound (a fan, people talking across the room,
+            // traffic outside) come through loudly: the AGC was turning it
+            // up to compensate for the speaker not being right next to the
+            // mic. Turning it off keeps the mic at a fixed sensitivity, so
+            // only sound close to the phone comes through at a normal
+            // volume and everything farther away stays quiet.
+            autoGainControl: false,
             channelCount: 1,
             // Legacy Chrome-prefixed equivalents. Several Android WebViews
             // and older Chrome builds only actually enable acoustic echo
@@ -155,7 +163,7 @@ export function useCallEngine({
             // headset.
             ...({
               googEchoCancellation: true,
-              googAutoGainControl: true,
+              googAutoGainControl: false,
               googNoiseSuppression: true,
               googHighpassFilter: true,
             } as MediaTrackConstraints),

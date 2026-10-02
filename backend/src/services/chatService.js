@@ -402,6 +402,28 @@ async function shareLiveLocation(
   return { ok: true };
 }
 
+// A partner is considered "online" if their last_active_at (touched on
+// every authenticated request, see middleware/auth.js) falls inside this
+// window — there's no real-time socket connection to check, so "online"
+// here means "actively using the app within the last 45 seconds", close
+// enough to feel live without a websocket layer.
+const ONLINE_WINDOW_MS = 45 * 1000;
+
+async function getPartnerPresence(conversationId, userId) {
+  const participants = await assertParticipant(conversationId, userId);
+  const partnerId = participants.find((id) => id !== userId);
+  if (!partnerId) return { online: false, lastActiveAt: null };
+  const [row] = await query('SELECT last_active_at FROM users WHERE id = ?', [
+    partnerId,
+  ]);
+  const lastActiveAt = row?.last_active_at
+    ? new Date(row.last_active_at).toISOString()
+    : null;
+  const online =
+    !!lastActiveAt && Date.now() - new Date(lastActiveAt).getTime() < ONLINE_WINDOW_MS;
+  return { online, lastActiveAt };
+}
+
 async function getSettings(conversationId, userId) {
   await assertParticipant(conversationId, userId);
   const rows = await query(
@@ -430,6 +452,7 @@ module.exports = {
   createDateProposal,
   updateDatePlanStatus,
   shareLiveLocation,
+  getPartnerPresence,
   editMessage,
   deleteMessage,
   setMessageState,

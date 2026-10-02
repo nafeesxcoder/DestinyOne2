@@ -122,7 +122,10 @@ function CircleButton({
 export function CallModal({
   mode,
   match,
-  isCoupleMode,
+  // No longer shown in the call UI (the "Private couple call"/"Mutual-match
+  // call" label was removed from the top bar), but kept in the prop
+  // signature since the caller still passes it.
+  isCoupleMode: _isCoupleMode,
   accessToken,
   callId,
   isCaller,
@@ -239,7 +242,13 @@ export function CallModal({
       ? engine.localStream
       : null;
 
-  const remoteVolume = speakerOn ? 1 : 0.35;
+  // There is no browser API to actually switch a phone's physical output
+  // between its loudspeaker and earpiece — that routing is controlled by
+  // the OS, not the page. 0.35 was barely audible as "off" on real
+  // devices, so this now drops it much further to make the toggle feel
+  // like it's actually doing something, while staying non-zero so the
+  // call isn't silently unusable if someone taps it by accident.
+  const remoteVolume = speakerOn ? 1 : 0.06;
   const showControls = controlsVisible || !isFullScreenVideo;
 
   return (
@@ -317,10 +326,9 @@ export function CallModal({
           {showControls && (
             <View style={callStyles.topBarFull}>
               <Text style={callStyles.topBarNameFull}>{match.name}</Text>
-              <Text style={callStyles.topBarStatusFull}>
-                {isCoupleMode ? "Private couple call" : "Mutual-match call"}
-                {stateLabel ? ` · ${stateLabel}` : ""}
-              </Text>
+              {!!stateLabel && (
+                <Text style={callStyles.topBarStatusFull}>{stateLabel}</Text>
+              )}
             </View>
           )}
 

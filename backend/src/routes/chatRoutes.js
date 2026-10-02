@@ -11,6 +11,7 @@ router.post('/:conversationId/messages', chatController.postMessage);
 router.post('/:conversationId/date-proposal', chatController.postDateProposal);
 router.put('/date-proposal/status', chatController.putDatePlanStatus);
 router.post('/:conversationId/location', chatController.postLocation);
+router.get('/:conversationId/presence', chatController.getPresence);
 router.put('/:conversationId/messages/:messageId', chatController.putEditMessage);
 router.delete('/:conversationId/messages/:messageId', chatController.deleteMessageHandler);
 router.put('/:conversationId/messages/:messageId/state', chatController.putMessageState);

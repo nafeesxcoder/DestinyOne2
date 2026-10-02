@@ -865,6 +865,23 @@ const formatChatFileSize = (bytes?: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
 };
 
+// Turns a last-active ISO timestamp into a short relative label like
+// WhatsApp's "last seen 5 minutes ago" / "last seen today at 2:40 PM".
+function formatLastSeen(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "Last seen recently";
+  const diffMs = Date.now() - then;
+  if (diffMs < 60 * 1000) return "Last seen just now";
+  const minutes = Math.floor(diffMs / (60 * 1000));
+  if (minutes < 60)
+    return `Last seen ${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Last seen ${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `Last seen ${days} day${days === 1 ? "" : "s"} ago`;
+  return "Last seen a while ago";
+}
+
 export function ChatScreen({
   runtimePorts,
   previewState,
@@ -905,6 +922,8 @@ export function ChatScreen({
   onUnmatch,
   navigate,
   accessToken,
+  livePartnerOnline,
+  partnerLastActiveAt,
 }: {
   runtimePorts: ChatRuntimePorts;
   previewState?: PreviewState;
@@ -962,6 +981,12 @@ export function ChatScreen({
   onUnmatch: () => void;
   navigate: (s: Screen) => void;
   accessToken: string;
+  // Polled from the backend's real last-active timestamp (see
+  // chatApi.getPresence) rather than the realtime port, which never
+  // actually fires in production. Optional so existing preview/demo call
+  // sites that don't poll this still compile unchanged.
+  livePartnerOnline?: boolean;
+  partnerLastActiveAt?: string | null;
 }) {
   const {
     createOrder: createPhysicalGiftOrder,
@@ -1009,6 +1034,7 @@ export function ChatScreen({
   );
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [viewerImageUri, setViewerImageUri] = useState<string | null>(null);
+  const [viewerVideoUri, setViewerVideoUri] = useState<string | null>(null);
   const [quickReactFor, setQuickReactFor] = useState<{
     message: ChatMessage;
     pageX: number;
@@ -1029,6 +1055,13 @@ export function ChatScreen({
   const [sending, setSending] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [partnerOnline, setPartnerOnline] = useState(false);
+  // The realtime port (below) never actually fires in production — see its
+  // onPresence handler — so livePartnerOnline (polled over REST by the
+  // parent screen, chatApi.getPresence) is the real source of truth for
+  // online status. Keep partnerOnline in sync with it whenever it's given.
+  useEffect(() => {
+    if (typeof livePartnerOnline === "boolean") setPartnerOnline(livePartnerOnline);
+  }, [livePartnerOnline]);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [activeRealtimeSession, setActiveRealtimeSession] =
     useState<MatchRealtimeSession | null>(null);
@@ -1532,9 +1565,22 @@ export function ChatScreen({
   };
   const shareLiveLocation = async () => {
     setChatError("");
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (!permission.granted) {
-      setChatError("Location permission is needed to share live location.");
+    // The permission request itself can throw (e.g. the browser has no
+    // navigator.geolocation, or the user dismissed the native prompt in a
+    // way expo-location's web shim treats as an error rather than a denial)
+    // — previously that threw out of this function entirely with nothing
+    // shown to the user, which made the whole "Location" attachment button
+    // look like it silently did nothing.
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        setChatError("Location permission is needed to share live location.");
+        return;
+      }
+    } catch {
+      setChatError(
+        "Location access isn't available. Check your browser/device location settings and try again.",
+      );
       return;
     }
     try {
@@ -1920,17 +1966,19 @@ export function ChatScreen({
           : "Keep";
   const displayName = settings.nickname.trim() || match.name;
   const partnerIsOnline = isChatPreview ? connectionOnline : partnerOnline;
+  // While the partner is actively here with you (or typing), no status
+  // text shows above the chat at all — only when they're away does the
+  // real last-seen time appear, so it reads as actual information rather
+  // than a constant "Online now" banner.
   const presenceLabel = partnerTyping
     ? `${match.name} is typing…`
     : partnerIsOnline
-      ? isCoupleMode
-        ? "Private couple space"
-        : settings.nickname.trim()
-          ? `${match.name} · Online`
-          : "Online now"
+      ? ""
       : !connectionOnline
         ? "You are offline"
-        : "Last seen recently";
+        : partnerLastActiveAt
+          ? formatLastSeen(partnerLastActiveAt)
+          : "Last seen recently";
   const messageSafety = scanMessageSafety(text);
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const previewMessages: ChatMessage[] =
@@ -2403,18 +2451,6 @@ export function ChatScreen({
             <View style={shared.spacer} />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Open couple games"
-              accessibilityState={{ expanded: gamesOpen }}
-              hitSlop={accessibilityHitSlop}
-              onPress={() => setGamesOpen(true)}
-              style={[chatStyles.contextAction, chatStyles.playContextAction]}
-            >
-              <Ionicons name="game-controller" size={14} color="#7A132F" />
-              <Text style={chatStyles.playContextText}>Play</Text>
-              <View style={chatStyles.playContextDot} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
               accessibilityLabel={`Send a romantic gift to ${match.name}`}
               hitSlop={accessibilityHitSlop}
               onPress={() => navigate("gifts")}
@@ -2660,6 +2696,7 @@ export function ChatScreen({
                   onGiftResponse={(input) => onGiftResponse(message.id, input)}
                   onPress={() => selectMessage(message)}
                   onOpenImage={(uri) => setViewerImageUri(uri)}
+                  onOpenVideo={(uri) => setViewerVideoUri(uri)}
                   onQuickReact={(event) => {
                     if (multiSelectMode || message.deletedForEveryone) return;
                     const { pageX, pageY } = event.nativeEvent;
@@ -2709,6 +2746,43 @@ export function ChatScreen({
                   <Ionicons name="close" size={24} color="#FFF" />
                 </Pressable>
               </Pressable>
+            </Modal>
+            <Modal
+              visible={!!viewerVideoUri}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setViewerVideoUri(null)}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: "#000",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {viewerVideoUri && (
+                  <InlineVideoPlayer uri={viewerVideoUri} />
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close video"
+                  onPress={() => setViewerVideoUri(null)}
+                  style={{
+                    position: "absolute",
+                    top: 48,
+                    right: 20,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name="close" size={24} color="#FFF" />
+                </Pressable>
+              </View>
             </Modal>
             {!!normalizedSearch && !visibleMessages.length && (
               <View style={chatStyles.emptySearch}>
@@ -3874,6 +3948,7 @@ function ChatBubble({
   onGiftResponse,
   onPress,
   onOpenImage,
+  onOpenVideo,
   onQuickReact,
 }: {
   message: ChatMessage;
@@ -3892,6 +3967,7 @@ function ChatBubble({
   }) => Promise<{ ok: boolean; error?: string }>;
   onPress?: () => void;
   onOpenImage?: (uri: string) => void;
+  onOpenVideo?: (uri: string) => void;
   onQuickReact?: (event: GestureResponderEvent) => void;
 }) {
   const mine = message.mine !== false;
@@ -3917,8 +3993,16 @@ function ChatBubble({
   const linkPreview =
     message.linkPreview ?? buildPrivacySafeLinkPreview(textBody);
   const incomingSafety = !mine && textBody ? scanMessageSafety(textBody) : null;
+  const isVideoDocument =
+    message.type === "document" && message.document?.kind === "video";
   const openDocument = () => {
-    if (message.uri) void Linking.openURL(message.uri).catch(() => undefined);
+    if (!message.uri) return;
+    if (isVideoDocument) {
+      // Play videos inside the app rather than handing off to the browser.
+      onOpenVideo?.(message.uri);
+      return;
+    }
+    void Linking.openURL(message.uri).catch(() => undefined);
   };
   if (message.deletedForEveryone) return null;
   return (
@@ -3927,7 +4011,9 @@ function ChatBubble({
       accessibilityLabel={`Message: ${messageSummaryForAccessibility(message)}. ${mine ? status : "Received"}.`}
       accessibilityHint={
         message.type === "document"
-          ? "Open shared file"
+          ? isVideoDocument
+            ? "Play shared video"
+            : "Open shared file"
           : gamePayload
             ? "Answer inside this game card"
             : message.type === "gift" && message.gift?.physical
@@ -4852,6 +4938,26 @@ function GameChatCard({
       )}
     </View>
   );
+}
+
+// Plays a sent video right inside the app instead of handing it off to
+// Linking.openURL, which on web opened it in a brand-new browser tab. The
+// web build is this app's production target (same approach the call screen
+// already uses for its own <video> elements), so this renders a plain HTML5
+// <video> with native controls; on a true native runtime there's no bundled
+// video-view dependency yet, so it falls back to opening the file link.
+function InlineVideoPlayer({ uri }: { uri: string }) {
+  if (Platform.OS !== "web") {
+    void Linking.openURL(uri).catch(() => undefined);
+    return null;
+  }
+  return React.createElement("video", {
+    src: uri,
+    controls: true,
+    autoPlay: true,
+    playsInline: true,
+    style: { width: "100%", height: "100%", objectFit: "contain" },
+  });
 }
 
 function DocumentChatCard({

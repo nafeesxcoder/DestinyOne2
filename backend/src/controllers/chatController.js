@@ -64,6 +64,10 @@ const putMessageState = wrap(async (req) => {
   return chatService.setMessageState(req.params.conversationId, req.user.id, req.params.messageId, req.body);
 });
 
+const getPresence = wrap(async (req) => {
+  return chatService.getPartnerPresence(req.params.conversationId, req.user.id);
+});
+
 const getSettingsHandler = wrap(async (req) => {
   return chatService.getSettings(req.params.conversationId, req.user.id);
 });
@@ -78,6 +82,7 @@ module.exports = {
   postDateProposal,
   putDatePlanStatus,
   postLocation,
+  getPresence,
   putEditMessage,
   deleteMessageHandler,
   putMessageState,

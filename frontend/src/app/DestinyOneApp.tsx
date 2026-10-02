@@ -617,6 +617,10 @@ function DestinyOneApp() {
   const [chatMessages, setChatMessages] =
     useState<Record<string, ChatMessage[]>>(showcaseChatSeed);
   const [chatDrafts, setChatDrafts] = useState<Record<string, string>>({});
+  const [partnerPresence, setPartnerPresence] = useState<{
+    online: boolean;
+    lastActiveAt: string | null;
+  } | null>(null);
   const [coinBalance, setCoinBalance] = useState(
     memberDataRuntime.initialCoinBalance,
   );
@@ -1407,6 +1411,33 @@ function DestinyOneApp() {
       unsubscribe();
     };
   }, [hydrated, screen, conversationPartner.id]);
+  // Polls the partner's real last-active status for the "online"/"last
+  // seen X ago" line at the top of the chat. Only while the chat screen is
+  // actually open and we're talking to the live backend (not the preview
+  // catalog) — there's no websocket here, so this is the same kind of
+  // short-interval REST poll already used for incoming calls and messages.
+  useEffect(() => {
+    if (!hydrated || screen !== "chat" || !accessToken) {
+      setPartnerPresence(null);
+      return;
+    }
+    let active = true;
+    const backendMatchId = conversationIdFor(conversationPartner);
+    const poll = () => {
+      void chatApi
+        .getPresence(accessToken, backendMatchId)
+        .then((presence) => {
+          if (active) setPartnerPresence(presence);
+        })
+        .catch(() => undefined);
+    };
+    poll();
+    const timer = setInterval(poll, 15000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [hydrated, screen, conversationPartner.id, accessToken]);
   useEffect(() => {
     if (!hydrated || screen !== "chat" || !accessToken) return;
     let active = true;
@@ -3689,6 +3720,8 @@ function DestinyOneApp() {
             }}
             navigate={navigateTo}
             accessToken={accessToken}
+            livePartnerOnline={partnerPresence?.online}
+            partnerLastActiveAt={partnerPresence?.lastActiveAt ?? null}
           />
         )}
         {screen === "datePlan" && (

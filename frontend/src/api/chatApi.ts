@@ -122,6 +122,15 @@ export const chatApi = {
     }) as Promise<PersistenceResult<{ ok: boolean }>>;
   },
 
+  async getPresence(
+    accessToken: string,
+    conversationId: string,
+  ): Promise<{ online: boolean; lastActiveAt: string | null }> {
+    const result = await authFetch(`/chat/${conversationId}/presence`, accessToken);
+    const data = result.data as { online?: boolean; lastActiveAt?: string | null } | undefined;
+    return { online: !!data?.online, lastActiveAt: data?.lastActiveAt ?? null };
+  },
+
   async getSettings(
     accessToken: string,
     conversationId: string,
