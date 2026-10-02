@@ -51,7 +51,8 @@ const setMode = asyncHandler(async (req, res) => {
 });
 
 const disconnect = asyncHandler(async (req, res) => {
-  await coupleService.disconnectConnection(req.user.id);
+  const { connectionId } = req.body || {};
+  await coupleService.disconnectConnection(req.user.id, connectionId);
   res.json({ ok: true, saved: true, reason: 'backend' });
 });
 

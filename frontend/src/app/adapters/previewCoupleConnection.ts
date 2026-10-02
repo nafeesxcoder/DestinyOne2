@@ -1,7 +1,7 @@
 import type { CoupleConnectionHub, CoupleConnectionRequest, CoupleModeProfileInput, CouplePartnerSummary } from '../../domain/coupleConnection';
 
 export type { CoupleConnectionHub, CouplePartnerSummary } from '../../domain/coupleConnection';
-const emptyHub: CoupleConnectionHub = { experienceMode: 'seeking', connection: null, incomingRequests: [], outgoingRequests: [] };
+const emptyHub: CoupleConnectionHub = { experienceMode: 'seeking', connection: null, connections: [], incomingRequests: [], outgoingRequests: [] };
 
 export async function saveCoupleModeMemberProfile(_input: CoupleModeProfileInput) { return { preview: true }; }
 export async function setServerCoupleMode(_enabled: boolean) { return { preview: true }; }

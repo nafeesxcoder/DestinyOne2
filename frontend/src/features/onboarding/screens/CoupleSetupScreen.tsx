@@ -60,11 +60,15 @@ export function CoupleSetupScreen({
   onSearch: (phone: string) => Promise<CouplePartnerSummary>;
   onRequest: (member: CouplePartnerSummary) => Promise<unknown>;
   onRespond: (requestId: string, accept: boolean) => Promise<void>;
-  onOpenSpace: () => void;
-  onDisconnect: () => Promise<void>;
+  // Opens the chat with one specific partner connection — like WhatsApp,
+  // a member can have several of these and picks which one to talk to.
+  onOpenSpace: (connectionId: string) => void;
+  onDisconnect: (connectionId: string) => Promise<void>;
   onBack: () => void;
 }) {
-  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [confirmDisconnectId, setConfirmDisconnectId] = useState<
+    string | null
+  >(null);
   const [disconnecting, setDisconnecting] = useState(false);
   const [memberName, setMemberName] = useState(profile.firstName);
   const [age, setAge] = useState(profile.age);
@@ -159,10 +163,10 @@ export function CoupleSetupScreen({
       setBusy(false);
     }
   };
-  if (hub.connection)
-    return (
-      <PremiumBackground>
-        <FormPage back={onBack}>
+  return (
+    <PremiumBackground>
+      <FormPage back={onBack}>
+        {hub.connections.length > 0 && (
           <View style={coupleModeStyles.setupHero}>
             <PremiumIcon
               name="heart-circle"
@@ -170,63 +174,90 @@ export function CoupleSetupScreen({
               size={64}
               iconSize={30}
             />
-            <Text style={styles.kicker}>CONNECTED</Text>
+            <Text style={styles.kicker}>
+              {hub.connections.length === 1
+                ? "CONNECTED"
+                : `CONNECTED · ${hub.connections.length} PARTNERS`}
+            </Text>
             <Text style={[shared.h1, { textAlign: "center" }]}>
-              You found each other.
+              Your couple spaces
             </Text>
             <Text style={[shared.body, { textAlign: "center" }]}>
-              Your private space with {hub.connection.partnerDisplayName} is
-              ready. Matching stays off.
+              Open any partner's space below, or connect with another partner
+              further down.
             </Text>
           </View>
-          <View style={shared.spacer} />
-          <Button
-            label="Open our Couple Space"
-            icon="heart"
-            variant="gold"
-            onPress={onOpenSpace}
-          />
-          {confirmDisconnect ? (
-            <View style={{ gap: 10, marginTop: 16 }}>
-              <Text style={[shared.body, { textAlign: "center" }]}>
-                Disconnect from {hub.connection.partnerDisplayName}? This ends
-                your shared space for both of you.
+        )}
+        {hub.connections.map((connection) => (
+          <View
+            key={connection.connectionId}
+            style={coupleModeStyles.partnerResult}
+          >
+            <View style={coupleModeStyles.partnerInitial}>
+              <Text style={coupleModeStyles.partnerInitialText}>
+                {connection.partnerDisplayName[0]?.toUpperCase()}
               </Text>
-              <Button
-                label={disconnecting ? "Disconnecting…" : "Yes, disconnect"}
-                icon="close-circle"
-                onPress={async () => {
-                  setDisconnecting(true);
-                  try {
-                    await onDisconnect();
-                  } finally {
-                    setDisconnecting(false);
-                    setConfirmDisconnect(false);
-                  }
-                }}
-              />
-              <Button
-                label="Cancel"
-                variant="secondary"
-                onPress={() => setConfirmDisconnect(false)}
-              />
             </View>
-          ) : (
-            <View style={{ marginTop: 16 }}>
-              <Button
-                label="End this connection"
-                variant="secondary"
-                icon="close-circle-outline"
-                onPress={() => setConfirmDisconnect(true)}
-              />
+            <View style={{ flex: 1 }}>
+              <Text style={coupleModeStyles.partnerName}>
+                {connection.partnerDisplayName}
+              </Text>
+              {confirmDisconnectId === connection.connectionId ? (
+                <View style={{ gap: 8, marginTop: 8 }}>
+                  <Text style={styles.helper}>
+                    Disconnect from {connection.partnerDisplayName}? This ends
+                    this shared space for both of you.
+                  </Text>
+                  <View style={styles.twoCol}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label="Cancel"
+                        variant="secondary"
+                        onPress={() => setConfirmDisconnectId(null)}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label={disconnecting ? "Ending…" : "Yes, disconnect"}
+                        icon="close-circle"
+                        onPress={async () => {
+                          setDisconnecting(true);
+                          try {
+                            await onDisconnect(connection.connectionId);
+                          } finally {
+                            setDisconnecting(false);
+                            setConfirmDisconnectId(null);
+                          }
+                        }}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.twoCol}>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label="Open chat"
+                      icon="heart"
+                      variant="gold"
+                      onPress={() => onOpenSpace(connection.connectionId)}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label="Disconnect"
+                      variant="secondary"
+                      icon="close-circle-outline"
+                      onPress={() =>
+                        setConfirmDisconnectId(connection.connectionId)
+                      }
+                    />
+                  </View>
+                </View>
+              )}
             </View>
-          )}
-        </FormPage>
-      </PremiumBackground>
-    );
-  return (
-    <PremiumBackground>
-      <FormPage back={onBack}>
+          </View>
+        ))}
         <View style={coupleModeStyles.setupHero}>
           <PremiumIcon
             name="people-circle"
@@ -234,7 +265,11 @@ export function CoupleSetupScreen({
             size={64}
             iconSize={30}
           />
-          <Text style={styles.kicker}>CONNECT WITH YOUR PARTNER</Text>
+          <Text style={styles.kicker}>
+            {hub.connections.length > 0
+              ? "ADD ANOTHER PARTNER"
+              : "CONNECT WITH YOUR PARTNER"}
+          </Text>
           <Text style={[shared.h1, { textAlign: "center" }]}>
             Find your partner on DestinyOne
           </Text>

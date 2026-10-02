@@ -76,9 +76,13 @@ export const coupleApi = {
     });
   },
 
-  async disconnect(accessToken: string) {
+  // Omitting connectionId keeps the old behavior of ending whichever
+  // connection is most recently active; pass it to end one specific
+  // partner connection while keeping any others the member still has.
+  async disconnect(accessToken: string, connectionId?: string) {
     return authFetch("/couple/disconnect", accessToken, {
       method: "POST",
+      body: JSON.stringify(connectionId ? { connectionId } : {}),
     });
   },
 };

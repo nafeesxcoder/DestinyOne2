@@ -23,6 +23,19 @@ async function findActiveConnection(userId) {
   return rows[0] || null;
 }
 
+// Couple Mode originally assumed exactly one partner, so this is the same
+// shape as findActiveConnection but returns every active connection instead
+// of just the most recent — lets a member keep more than one couple space
+// open at once instead of having to disconnect before connecting again.
+async function findActiveConnections(userId) {
+  return query(
+    `SELECT * FROM couple_connections
+     WHERE (requester_id = ? OR partner_id = ?) AND status = 'active'
+     ORDER BY updated_at DESC`,
+    [userId, userId],
+  );
+}
+
 // Accepts either a phone number or an email address and looks the partner
 // up by whichever one was given, so a couple can connect with either —
 // previously only a phone-number match was supported here.
@@ -46,9 +59,19 @@ async function createRequest(requesterId, targetId) {
     err.status = 400;
     throw err;
   }
-  const existingActive = await findActiveConnection(requesterId);
-  if (existingActive) {
-    const err = new Error('You are already connected to a partner.');
+  // Couple Mode no longer limits a member to a single partner — they can
+  // hold several active connections at once — so an existing connection no
+  // longer blocks sending a new request. Only block re-requesting someone
+  // they're already actively connected to, or already have a pending
+  // request out to.
+  const activeWithTarget = await query(
+    `SELECT id FROM couple_connections
+     WHERE status = 'active'
+       AND ((requester_id = ? AND partner_id = ?) OR (requester_id = ? AND partner_id = ?))`,
+    [requesterId, targetId, targetId, requesterId],
+  );
+  if (activeWithTarget.length) {
+    const err = new Error('You are already connected to this member.');
     err.status = 409;
     throw err;
   }
@@ -123,17 +146,20 @@ async function getHub(userId) {
   const [modeRow] = await query('SELECT mode FROM experience_mode WHERE user_id = ?', [userId]);
   const experienceMode = modeRow?.mode || 'seeking';
 
-  const active = await findActiveConnection(userId);
-  let connection = null;
-  if (active) {
+  const activeRows = await findActiveConnections(userId);
+  const connections = [];
+  for (const active of activeRows) {
     const partnerId = active.requester_id === userId ? active.partner_id : active.requester_id;
     const [partnerProfile] = await query('SELECT * FROM profiles WHERE user_id = ?', [partnerId]);
-    connection = {
+    connections.push({
       connection_id: active.id,
       partner_member_id: partnerId,
       partner_display_name: partnerProfile?.first_name || 'Your partner',
-    };
+    });
   }
+  // `connection` (singular) is kept for older clients/screens that only
+  // know about one partner — it's just the most recently active one.
+  const connection = connections[0] || null;
 
   const incoming = await query(
     `SELECT * FROM couple_requests WHERE target_id = ? AND status = 'pending' AND expires_at > NOW(6)
@@ -165,6 +191,7 @@ async function getHub(userId) {
   return {
     experience_mode: connection ? 'couple' : experienceMode,
     connection,
+    connections,
     incoming_requests: await hydrateRequests(incoming, 'requester_id'),
     outgoing_requests: await hydrateRequests(outgoing, 'target_id'),
   };
@@ -178,21 +205,34 @@ async function setMode(userId, enabled) {
   );
 }
 
-async function disconnectConnection(userId) {
-  const active = await findActiveConnection(userId);
+// connectionId picks which of a member's (possibly several) active
+// connections to end; omitting it keeps the old single-partner behavior of
+// ending the most recently active one. Only drops either side back to
+// 'seeking' mode once they have no OTHER active connections left — with
+// multiple partners allowed now, ending one shouldn't kick someone out of
+// Couple Mode entirely while they're still connected to someone else.
+async function disconnectConnection(userId, connectionId) {
+  const active = connectionId
+    ? (await query(
+        `SELECT * FROM couple_connections
+         WHERE id = ? AND status = 'active' AND (requester_id = ? OR partner_id = ?)`,
+        [connectionId, userId, userId],
+      ))[0]
+    : await findActiveConnection(userId);
   if (!active) return { ok: true };
   await query(`UPDATE couple_connections SET status = 'removed' WHERE id = ?`, [active.id]);
   const otherId = active.requester_id === userId ? active.partner_id : active.requester_id;
-  await query(
-    `INSERT INTO experience_mode (user_id, mode) VALUES (?, 'seeking')
-     ON DUPLICATE KEY UPDATE mode = 'seeking'`,
-    [userId],
-  );
-  await query(
-    `INSERT INTO experience_mode (user_id, mode) VALUES (?, 'seeking')
-     ON DUPLICATE KEY UPDATE mode = 'seeking'`,
-    [otherId],
-  );
+  const revertIfNoneLeft = async (id) => {
+    const remaining = await findActiveConnections(id);
+    if (remaining.length) return;
+    await query(
+      `INSERT INTO experience_mode (user_id, mode) VALUES (?, 'seeking')
+       ON DUPLICATE KEY UPDATE mode = 'seeking'`,
+      [id],
+    );
+  };
+  await revertIfNoneLeft(userId);
+  await revertIfNoneLeft(otherId);
   return { ok: true };
 }
 

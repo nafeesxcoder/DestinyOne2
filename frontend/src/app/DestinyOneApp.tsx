@@ -688,18 +688,39 @@ function DestinyOneApp() {
   const [coupleHub, setCoupleHub] = useState<CoupleConnectionHub>({
     experienceMode: showcaseExperienceMode,
     connection: null,
+    connections: [],
     incomingRequests: [],
     outgoingRequests: [],
   });
   const [chatLaunchTool, setChatLaunchTool] = useState<CoupleLaunchTool>(null);
   const [hydrated, setHydrated] = useState(false);
+  // Couple Mode can hold several active partner connections at once now —
+  // this is which one "Open chat" was last pressed for. Falls back to the
+  // single connection the coupleMode reducer already tracks (the primary
+  // one, kept for the existing single-partner flows) when nothing's been
+  // explicitly picked yet.
+  const [activeCoupleConnectionId, setActiveCoupleConnectionId] = useState<
+    string | null
+  >(null);
+  const activeCoupleHubConnection =
+    coupleHub.connections.find(
+      (connection) => connection.connectionId === activeCoupleConnectionId,
+    ) ?? null;
   const couplePartnerName =
-    coupleMode.connection.partner?.displayName.trim() || "My Partner";
+    activeCoupleHubConnection?.partnerDisplayName.trim() ||
+    coupleMode.connection.partner?.displayName.trim() ||
+    "My Partner";
+  const activeCoupleConnectionIdResolved =
+    activeCoupleHubConnection?.connectionId ??
+    coupleMode.connection.connectionId ??
+    null;
   const couplePartner: Match = {
     ...matches[0]!,
-    id: `couple-${coupleMode.connection.connectionId ?? "space"}`,
-    profileId: coupleMode.connection.partner?.memberId,
-    matchId: coupleMode.connection.connectionId ?? undefined,
+    id: `couple-${activeCoupleConnectionIdResolved ?? "space"}`,
+    profileId:
+      activeCoupleHubConnection?.partnerMemberId ??
+      coupleMode.connection.partner?.memberId,
+    matchId: activeCoupleConnectionIdResolved ?? undefined,
     name: couplePartnerName,
     city: profileDraft.city || "Private couple space",
     profession: "Your partner",
@@ -1547,6 +1568,7 @@ function DestinyOneApp() {
       setCoupleHub({
         experienceMode: "seeking",
         connection: null,
+        connections: [],
         incomingRequests: [],
         outgoingRequests: [],
       });
@@ -1567,10 +1589,14 @@ function DestinyOneApp() {
       );
     }
   };
-  const disconnectCoupleConnection = async () => {
+  // connectionId ends one specific partner connection. A member can now
+  // have several active at once, so this no longer assumes disconnecting
+  // means leaving Couple Mode entirely — it only drops back to "seeking"
+  // once the refreshed hub shows no connections left at all.
+  const disconnectCoupleConnection = async (connectionId?: string) => {
     if (accessToken) {
       try {
-        await coupleApi.disconnect(accessToken);
+        await coupleApi.disconnect(accessToken, connectionId);
       } catch (error) {
         setAppNotice({
           title: "Could not disconnect",
@@ -1583,28 +1609,54 @@ function DestinyOneApp() {
         });
         return;
       }
+      try {
+        const hub = await coupleApi.getHub(accessToken);
+        applyCoupleHub(hub);
+        if (!hub.connection) {
+          const at = new Date().toISOString();
+          setCoupleMode((current) =>
+            reduceCoupleMode(current, { type: "disconnect_partner", at }),
+          );
+          setCoupleMode((current) =>
+            reduceCoupleMode(current, {
+              type: "select_experience",
+              mode: "seeking",
+              at,
+            }),
+          );
+          setChatLaunchTool(null);
+        }
+      } catch {
+        // The disconnect itself already succeeded; a failed refresh just
+        // means the UI catches up on the next hub poll instead.
+      }
+    } else {
+      const at = new Date().toISOString();
+      setCoupleMode((current) =>
+        reduceCoupleMode(current, { type: "disconnect_partner", at }),
+      );
+      setCoupleMode((current) =>
+        reduceCoupleMode(current, {
+          type: "select_experience",
+          mode: "seeking",
+          at,
+        }),
+      );
+      setChatLaunchTool(null);
+      setCoupleHub({
+        experienceMode: "seeking",
+        connection: null,
+        connections: [],
+        incomingRequests: [],
+        outgoingRequests: [],
+      });
     }
-    const at = new Date().toISOString();
-    setCoupleMode((current) =>
-      reduceCoupleMode(current, { type: "disconnect_partner", at }),
+    setActiveCoupleConnectionId((current) =>
+      current === connectionId ? null : current,
     );
-    setCoupleMode((current) =>
-      reduceCoupleMode(current, {
-        type: "select_experience",
-        mode: "seeking",
-        at,
-      }),
-    );
-    setChatLaunchTool(null);
-    setCoupleHub({
-      experienceMode: "seeking",
-      connection: null,
-      incomingRequests: [],
-      outgoingRequests: [],
-    });
     setAppNotice({
       title: "Disconnected",
-      body: "Your couple space has been closed. You can reconnect anytime.",
+      body: "That couple space has been closed. You can reconnect anytime.",
       icon: "checkmark-circle-outline",
       tone: "gold",
     });
@@ -3210,7 +3262,10 @@ function DestinyOneApp() {
             onSearch={searchCouplePartner}
             onRequest={requestCoupleConnection}
             onRespond={respondCoupleConnection}
-            onOpenSpace={() => setScreen("home")}
+            onOpenSpace={(connectionId) => {
+              setActiveCoupleConnectionId(connectionId);
+              setScreen("home");
+            }}
             onDisconnect={disconnectCoupleConnection}
           />
         )}

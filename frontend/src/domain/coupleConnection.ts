@@ -22,7 +22,12 @@ export type CouplePairingConnection = {
 
 export type CoupleConnectionHub = {
   experienceMode: 'seeking' | 'couple';
+  // The most recently active connection, kept for screens that only ever
+  // dealt with one partner. `connections` is the full list — Couple Mode
+  // no longer limits a member to a single partner, so a member can hold
+  // several of these active at once.
   connection: CouplePairingConnection | null;
+  connections: CouplePairingConnection[];
   incomingRequests: CoupleConnectionRequest[];
   outgoingRequests: CoupleConnectionRequest[];
 };
@@ -80,9 +85,13 @@ function parseRequest(value: unknown): CoupleConnectionRequest {
 export function parseCoupleConnectionHub(value: unknown): CoupleConnectionHub {
   if (!isRecord(value)) throw new Error('The couple connection response could not be read.');
   const experienceMode = value.experience_mode === 'couple' ? 'couple' : 'seeking';
+  const connections = Array.isArray(value.connections)
+    ? value.connections.map(parseConnection).filter((c): c is CouplePairingConnection => c !== null)
+    : [];
   return {
     experienceMode,
-    connection: parseConnection(value.connection),
+    connection: parseConnection(value.connection) ?? connections[0] ?? null,
+    connections,
     incomingRequests: Array.isArray(value.incoming_requests) ? value.incoming_requests.map(parseRequest) : [],
     outgoingRequests: Array.isArray(value.outgoing_requests) ? value.outgoing_requests.map(parseRequest) : [],
   };

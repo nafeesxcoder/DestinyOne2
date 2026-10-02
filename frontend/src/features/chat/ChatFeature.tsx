@@ -41,10 +41,7 @@ import {
 import * as Location from "expo-location";
 
 import { Button, shared } from "../../components";
-import {
-  BottomNav,
-  handleBottomNavScroll,
-} from "../../components/navigation/BottomNav";
+import { handleBottomNavScroll } from "../../components/navigation/BottomNav";
 import {
   MiniPremiumIcon,
   PremiumIcon,
@@ -3069,16 +3066,9 @@ export function ChatScreen({
               )}
             </View>
           </KeyboardAvoidingView>
-          <BottomNav
-            active="chat"
-            mode={experienceMode}
-            light
-            referenceIcons
-            onOpenTool={(tool) =>
-              tool === "gift" ? setGiftOpen(true) : setGamesOpen(true)
-            }
-            navigate={navigate}
-          />
+          {/* No bottom tab bar inside an open chat — matches WhatsApp, where
+              being in a conversation replaces the app's main navigation with
+              just that conversation until you go back. */}
           <MessageActionSheet
             visible={!!selectedMessage}
             message={selectedMessage}
