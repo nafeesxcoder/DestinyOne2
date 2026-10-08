@@ -2714,8 +2714,6 @@ export function ChatScreen({
                   message={message}
                   status={deliveryOverrides[message.id] ?? message.status}
                   accent={activeTheme.accent}
-                  partnerName={displayName}
-                  partnerPhoto={match.photo}
                   reaction={message.reactions?.me || undefined}
                   starred={message.starredByMe}
                   pinned={!!message.pinnedAt}
@@ -3961,9 +3959,7 @@ function MessageReceipt({ status }: { status: ChatMessage["status"] }) {
 function ChatBubble({
   message,
   status,
-  accent,
-  partnerName,
-  partnerPhoto,
+  accent: _accent,
   reaction,
   starred,
   pinned,
@@ -3981,8 +3977,6 @@ function ChatBubble({
   message: ChatMessage;
   status: ChatMessage["status"];
   accent?: string;
-  partnerName?: string;
-  partnerPhoto?: string;
   reaction?: string;
   starred?: boolean;
   pinned?: boolean;
@@ -4069,37 +4063,7 @@ function ChatBubble({
   };
   if (message.deletedForEveryone) return null;
   return (
-    <View style={[chatStyles.bubbleRow, mine && chatStyles.bubbleRowMine]}>
-      {!mine && (
-        <View style={chatStyles.bubbleAvatarWrap}>
-          {partnerPhoto ? (
-            <Image
-              source={{ uri: partnerPhoto }}
-              style={chatStyles.bubbleAvatar}
-            />
-          ) : (
-            <View style={[chatStyles.bubbleAvatar, chatStyles.bubbleAvatarFallback]}>
-              <Text style={chatStyles.bubbleAvatarInitial}>
-                {partnerName?.[0]?.toUpperCase() || "?"}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-      <View
-        style={[
-          chatStyles.bubbleColumn,
-          { alignItems: mine ? "flex-end" : "flex-start" },
-        ]}
-      >
-        {!mine && !!partnerName && (
-          <Text
-            style={[chatStyles.bubbleSenderName, accent ? { color: accent } : null]}
-          >
-            {partnerName}
-          </Text>
-        )}
-        <View style={chatStyles.swipeReplyWrap}>
+    <View style={chatStyles.swipeReplyWrap}>
       <Animated.View
         style={[
           chatStyles.swipeReplyIcon,
@@ -4476,8 +4440,6 @@ function ChatBubble({
       )}
     </Pressable>
       </Animated.View>
-        </View>
-      </View>
     </View>
   );
 }
