@@ -4063,12 +4063,7 @@ function ChatBubble({
   };
   if (message.deletedForEveryone) return null;
   return (
-    <View
-      style={[
-        chatStyles.swipeReplyWrap,
-        { alignSelf: mine ? "flex-end" : "flex-start" },
-      ]}
-    >
+    <View style={chatStyles.swipeReplyWrap}>
       <Animated.View
         style={[
           chatStyles.swipeReplyIcon,
@@ -4089,7 +4084,7 @@ function ChatBubble({
       </Animated.View>
       <Animated.View
         {...swipeResponder.panHandlers}
-        style={{ alignSelf: mine ? "flex-end" : "flex-start", transform: [{ translateX: swipeX }] }}
+        style={{ width: "100%", transform: [{ translateX: swipeX }] }}
       >
     <Pressable
       accessibilityRole="button"
