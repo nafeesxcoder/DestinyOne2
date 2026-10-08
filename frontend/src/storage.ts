@@ -105,6 +105,11 @@ export type CoupleChatSettings = {
   notificationMode: 'all' | 'mentions' | 'muted';
   notificationSound: 'Destiny Chime' | 'Soft Rose' | 'Classic' | 'Silent';
   mutedUntil?: number;
+  // Instagram-style "show activity status": when false, this person's own
+  // "is typing…" indicator is never sent to the other side (they can
+  // still see the other person's, unless that person has also turned
+  // theirs off).
+  shareTypingStatus: boolean;
 };
 
 export const defaultCoupleChatSettings: CoupleChatSettings = {
@@ -116,6 +121,7 @@ export const defaultCoupleChatSettings: CoupleChatSettings = {
   conversationArchived: false,
   notificationMode: 'all',
   notificationSound: 'Destiny Chime',
+  shareTypingStatus: true,
 };
 
 export type ProfileDraft = {

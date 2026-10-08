@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Linking,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -921,6 +922,8 @@ export function ChatScreen({
   accessToken,
   livePartnerOnline,
   partnerLastActiveAt,
+  livePartnerTyping,
+  onTypingChange,
 }: {
   runtimePorts: ChatRuntimePorts;
   previewState?: PreviewState;
@@ -984,6 +987,10 @@ export function ChatScreen({
   // sites that don't poll this still compile unchanged.
   livePartnerOnline?: boolean;
   partnerLastActiveAt?: string | null;
+  // Same REST-polled story as livePartnerOnline above, for the "is
+  // typing…" indicator.
+  livePartnerTyping?: boolean;
+  onTypingChange?: (typing: boolean) => void;
 }) {
   const {
     createOrder: createPhysicalGiftOrder,
@@ -1059,6 +1066,9 @@ export function ChatScreen({
   useEffect(() => {
     if (typeof livePartnerOnline === "boolean") setPartnerOnline(livePartnerOnline);
   }, [livePartnerOnline]);
+  useEffect(() => {
+    if (typeof livePartnerTyping === "boolean") setPartnerTyping(livePartnerTyping);
+  }, [livePartnerTyping]);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [activeRealtimeSession, setActiveRealtimeSession] =
     useState<MatchRealtimeSession | null>(null);
@@ -1198,6 +1208,7 @@ export function ChatScreen({
   const pendingDeleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messageOffsets = useRef<Record<string, number>>({});
   const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restTypingActiveRef = useRef(false);
   const realtimeSession = useRef<MatchRealtimeSession | null>(null);
   const speechRecognitionRef = useRef<{
     start: () => void;
@@ -1390,16 +1401,30 @@ export function ChatScreen({
   };
   const updateText = (value: string) => {
     setText(value);
-    if (isChatPreview || !realtimeSession.current) return;
-    void realtimeSession.current
-      .sendTyping(value.trim().length > 0)
-      .catch(() => undefined);
+    if (isChatPreview) return;
+    const hasText = value.trim().length > 0;
+    // runtimePorts.realtime is a stub that never actually connects in
+    // production (see DestinyOneApp.tsx), so realtimeSession.current is
+    // always null there and this call was previously a silent no-op —
+    // nothing ever told the backend this person was typing. The REST
+    // call below (onTypingChange, polled by the other side via
+    // chatApi.getPresence) is what actually carries the signal; only
+    // fire it on the leading edge of typing, not on every keystroke.
+    if (hasText && !restTypingActiveRef.current) {
+      restTypingActiveRef.current = true;
+      onTypingChange?.(true);
+    }
+    if (realtimeSession.current) {
+      void realtimeSession.current.sendTyping(hasText).catch(() => undefined);
+    }
     if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
-    typingStopTimer.current = setTimeout(
-      () =>
-        void realtimeSession.current?.sendTyping(false).catch(() => undefined),
-      1400,
-    );
+    typingStopTimer.current = setTimeout(() => {
+      void realtimeSession.current?.sendTyping(false).catch(() => undefined);
+      if (restTypingActiveRef.current) {
+        restTypingActiveRef.current = false;
+        onTypingChange?.(false);
+      }
+    }, 1400);
   };
   const sendText = async () => {
     const value = text.trim();
@@ -1417,10 +1442,16 @@ export function ChatScreen({
         setText("");
         setReplyTarget(null);
         setShowEmoji(false);
-        if (!isChatPreview)
+        if (!isChatPreview) {
           void realtimeSession.current
             ?.sendTyping(false)
             .catch(() => undefined);
+          if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
+          if (restTypingActiveRef.current) {
+            restTypingActiveRef.current = false;
+            onTypingChange?.(false);
+          }
+        }
       }
     } finally {
       setSending(false);
@@ -2692,6 +2723,7 @@ export function ChatScreen({
                   onGameReply={(answer) => sendGameReply(message, answer)}
                   onGiftResponse={(input) => onGiftResponse(message.id, input)}
                   onPress={() => selectMessage(message)}
+                  onSwipeReply={() => setReplyTarget(message)}
                   onOpenImage={(uri) => setViewerImageUri(uri)}
                   onOpenVideo={(uri) => setViewerVideoUri(uri)}
                   onQuickReact={(event) => {
@@ -3940,6 +3972,7 @@ function ChatBubble({
   onOpenImage,
   onOpenVideo,
   onQuickReact,
+  onSwipeReply,
 }: {
   message: ChatMessage;
   status: ChatMessage["status"];
@@ -3959,8 +3992,42 @@ function ChatBubble({
   onOpenImage?: (uri: string) => void;
   onOpenVideo?: (uri: string) => void;
   onQuickReact?: (event: GestureResponderEvent) => void;
+  onSwipeReply?: () => void;
 }) {
   const mine = message.mine !== false;
+  // WhatsApp-style swipe-to-reply: drag the bubble horizontally (toward the
+  // center, same direction regardless of whose message it is) and release
+  // past the threshold to open the reply composer for this message.
+  const SWIPE_REPLY_THRESHOLD = 56;
+  const SWIPE_REPLY_MAX = 84;
+  const swipeX = useRef(new Animated.Value(0)).current;
+  const swipeDirection = mine ? -1 : 1;
+  const resetSwipe = () =>
+    Animated.spring(swipeX, {
+      toValue: 0,
+      friction: 7,
+      tension: 80,
+      useNativeDriver: Platform.OS !== "web",
+    }).start();
+  const swipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+      onPanResponderMove: (_, gesture) => {
+        // Only follow the drag in the "open" direction for this bubble;
+        // dragging the other way just resists back to 0.
+        const raw = gesture.dx * swipeDirection;
+        const clamped = Math.max(0, Math.min(SWIPE_REPLY_MAX, raw));
+        swipeX.setValue(clamped * swipeDirection);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const raw = gesture.dx * swipeDirection;
+        if (raw > SWIPE_REPLY_THRESHOLD) onSwipeReply?.();
+        resetSwipe();
+      },
+      onPanResponderTerminate: resetSwipe,
+    }),
+  ).current;
   const gamePayload =
     message.type === "text" && message.text?.startsWith("🎮GAME|")
       ? message.text.split("|")
@@ -3996,6 +4063,29 @@ function ChatBubble({
   };
   if (message.deletedForEveryone) return null;
   return (
+    <View style={chatStyles.swipeReplyWrap}>
+      <Animated.View
+        style={[
+          chatStyles.swipeReplyIcon,
+          mine ? { right: 10 } : { left: 10 },
+          {
+            opacity: swipeX.interpolate({
+              inputRange: mine
+                ? [-SWIPE_REPLY_MAX, -SWIPE_REPLY_THRESHOLD, 0]
+                : [0, SWIPE_REPLY_THRESHOLD, SWIPE_REPLY_MAX],
+              outputRange: mine ? [1, 0.4, 0] : [0, 0.4, 1],
+              extrapolate: "clamp",
+            }),
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Ionicons name="arrow-undo-outline" size={16} color={colors.muted} />
+      </Animated.View>
+      <Animated.View
+        {...swipeResponder.panHandlers}
+        style={{ transform: [{ translateX: swipeX }] }}
+      >
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Message: ${messageSummaryForAccessibility(message)}. ${mine ? status : "Received"}.`}
@@ -4349,6 +4439,8 @@ function ChatBubble({
         </View>
       )}
     </Pressable>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -9100,6 +9192,14 @@ function CoupleSettingsSheet({
         : "Screenshot alerts turned off for this chat.",
     );
   };
+  const toggleShareTypingStatus = () => {
+    onChange({ ...settings, shareTypingStatus: !settings.shareTypingStatus });
+    setStatus(
+      !settings.shareTypingStatus
+        ? "Your “is typing…” status is now shared."
+        : "Your “is typing…” status is now hidden from this chat.",
+    );
+  };
   const toggleConversationFlag = (
     key: "conversationPinned" | "conversationArchived",
   ) => {
@@ -9426,6 +9526,45 @@ function CoupleSettingsSheet({
                 </View>
               </Pressable>
             ))}
+          </View>
+          <View style={coupleStyles.section}>
+            <Text style={styles.sectionLabel}>ACTIVITY STATUS</Text>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: settings.shareTypingStatus }}
+              onPress={toggleShareTypingStatus}
+              style={coupleStyles.captureCard}
+            >
+              <PremiumIcon
+                name="chatbubble-ellipses-outline"
+                tone={settings.shareTypingStatus ? "gold" : "dark"}
+                size={44}
+                iconSize={20}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={coupleStyles.privacyTitle}>
+                  Show when you're typing
+                </Text>
+                <Text style={coupleStyles.privacyBody}>
+                  Lets the other person see "is typing…" while you write a
+                  reply. Turn this off to hide it — you'll still see theirs,
+                  unless they've hidden it too.
+                </Text>
+              </View>
+              <View
+                style={[
+                  coupleStyles.toggle,
+                  settings.shareTypingStatus && coupleStyles.toggleOn,
+                ]}
+              >
+                <View
+                  style={[
+                    coupleStyles.toggleKnob,
+                    settings.shareTypingStatus && coupleStyles.toggleKnobOn,
+                  ]}
+                />
+              </View>
+            </Pressable>
           </View>
           <View style={coupleStyles.section}>
             <Text style={styles.sectionLabel}>SCREENSHOT ALERTS</Text>

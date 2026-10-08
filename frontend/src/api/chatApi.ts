@@ -125,10 +125,27 @@ export const chatApi = {
   async getPresence(
     accessToken: string,
     conversationId: string,
-  ): Promise<{ online: boolean; lastActiveAt: string | null }> {
+  ): Promise<{ online: boolean; lastActiveAt: string | null; typing: boolean }> {
     const result = await authFetch(`/chat/${conversationId}/presence`, accessToken);
-    const data = result.data as { online?: boolean; lastActiveAt?: string | null } | undefined;
-    return { online: !!data?.online, lastActiveAt: data?.lastActiveAt ?? null };
+    const data = result.data as
+      | { online?: boolean; lastActiveAt?: string | null; typing?: boolean }
+      | undefined;
+    return {
+      online: !!data?.online,
+      lastActiveAt: data?.lastActiveAt ?? null,
+      typing: !!data?.typing,
+    };
+  },
+
+  async setTyping(
+    accessToken: string,
+    conversationId: string,
+    typing: boolean,
+  ): Promise<void> {
+    await authFetch(`/chat/${conversationId}/typing`, accessToken, {
+      method: "POST",
+      body: JSON.stringify({ typing }),
+    });
   },
 
   async getSettings(

@@ -409,10 +409,48 @@ async function shareLiveLocation(
 // enough to feel live without a websocket layer.
 const ONLINE_WINDOW_MS = 45 * 1000;
 
+// "Is typing" is an even shorter-lived, higher-frequency signal than
+// presence, so it lives purely in memory (per conversation+user) rather
+// than in the database — there's nothing worth persisting once it goes
+// stale. A typing ping is considered current for TYPING_WINDOW_MS after
+// it was last sent; the frontend re-sends it every couple of seconds
+// while the person keeps typing and explicitly clears it when they stop
+// or send the message, but this TTL also covers the case where a tab is
+// closed/crashes mid-type without ever sending that "stopped" signal.
+const TYPING_WINDOW_MS = 6 * 1000;
+const typingByKey = new Map();
+
+function typingKey(conversationId, userId) {
+  return `${conversationId}:${userId}`;
+}
+
+async function setTyping(conversationId, userId, typing) {
+  await assertParticipant(conversationId, userId);
+  const key = typingKey(conversationId, userId);
+  if (!typing) {
+    typingByKey.delete(key);
+    return { ok: true };
+  }
+  // Someone who has turned off sharing their own typing status shouldn't
+  // have it recorded at all, in case anything else ever reads this map.
+  const settings = await getSettings(conversationId, userId);
+  if (settings && settings.shareTypingStatus === false) {
+    typingByKey.delete(key);
+    return { ok: true };
+  }
+  typingByKey.set(key, Date.now());
+  return { ok: true };
+}
+
+function isTypingFresh(conversationId, userId) {
+  const at = typingByKey.get(typingKey(conversationId, userId));
+  return !!at && Date.now() - at < TYPING_WINDOW_MS;
+}
+
 async function getPartnerPresence(conversationId, userId) {
   const participants = await assertParticipant(conversationId, userId);
   const partnerId = participants.find((id) => id !== userId);
-  if (!partnerId) return { online: false, lastActiveAt: null };
+  if (!partnerId) return { online: false, lastActiveAt: null, typing: false };
   const [row] = await query('SELECT last_active_at FROM users WHERE id = ?', [
     partnerId,
   ]);
@@ -421,7 +459,8 @@ async function getPartnerPresence(conversationId, userId) {
     : null;
   const online =
     !!lastActiveAt && Date.now() - new Date(lastActiveAt).getTime() < ONLINE_WINDOW_MS;
-  return { online, lastActiveAt };
+  const typing = isTypingFresh(conversationId, partnerId);
+  return { online, lastActiveAt, typing };
 }
 
 async function getSettings(conversationId, userId) {
@@ -453,6 +492,7 @@ module.exports = {
   updateDatePlanStatus,
   shareLiveLocation,
   getPartnerPresence,
+  setTyping,
   editMessage,
   deleteMessage,
   setMessageState,

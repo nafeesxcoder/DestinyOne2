@@ -2143,6 +2143,8 @@ export const chatStyles=StyleSheet.create({
   reactionButton:{width:33,height:33,alignItems:'center',justifyContent:'center'},
   reactionText:{fontSize:18},
   reactionPill:{position:'absolute',left:-7,bottom:-12,minWidth:30,height:25,paddingHorizontal:5,borderRadius:13,backgroundColor:'#FFFDFC',borderWidth:1,borderColor:'rgba(255,255,255,.13)',alignItems:'center',justifyContent:'center'},
+  swipeReplyWrap:{justifyContent:'center'},
+  swipeReplyIcon:{position:'absolute',top:0,bottom:0,justifyContent:'center',alignItems:'center',width:28,zIndex:-1},
   messageActionIcon:{width:33,height:33,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(255,255,255,.05)'},
   emptySearch:{alignSelf:'center',alignItems:'center',gap:8,padding:18},
   emptySearchText:{fontFamily:'Poppins_400Regular',fontSize:11,color:colors.muted,textAlign:'center'},

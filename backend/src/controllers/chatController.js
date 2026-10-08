@@ -68,6 +68,10 @@ const getPresence = wrap(async (req) => {
   return chatService.getPartnerPresence(req.params.conversationId, req.user.id);
 });
 
+const postTyping = wrap(async (req) => {
+  return chatService.setTyping(req.params.conversationId, req.user.id, !!req.body?.typing);
+});
+
 const getSettingsHandler = wrap(async (req) => {
   return chatService.getSettings(req.params.conversationId, req.user.id);
 });
@@ -83,6 +87,7 @@ module.exports = {
   putDatePlanStatus,
   postLocation,
   getPresence,
+  postTyping,
   putEditMessage,
   deleteMessageHandler,
   putMessageState,

@@ -620,6 +620,7 @@ function DestinyOneApp() {
   const [partnerPresence, setPartnerPresence] = useState<{
     online: boolean;
     lastActiveAt: string | null;
+    typing: boolean;
   } | null>(null);
   const [coinBalance, setCoinBalance] = useState(
     memberDataRuntime.initialCoinBalance,
@@ -1179,7 +1180,10 @@ function DestinyOneApp() {
           // interacts with the app, rather than interrupting them here.
         }
       },
-      10 * 60 * 1000,
+      // Refresh well ahead of the access token's own lifetime (15m by
+      // default) so there's no window where a stale token causes an
+      // authenticated action (edit, send, etc.) to silently fail.
+      5 * 60 * 1000,
     );
     return () => clearInterval(interval);
   }, [accessToken]);
@@ -1433,10 +1437,14 @@ function DestinyOneApp() {
     };
   }, [hydrated, screen, conversationPartner.id]);
   // Polls the partner's real last-active status for the "online"/"last
-  // seen X ago" line at the top of the chat. Only while the chat screen is
-  // actually open and we're talking to the live backend (not the preview
-  // catalog) — there's no websocket here, so this is the same kind of
-  // short-interval REST poll already used for incoming calls and messages.
+  // seen X ago" line at the top of the chat, and now also their "is
+  // typing…" status. Only while the chat screen is actually open and
+  // we're talking to the live backend (not the preview catalog) — there's
+  // no websocket here, so this is the same kind of short-interval REST
+  // poll already used for incoming calls and messages. 3s (rather than
+  // the original 15s, back from when this only drove the much
+  // slower-changing online/last-seen line) keeps the typing indicator
+  // feeling responsive without needing a real-time channel.
   useEffect(() => {
     if (!hydrated || screen !== "chat" || !accessToken) {
       setPartnerPresence(null);
@@ -1453,7 +1461,7 @@ function DestinyOneApp() {
         .catch(() => undefined);
     };
     poll();
-    const timer = setInterval(poll, 15000);
+    const timer = setInterval(poll, 3000);
     return () => {
       active = false;
       clearInterval(timer);
@@ -3777,6 +3785,17 @@ function DestinyOneApp() {
             accessToken={accessToken}
             livePartnerOnline={partnerPresence?.online}
             partnerLastActiveAt={partnerPresence?.lastActiveAt ?? null}
+            livePartnerTyping={partnerPresence?.typing}
+            onTypingChange={(typing) => {
+              if (!accessToken) return;
+              void chatApi
+                .setTyping(
+                  accessToken,
+                  conversationIdFor(conversationPartner),
+                  typing,
+                )
+                .catch(() => undefined);
+            }}
           />
         )}
         {screen === "datePlan" && (

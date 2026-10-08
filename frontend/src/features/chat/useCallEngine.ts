@@ -26,8 +26,11 @@ export type CallEngine = {
   remoteStream: MediaStream | null;
   micEnabled: boolean;
   cameraEnabled: boolean;
+  canSwitchCamera: boolean;
+  isFrontCamera: boolean;
   toggleMic: () => void;
   toggleCamera: () => void;
+  switchCamera: () => void;
   hangUp: (reason?: string) => void;
 };
 
@@ -44,6 +47,8 @@ export function useCallEngine({
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(mode === "video");
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [canSwitchCamera, setCanSwitchCamera] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -101,6 +106,70 @@ export function useCallEngine({
       return next;
     });
   }, []);
+
+  const switchCamera = useCallback(() => {
+    if (mode !== "video") return;
+    void (async () => {
+      const nextFacingMode = isFrontCamera ? "environment" : "user";
+      let newStream: MediaStream;
+      try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30, max: 30 },
+            facingMode: { exact: nextFacingMode },
+          },
+        });
+      } catch {
+        // Some devices/browsers reject `exact` (e.g. a laptop with only
+        // one camera, or a browser that doesn't support the constraint
+        // the way we asked for it) — fall back to a non-strict request
+        // before giving up on the switch entirely.
+        try {
+          newStream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30, max: 30 },
+              facingMode: nextFacingMode,
+            },
+          });
+        } catch {
+          return;
+        }
+      }
+      const newTrack = newStream.getVideoTracks()[0];
+      if (!newTrack) return;
+      newTrack.enabled = cameraEnabled;
+
+      const pc = pcRef.current;
+      const sender = pc
+        ?.getSenders()
+        .find((candidate) => candidate.track?.kind === "video");
+      if (sender) {
+        try {
+          await sender.replaceTrack(newTrack);
+        } catch {
+          newTrack.stop();
+          return;
+        }
+      }
+
+      const current = localStreamRef.current;
+      if (current) {
+        current.getVideoTracks().forEach((track) => {
+          current.removeTrack(track);
+          track.stop();
+        });
+        current.addTrack(newTrack);
+        setLocalStream(current);
+      }
+      setIsFrontCamera((prev) => !prev);
+    })();
+  }, [mode, isFrontCamera, cameraEnabled]);
 
   useEffect(() => {
     if (!callId) return;
@@ -192,6 +261,19 @@ export function useCallEngine({
       }
       localStreamRef.current = stream;
       setLocalStream(stream);
+      setIsFrontCamera(true);
+
+      if (mode === "video" && navigator.mediaDevices.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoInputs = devices.filter((d) => d.kind === "videoinput");
+          if (active) setCanSwitchCamera(videoInputs.length > 1);
+        } catch {
+          // Some browsers only report device labels/count after a stream
+          // has been granted, and a handful block enumeration entirely —
+          // in that case we just don't show the switch-camera button.
+        }
+      }
 
       const { iceServers } = await callApi.getIceServers(accessToken);
       if (!active) return;
@@ -338,8 +420,11 @@ export function useCallEngine({
     remoteStream,
     micEnabled,
     cameraEnabled,
+    canSwitchCamera,
+    isFrontCamera,
     toggleMic,
     toggleCamera,
+    switchCamera,
     hangUp,
   };
 }

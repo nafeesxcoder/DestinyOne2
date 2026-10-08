@@ -20,16 +20,36 @@ import { useCallEngine } from "./useCallEngine";
 // before auto-hiding — matches WhatsApp's tap-to-reveal call screen.
 const CONTROLS_AUTO_HIDE_MS = 4000;
 
+// Points a media element's audio OUTPUT at a specific device (e.g. a
+// paired Bluetooth headset) via the Audio Output Devices API. Only a
+// handful of browsers support setSinkId (Chrome/Edge do; Safari/Firefox
+// don't), so this is always a best-effort no-op fallback to whatever the
+// OS currently treats as the default output.
+function applySinkId(
+  element: HTMLMediaElement | null,
+  sinkId: string | undefined,
+) {
+  if (!element || !sinkId) return;
+  const withSink = element as HTMLMediaElement & {
+    setSinkId?: (id: string) => Promise<void>;
+  };
+  if (typeof withSink.setSinkId === "function") {
+    void withSink.setSinkId(sinkId).catch(() => undefined);
+  }
+}
+
 function RTCVideoView({
   stream,
   mirrored,
   muted,
   volume,
+  sinkId,
 }: {
   stream: MediaStream | null;
   mirrored?: boolean;
   muted?: boolean;
   volume?: number;
+  sinkId?: string;
 }) {
   const ref = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
@@ -42,6 +62,9 @@ function RTCVideoView({
       ref.current.volume = volume;
     }
   }, [volume]);
+  useEffect(() => {
+    applySinkId(ref.current, sinkId);
+  }, [sinkId]);
   if (Platform.OS !== "web") return null;
   return React.createElement("video", {
     ref,
@@ -63,9 +86,11 @@ function RTCVideoView({
 function RTCAudioSink({
   stream,
   volume,
+  sinkId,
 }: {
   stream: MediaStream | null;
   volume?: number;
+  sinkId?: string;
 }) {
   const ref = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
@@ -78,6 +103,9 @@ function RTCAudioSink({
       ref.current.volume = volume;
     }
   }, [volume]);
+  useEffect(() => {
+    applySinkId(ref.current, sinkId);
+  }, [sinkId]);
   if (Platform.OS !== "web") return null;
   return React.createElement("audio", {
     ref,
@@ -148,6 +176,13 @@ export function CallModal({
   // itself fills the whole screen instead of sitting in a boxed preview.
   const [controlsVisible, setControlsVisible] = useState(true);
   const [speakerOn, setSpeakerOn] = useState(true);
+  // Audio OUTPUT device for this call (speaker, earpiece, or a paired
+  // Bluetooth headset). Lets someone route call audio to Bluetooth even
+  // when the OS doesn't default to it for this page.
+  const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
+  const [selectedSinkId, setSelectedSinkId] = useState<string | undefined>(
+    undefined,
+  );
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const engine = useCallEngine({
     accessToken,
@@ -157,11 +192,90 @@ export function CallModal({
     onEnded: () => onClose(),
   });
 
+  // This modal stays mounted for the whole chat screen (across many calls,
+  // not just one), so `seconds` was never reset between calls — after a
+  // call ended and a new one started, the timer picked up right where the
+  // previous call's timer had left off instead of starting back at 0:00.
+  useEffect(() => {
+    setSeconds(0);
+  }, [callId]);
+
   useEffect(() => {
     if (engine.phase !== "connected") return;
     const timer = setInterval(() => setSeconds((value) => value + 1), 1000);
     return () => clearInterval(timer);
   }, [engine.phase]);
+
+  useEffect(() => {
+    if (
+      engine.phase !== "connected" ||
+      Platform.OS !== "web" ||
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices?.enumerateDevices
+    )
+      return;
+    let active = true;
+    navigator.mediaDevices
+      .enumerateDevices()
+      .then((devices) => {
+        if (!active) return;
+        setAudioOutputs(devices.filter((d) => d.kind === "audiooutput"));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [engine.phase]);
+
+  const cycleAudioOutput = () => {
+    if (audioOutputs.length < 2) return;
+    const currentIndex = audioOutputs.findIndex(
+      (d) => d.deviceId === selectedSinkId,
+    );
+    const next = audioOutputs[(currentIndex + 1) % audioOutputs.length];
+    if (next) setSelectedSinkId(next.deviceId);
+  };
+
+  const selectedOutputLabel =
+    audioOutputs.find((d) => d.deviceId === selectedSinkId)?.label || "";
+  const isBluetoothOutput = /bluetooth|headset|airpods|buds/i.test(
+    selectedOutputLabel,
+  );
+
+  // On Android (and installed-PWA/webview) Chrome, the hardware/gesture
+  // back button is a browser "go back" by default — while a call is open
+  // that was closing the whole app instead of just the call screen,
+  // because this modal has no history entry of its own to absorb the
+  // back press. Pushing one here means the first back press while a call
+  // is open just hangs up the call and stays in the app; it never reaches
+  // the browser/OS's own back behavior.
+  const poppedByBackRef = useRef(false);
+  useEffect(() => {
+    // This component stays mounted for the whole chat screen (it just
+    // renders null when no call is active), so without this guard we'd
+    // push a history entry on every chat screen open, not just while a
+    // call is actually showing.
+    if (!mode) return;
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    poppedByBackRef.current = false;
+    window.history.pushState({ destinyoneCallModal: true }, "");
+    const handlePopState = () => {
+      poppedByBackRef.current = true;
+      engine.hangUp("hangup");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      // If we're unmounting for any reason other than the user's own back
+      // press (e.g. they tapped the hang-up button), consume the history
+      // entry we pushed so a later back press doesn't land on it and do
+      // nothing.
+      if (!poppedByBackRef.current && window.history.state?.destinyoneCallModal) {
+        window.history.back();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   const isFullScreenVideo =
     mode === "video" &&
@@ -257,7 +371,11 @@ export function CallModal({
         {/* Always play the remote party's audio for a pure voice call; a
             video call's audio plays through the full-screen <video> below. */}
         {mode === "audio" && (
-          <RTCAudioSink stream={engine.remoteStream} volume={remoteVolume} />
+          <RTCAudioSink
+            stream={engine.remoteStream}
+            volume={remoteVolume}
+            sinkId={selectedSinkId}
+          />
         )}
 
         {/* Full-bleed background: the remote (or self) video feed for a
@@ -271,6 +389,7 @@ export function CallModal({
                 mirrored={mainIsSelf}
                 muted={mainIsSelf}
                 volume={mainIsSelf ? undefined : remoteVolume}
+                sinkId={mainIsSelf ? undefined : selectedSinkId}
               />
             ) : match.photo ? (
               <Image
@@ -417,11 +536,26 @@ export function CallModal({
                   onPress={engine.toggleCamera}
                 />
               )}
-              <CircleButton
-                icon={speakerOn ? "volume-high" : "volume-mute"}
-                active={speakerOn}
-                onPress={() => setSpeakerOn((value) => !value)}
-              />
+              {mode === "video" && engine.canSwitchCamera && (
+                <CircleButton
+                  icon="camera-reverse-outline"
+                  active={!engine.isFrontCamera}
+                  onPress={engine.switchCamera}
+                />
+              )}
+              {audioOutputs.length > 1 ? (
+                <CircleButton
+                  icon={isBluetoothOutput ? "bluetooth" : "volume-high"}
+                  active={isBluetoothOutput}
+                  onPress={cycleAudioOutput}
+                />
+              ) : (
+                <CircleButton
+                  icon={speakerOn ? "volume-high" : "volume-mute"}
+                  active={speakerOn}
+                  onPress={() => setSpeakerOn((value) => !value)}
+                />
+              )}
               <CircleButton
                 icon={engine.micEnabled ? "mic" : "mic-off"}
                 active={!engine.micEnabled}
