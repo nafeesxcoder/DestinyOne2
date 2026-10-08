@@ -591,6 +591,50 @@ function DestinyOneApp() {
   const [screen, setScreen] = useState<Screen>(
     () => showcasePreviewScreen ?? "splash",
   );
+  // App-wide back-button guard: give every in-app screen its own browser
+  // history entry, so the hardware/gesture back button steps back through
+  // screens instead of exiting the whole app/webview. Without this, the
+  // very first back press anywhere (e.g. on the profile screen) would
+  // close the app, since nothing was ever pushed onto history.
+  const screenRef = useRef(screen);
+  const isPoppingScreenRef = useRef(false);
+  const hasMountedBackGuardRef = useRef(false);
+  useEffect(() => {
+    screenRef.current = screen;
+  }, [screen]);
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    window.history.replaceState({ destinyoneScreen: screenRef.current }, "");
+    const handlePopState = (event: PopStateEvent) => {
+      const target = (event.state as { destinyoneScreen?: Screen } | null)
+        ?.destinyoneScreen;
+      if (target && target !== screenRef.current) {
+        isPoppingScreenRef.current = true;
+        setScreen(target);
+      } else {
+        // Bottom of our in-app stack — never let the back button exit the
+        // app; just re-seed a history entry and stay on the current screen.
+        window.history.pushState(
+          { destinyoneScreen: screenRef.current },
+          "",
+        );
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    if (isPoppingScreenRef.current) {
+      isPoppingScreenRef.current = false;
+      return;
+    }
+    if (!hasMountedBackGuardRef.current) {
+      hasMountedBackGuardRef.current = true;
+      return;
+    }
+    window.history.pushState({ destinyoneScreen: screen }, "");
+  }, [screen]);
   const [selected, setSelected] = useState<Match>(matches[0]!);
   const [datePlanPreset, setDatePlanPreset] = useState<PlaceItem | null>(null);
   const [vibeList, setVibeList] = useState<string[]>([]);

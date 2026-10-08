@@ -3149,7 +3149,7 @@ export function ChatScreen({
           />
           {!!quickReactFor &&
             (() => {
-              const barWidth = 296;
+              const barWidth = 312;
               const barHeight = 56;
               const left = Math.min(
                 Math.max(quickReactFor.pageX - barWidth / 2, 12),
@@ -4063,7 +4063,12 @@ function ChatBubble({
   };
   if (message.deletedForEveryone) return null;
   return (
-    <View style={chatStyles.swipeReplyWrap}>
+    <View
+      style={[
+        chatStyles.swipeReplyWrap,
+        { alignSelf: mine ? "flex-end" : "flex-start" },
+      ]}
+    >
       <Animated.View
         style={[
           chatStyles.swipeReplyIcon,
@@ -4084,7 +4089,7 @@ function ChatBubble({
       </Animated.View>
       <Animated.View
         {...swipeResponder.panHandlers}
-        style={{ transform: [{ translateX: swipeX }] }}
+        style={{ alignSelf: mine ? "flex-end" : "flex-start", transform: [{ translateX: swipeX }] }}
       >
     <Pressable
       accessibilityRole="button"
