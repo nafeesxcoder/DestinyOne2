@@ -4086,7 +4086,12 @@ function ChatBubble({
           )}
         </View>
       )}
-      <View style={chatStyles.bubbleColumn}>
+      <View
+        style={[
+          chatStyles.bubbleColumn,
+          { alignItems: mine ? "flex-end" : "flex-start" },
+        ]}
+      >
         {!mine && !!partnerName && (
           <Text
             style={[chatStyles.bubbleSenderName, accent ? { color: accent } : null]}

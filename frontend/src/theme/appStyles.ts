@@ -1163,7 +1163,7 @@ Object.assign(styles as Record<string, any>, {
   radioOn:{borderColor:colors.pink,backgroundColor:colors.surface},
   safety:{backgroundColor:colors.wineDeep},
   safetyText:{color:colors.textInverse},
-  myBubble:{backgroundColor:colors.wineDeep},
+  myBubble:{...styles.myBubble,backgroundColor:colors.wineDeep},
   plusBanner:{backgroundColor:colors.blush,borderColor:colors.line},
   plusTitle:{color:colors.text},
   price:{color:colors.text},
