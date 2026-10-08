@@ -61,9 +61,16 @@ function rowToMessage(row, viewerId) {
     starredByMe: starredBy.includes(viewerId),
     hiddenForMe: hiddenBy.includes(viewerId),
     pinnedAt: row.pinned_at ? new Date(row.pinned_at).getTime() : undefined,
-    reactions: reactionsMap[viewerId]
-      ? { me: reactionsMap[viewerId] }
-      : undefined,
+    reactions: (() => {
+      const mine = reactionsMap[viewerId];
+      const otherId = Object.keys(reactionsMap).find((id) => id !== viewerId);
+      const partner = otherId ? reactionsMap[otherId] : undefined;
+      if (!mine && !partner) return undefined;
+      const result = {};
+      if (mine) result.me = mine;
+      if (partner) result.partner = partner;
+      return result;
+    })(),
     editedAt: row.edited_at
       ? new Date(row.edited_at).getTime()
       : payload.editedAt,

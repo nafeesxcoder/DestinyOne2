@@ -2714,7 +2714,11 @@ export function ChatScreen({
                   message={message}
                   status={deliveryOverrides[message.id] ?? message.status}
                   accent={activeTheme.accent}
-                  reaction={message.reactions?.me || undefined}
+                  reaction={
+                    message.reactions?.partner ||
+                    message.reactions?.me ||
+                    undefined
+                  }
                   starred={message.starredByMe}
                   pinned={!!message.pinnedAt}
                   selected={selectedMessageIds.includes(message.id)}
@@ -4434,7 +4438,12 @@ function ChatBubble({
         {mine && <MessageReceipt status={status} />}
       </View>
       {!!reaction && (
-        <View style={chatStyles.reactionPill}>
+        <View
+          style={[
+            chatStyles.reactionPill,
+            mine && chatStyles.reactionPillMine,
+          ]}
+        >
           <Text style={chatStyles.reactionText}>{reaction}</Text>
         </View>
       )}
