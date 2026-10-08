@@ -3003,7 +3003,7 @@ Object.assign(chatStyles as Record<string, any>, {
   errorText:{...chatStyles.errorText,fontFamily:'Poppins_700Bold',color:colors.textInverse},
   safetyNudgeTitle:{...chatStyles.safetyNudgeTitle,fontFamily:'Poppins_700Bold',color:colors.textInverse},
   safetyNudgeBody:{...chatStyles.safetyNudgeBody,fontFamily:'Poppins_600SemiBold'},
-  optionTitle:{...chatStyles.optionTitle,fontFamily:'Poppins_700Bold',color:colors.textInverse},
+  optionTitle:{...chatStyles.optionTitle,fontFamily:'Poppins_700Bold'},
   optionBody:{...chatStyles.optionBody,fontFamily:'Poppins_600SemiBold'},
   emojiTitle:{...chatStyles.emojiTitle,fontFamily:'Poppins_700Bold',color:colors.textInverse},
   emojiCount:{...chatStyles.emojiCount,fontFamily:'Poppins_700Bold'},
