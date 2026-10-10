@@ -1023,6 +1023,14 @@ export function ChatScreen({
         ? "video"
         : null,
   );
+  // Lifted up from CallModal so the header's own "back to matches" button
+  // (below) can minimize an active call instead of leaving the screen --
+  // that button is a plain onPress, not a browser back/history action, so
+  // CallModal's own popstate-based back-guard never sees it. On mobile,
+  // tapping this on-screen arrow is how people normally go back (vs. a
+  // physical/gesture back elsewhere), which is why the call kept hanging
+  // up there even after the history-based fix.
+  const [callMinimized, setCallMinimized] = useState(false);
   const [chatError, setChatError] = useState("");
   const [optionsOpen, setOptionsOpen] = useState(
     previewState === "chat-options",
@@ -2282,7 +2290,16 @@ export function ChatScreen({
                 isCoupleMode ? "Back to our space" : "Back to matches"
               }
               hitSlop={accessibilityHitSlop}
-              onPress={() => navigate("home")}
+              onPress={() => {
+                // A call is on screen full-screen -- minimize it instead of
+                // leaving (same as the browser/gesture back-press guard),
+                // so it doesn't silently hang up when someone taps this.
+                if (callMode && !callMinimized) {
+                  setCallMinimized(true);
+                  return;
+                }
+                navigate("home");
+              }}
             >
               <PremiumIcon
                 name="arrow-back"
@@ -3367,6 +3384,8 @@ export function ChatScreen({
             accessToken={accessToken}
             callId={activeCallId}
             isCaller={isCallOutgoing}
+            minimized={callMinimized}
+            onMinimizedChange={setCallMinimized}
             onClose={() => {
               setIncomingCallId(null);
               setActiveCallId(null);

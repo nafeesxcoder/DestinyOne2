@@ -157,6 +157,8 @@ export function CallModal({
   accessToken,
   callId,
   isCaller,
+  minimized,
+  onMinimizedChange,
   onClose,
 }: {
   mode: "audio" | "video" | null;
@@ -165,6 +167,11 @@ export function CallModal({
   accessToken: string;
   callId: string | null;
   isCaller: boolean;
+  // Controlled from the chat screen so its own header "back" button (a
+  // plain onPress, not a browser back/history action) can minimize the
+  // call too -- not just the browser/gesture back-press guard below.
+  minimized: boolean;
+  onMinimizedChange: (value: boolean) => void;
   onClose: () => void;
 }) {
   const [seconds, setSeconds] = useState(0);
@@ -172,7 +179,7 @@ export function CallModal({
   // running in the background -- this just swaps the full-screen UI for a
   // small pill so the person can go use the rest of the app (e.g. message
   // someone else) while still on the call.
-  const [minimized, setMinimized] = useState(false);
+  const setMinimized = onMinimizedChange;
   // WhatsApp-style swap: tapping the small PIP box makes it the main
   // full-screen view and moves the other feed into the PIP box.
   const [mainView, setMainView] = useState<"remote" | "self">("remote");
