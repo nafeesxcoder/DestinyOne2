@@ -122,6 +122,7 @@ import {
   subscribePersistedChatMessages as subscribePersistedChatMessagesPreview,
 } from "./adapters/previewPersistence";
 import { chatApi } from "../api/chatApi";
+import { minimizeActiveCallIfAny } from "../features/chat/activeCallBackGuard";
 import { pushApi } from "../api/pushApi";
 import { safetyApi } from "../api/safetyApi";
 import { conversationIdFor, profileIdFor } from "../domain/matchIdentity";
@@ -606,6 +607,16 @@ function DestinyOneApp() {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
     window.history.replaceState({ destinyoneScreen: screenRef.current }, "");
     const handlePopState = (event: PopStateEvent) => {
+      // A full-screen call (if any) gets first claim on every back press --
+      // minimize it and re-seed our own entry rather than navigating away,
+      // which would otherwise unmount the call along with the screen it's
+      // shown on. See activeCallBackGuard.ts for why this lives here as a
+      // single shared check instead of a second, separately-stacked history
+      // entry/listener on the call screen itself.
+      if (minimizeActiveCallIfAny()) {
+        window.history.pushState({ destinyoneScreen: screenRef.current }, "");
+        return;
+      }
       const target = (event.state as { destinyoneScreen?: Screen } | null)
         ?.destinyoneScreen;
       if (target && target !== screenRef.current) {

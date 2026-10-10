@@ -863,6 +863,70 @@ const formatChatFileSize = (bytes?: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
 };
 
+// expo-image-picker's web shim (ExponentImagePicker.web.ts) listens for a
+// 'cancel' event alongside the real 'change' event on its hidden <input>,
+// and treats either as "the user canceled". On some Android setups, picking
+// a heavyweight third-party picker app (Google Photos, rather than the
+// lightweight system Photo Picker) as the handler for that <input> fires a
+// spurious 'cancel' before the <input>'s files are populated -- so the shim
+// resolves `{ canceled: true }` even though the user genuinely selected a
+// file and tapped that picker's own native "Done" button. That silently
+// short-circuited sendGalleryMedia() before it ever reached the caption
+// preview, which is why nothing appeared to happen.
+//
+// We can't patch the vendored library, so on web we drive our own minimal
+// <input type="file"> instead and only ever trust a real 'change' event; a
+// genuine cancel is inferred only from the window regaining focus with no
+// file selected, which is the one signal that isn't racy.
+function pickWebMedia(opts: { accept: string }): Promise<File | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = opts.accept;
+    input.style.position = "fixed";
+    input.style.top = "-1000px";
+    input.style.left = "-1000px";
+    let settled = false;
+    const finish = (file: File | null) => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("focus", onFocus);
+      if (input.parentNode) document.body.removeChild(input);
+      resolve(file);
+    };
+    const onFocus = () => {
+      // The native picker UI has closed and focus has returned to the page.
+      // Give the browser a beat to populate input.files before deciding
+      // nothing was chosen.
+      setTimeout(() => {
+        if (!settled && (!input.files || input.files.length === 0)) {
+          finish(null);
+        }
+      }, 300);
+    };
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0] ? input.files[0] : null;
+      finish(file);
+    });
+    window.addEventListener("focus", onFocus);
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
+function webFileToImagePickerAsset(file: File): ImagePicker.ImagePickerAsset {
+  const isVideo = file.type.startsWith("video/");
+  return {
+    uri: URL.createObjectURL(file),
+    width: 0,
+    height: 0,
+    type: isVideo ? "video" : "image",
+    fileName: file.name,
+    fileSize: file.size,
+    mimeType: file.type || undefined,
+  } as ImagePicker.ImagePickerAsset;
+}
+
 // Turns a last-active ISO timestamp into a short relative label like
 // WhatsApp's "last seen 5 minutes ago" / "last seen today at 2:40 PM".
 function formatLastSeen(iso: string): string {
@@ -1663,12 +1727,20 @@ export function ChatScreen({
       return;
     }
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images", "videos"],
-        quality: 0.82,
-        videoMaxDuration: 180,
-      });
-      const asset = result.canceled ? undefined : result.assets[0];
+      let asset: ImagePicker.ImagePickerAsset | undefined;
+      if (Platform.OS === "web") {
+        // See pickWebMedia above -- works around an expo-image-picker web
+        // bug where a real selection can falsely come back as "canceled".
+        const file = await pickWebMedia({ accept: "image/*,video/*" });
+        asset = file ? webFileToImagePickerAsset(file) : undefined;
+      } else {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images", "videos"],
+          quality: 0.82,
+          videoMaxDuration: 180,
+        });
+        asset = result.canceled ? undefined : result.assets[0];
+      }
       if (!asset) return;
       if (asset.fileSize && asset.fileSize > maxChatFileBytes) {
         setChatError("Choose a photo or video smaller than 100 MB.");

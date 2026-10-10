@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { Match } from "../../data";
 import { chatStyles, callStyles } from "../../theme/appStyles";
 import { useCallEngine } from "./useCallEngine";
+import { setActiveCallMinimizer } from "./activeCallBackGuard";
 
 // How long the full-screen video controls stay visible after the last tap,
 // before auto-hiding — matches WhatsApp's tap-to-reveal call screen.
@@ -257,41 +258,30 @@ export function CallModal({
 
   // On Android (and installed-PWA/webview) Chrome, the hardware/gesture
   // back button is a browser "go back" by default — while a call is open
-  // that was closing the whole app instead of just the call screen,
-  // because this modal has no history entry of its own to absorb the
-  // back press. Pushing one here means the first back press while a call
-  // is open just hangs up the call and stays in the app; it never reaches
-  // the browser/OS's own back behavior.
-  const poppedByBackRef = useRef(false);
+  // that was closing the whole app instead of just the call screen.
+  //
+  // This used to push its OWN history entry and listen for popstate right
+  // here, stacked on top of the app-wide back guard's entry (DestinyOneApp,
+  // via screen navigation). That worked for a single isolated back press,
+  // but a real device's back gesture can pop more than one history entry in
+  // one motion -- when it did, the second pop skipped straight past this
+  // component (it had already stopped listening after minimizing once) and
+  // landed on the app-wide guard, which navigated the screen and unmounted
+  // this whole call. Now there's a single shared history entry owned by the
+  // app-wide guard; this just registers *that a call wants first claim* on
+  // the next back press, via activeCallBackGuard, instead of managing its
+  // own history state.
   useEffect(() => {
     // This component stays mounted for the whole chat screen (it just
-    // renders null when no call is active), so without this guard we'd
-    // push a history entry on every chat screen open, not just while a
-    // call is actually showing. Only the full-screen call view needs this
-    // -- once minimized, a back press should behave normally (navigate the
-    // app), not get caught here again.
-    if (!mode || minimized) return;
-    if (Platform.OS !== "web" || typeof window === "undefined") return;
-    poppedByBackRef.current = false;
-    window.history.pushState({ destinyoneCallModal: true }, "");
-    const handlePopState = () => {
-      poppedByBackRef.current = true;
-      // Minimize, don't hang up -- the call keeps running so the person
-      // can go message someone else and come back to it.
-      setMinimized(true);
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      // If we're unmounting/re-running for any reason other than the
-      // user's own back press (e.g. they tapped the hang-up button, or we
-      // just minimized), consume the history entry we pushed so a later
-      // back press doesn't land on it and do nothing.
-      if (!poppedByBackRef.current && window.history.state?.destinyoneCallModal) {
-        window.history.back();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // renders null when no call is active), so only the full-screen call
+    // view needs to claim the back press -- once minimized, a back press
+    // should behave normally (navigate the app), not get caught here again.
+    if (!mode || minimized) {
+      setActiveCallMinimizer(null);
+      return;
+    }
+    setActiveCallMinimizer(() => setMinimized(true));
+    return () => setActiveCallMinimizer(null);
   }, [mode, minimized]);
 
   const isFullScreenVideo =
