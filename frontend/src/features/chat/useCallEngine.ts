@@ -199,6 +199,15 @@ export function useCallEngine({
     remoteDescriptionSetRef.current = false;
     pendingCandidatesRef.current = [];
     sinceMsRef.current = 0;
+    // Same carry-over problem as the refs above: phase/error are component
+    // state, so without resetting them here, a new call's very first render
+    // still shows whatever phase the PREVIOUS call ended on (usually
+    // "ended"), and only flips to "ringing"/"connected" once this effect's
+    // async flow catches up -- that's what caused "Call Ended" to flash
+    // briefly before "Ringing" when placing a new call.
+    setPhase("connecting");
+    setError(null);
+    setRemoteStream(null);
 
     const run = async () => {
       let stream: MediaStream;

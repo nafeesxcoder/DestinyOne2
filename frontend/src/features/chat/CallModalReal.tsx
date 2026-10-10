@@ -168,6 +168,11 @@ export function CallModal({
   onClose: () => void;
 }) {
   const [seconds, setSeconds] = useState(0);
+  // Minimizing (vs. hanging up) on back-press: the call itself keeps
+  // running in the background -- this just swaps the full-screen UI for a
+  // small pill so the person can go use the rest of the app (e.g. message
+  // someone else) while still on the call.
+  const [minimized, setMinimized] = useState(false);
   // WhatsApp-style swap: tapping the small PIP box makes it the main
   // full-screen view and moves the other feed into the PIP box.
   const [mainView, setMainView] = useState<"remote" | "self">("remote");
@@ -198,6 +203,7 @@ export function CallModal({
   // previous call's timer had left off instead of starting back at 0:00.
   useEffect(() => {
     setSeconds(0);
+    setMinimized(false);
   }, [callId]);
 
   useEffect(() => {
@@ -254,28 +260,32 @@ export function CallModal({
     // This component stays mounted for the whole chat screen (it just
     // renders null when no call is active), so without this guard we'd
     // push a history entry on every chat screen open, not just while a
-    // call is actually showing.
-    if (!mode) return;
+    // call is actually showing. Only the full-screen call view needs this
+    // -- once minimized, a back press should behave normally (navigate the
+    // app), not get caught here again.
+    if (!mode || minimized) return;
     if (Platform.OS !== "web" || typeof window === "undefined") return;
     poppedByBackRef.current = false;
     window.history.pushState({ destinyoneCallModal: true }, "");
     const handlePopState = () => {
       poppedByBackRef.current = true;
-      engine.hangUp("hangup");
+      // Minimize, don't hang up -- the call keeps running so the person
+      // can go message someone else and come back to it.
+      setMinimized(true);
     };
     window.addEventListener("popstate", handlePopState);
     return () => {
       window.removeEventListener("popstate", handlePopState);
-      // If we're unmounting for any reason other than the user's own back
-      // press (e.g. they tapped the hang-up button), consume the history
-      // entry we pushed so a later back press doesn't land on it and do
-      // nothing.
+      // If we're unmounting/re-running for any reason other than the
+      // user's own back press (e.g. they tapped the hang-up button, or we
+      // just minimized), consume the history entry we pushed so a later
+      // back press doesn't land on it and do nothing.
       if (!poppedByBackRef.current && window.history.state?.destinyoneCallModal) {
         window.history.back();
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, minimized]);
 
   const isFullScreenVideo =
     mode === "video" &&
@@ -366,18 +376,43 @@ export function CallModal({
   const showControls = controlsVisible || !isFullScreenVideo;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+    <>
+      {/* Rendered unconditionally (outside the Modal) so the call's audio
+          keeps playing while minimized -- the Modal below, which normally
+          carries the audio for a voice call or rides along with the
+          full-screen <video> for a video call, unmounts when minimized. */}
+      {(mode === "audio" || minimized) && (
+        <RTCAudioSink
+          stream={engine.remoteStream}
+          volume={remoteVolume}
+          sinkId={selectedSinkId}
+        />
+      )}
+      {minimized && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Return to call with ${match.name}`}
+          onPress={() => setMinimized(false)}
+          style={callStyles.minimizedCallPill}
+        >
+          <Ionicons name="call" size={14} color="#FFF" />
+          <Text style={callStyles.minimizedCallText} numberOfLines={1}>
+            {match.name} · {stateLabel}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="End call"
+            hitSlop={8}
+            onPress={() => engine.hangUp("hangup")}
+            style={callStyles.minimizedCallEnd}
+          >
+            <Ionicons name="close" size={14} color="#FFF" />
+          </Pressable>
+        </Pressable>
+      )}
+      {!minimized && (
+      <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={callStyles.fullScreenRoot}>
-        {/* Always play the remote party's audio for a pure voice call; a
-            video call's audio plays through the full-screen <video> below. */}
-        {mode === "audio" && (
-          <RTCAudioSink
-            stream={engine.remoteStream}
-            volume={remoteVolume}
-            sinkId={selectedSinkId}
-          />
-        )}
-
         {/* Full-bleed background: the remote (or self) video feed for a
             video call, or a plain gradient behind the centered avatar for
             an audio call. */}
@@ -578,6 +613,8 @@ export function CallModal({
           )}
         </SafeAreaView>
       </View>
-    </Modal>
+      </Modal>
+      )}
+    </>
   );
 }

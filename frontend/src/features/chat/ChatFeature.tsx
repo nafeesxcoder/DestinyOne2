@@ -1039,6 +1039,18 @@ export function ChatScreen({
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [viewerImageUri, setViewerImageUri] = useState<string | null>(null);
   const [viewerVideoUri, setViewerVideoUri] = useState<string | null>(null);
+  // Photo/video picked from gallery or camera waits here for a caption and
+  // an explicit send, same as WhatsApp's pre-send preview -- it is NOT
+  // uploaded or dispatched to the chat until the user taps the send icon.
+  const [pendingMedia, setPendingMedia] = useState<{
+    kind: "image" | "video";
+    uri: string;
+    asset: ImagePicker.ImagePickerAsset;
+    fallbackName: string;
+  } | null>(null);
+  const [pendingCaption, setPendingCaption] = useState("");
+  const [pendingMediaError, setPendingMediaError] = useState("");
+  const [sendingPendingMedia, setSendingPendingMedia] = useState(false);
   const [quickReactFor, setQuickReactFor] = useState<{
     message: ChatMessage;
     pageX: number;
@@ -1657,34 +1669,16 @@ export function ChatScreen({
       const name =
         asset.fileName?.trim() ||
         `DestinyOne-media-${Date.now()}.${asset.type === "video" ? "mp4" : "jpg"}`;
-      const uploadedUri = accessToken
-        ? await chatApi
-            .uploadMedia(accessToken, asset.uri, name)
-            .catch(() => asset.uri)
-        : asset.uri;
-      if (asset.type === "video") {
-        await dispatchMessage(
-          createMessage({
-            type: "document",
-            uri: uploadedUri,
-            text: "Video",
-            document: {
-              name,
-              size: asset.fileSize,
-              mimeType: asset.mimeType ?? "video/mp4",
-              kind: "video",
-            },
-          }),
-        );
-      } else {
-        await dispatchMessage(
-          createMessage({
-            type: "image",
-            uri: uploadedUri,
-            text: asset.fileName?.trim() || "Photo",
-          }),
-        );
-      }
+      // Don't upload/send yet -- open the WhatsApp-style preview so the user
+      // can add a caption (or just tap send to share it as-is).
+      setPendingCaption("");
+      setPendingMediaError("");
+      setPendingMedia({
+        kind: asset.type === "video" ? "video" : "image",
+        uri: asset.uri,
+        asset,
+        fallbackName: name,
+      });
       setShowAttachments(false);
     } catch (error) {
       setChatError(
@@ -1720,13 +1714,62 @@ export function ChatScreen({
       const asset = result.assets[0];
       const name =
         asset.fileName?.trim() || `DestinyOne-photo-${Date.now()}.jpg`;
+      setPendingCaption("");
+      setPendingMediaError("");
+      setPendingMedia({ kind: "image", uri: asset.uri, asset, fallbackName: name });
+      setShowAttachments(false);
+    }
+  };
+  const cancelPendingMedia = () => {
+    setPendingMedia(null);
+    setPendingCaption("");
+    setPendingMediaError("");
+  };
+  const confirmSendPendingMedia = async () => {
+    if (!pendingMedia || sendingPendingMedia) return;
+    setSendingPendingMedia(true);
+    setPendingMediaError("");
+    try {
+      const { asset, kind, fallbackName } = pendingMedia;
+      const caption = pendingCaption.trim();
       const uploadedUri = accessToken
         ? await chatApi
-            .uploadMedia(accessToken, asset.uri, name)
+            .uploadMedia(accessToken, asset.uri, fallbackName)
             .catch(() => asset.uri)
         : asset.uri;
-      await dispatchMessage(createMessage({ type: "image", uri: uploadedUri }));
-      setShowAttachments(false);
+      if (kind === "video") {
+        await dispatchMessage(
+          createMessage({
+            type: "document",
+            uri: uploadedUri,
+            text: caption || undefined,
+            document: {
+              name: fallbackName,
+              size: asset.fileSize,
+              mimeType: asset.mimeType ?? "video/mp4",
+              kind: "video",
+            },
+          }),
+        );
+      } else {
+        await dispatchMessage(
+          createMessage({
+            type: "image",
+            uri: uploadedUri,
+            text: caption || undefined,
+          }),
+        );
+      }
+      setPendingMedia(null);
+      setPendingCaption("");
+    } catch (error) {
+      setPendingMediaError(
+        error instanceof Error
+          ? error.message
+          : "Could not send. Please try again.",
+      );
+    } finally {
+      setSendingPendingMedia(false);
     }
   };
   const sendDocument = async () => {
@@ -2728,6 +2771,11 @@ export function ChatScreen({
                   onGiftResponse={(input) => onGiftResponse(message.id, input)}
                   onPress={() => selectMessage(message)}
                   onSwipeReply={() => setReplyTarget(message)}
+                  onSwipeEdit={
+                    message.mine !== false && message.type === "text"
+                      ? () => setEditTarget(message)
+                      : undefined
+                  }
                   onOpenImage={(uri) => setViewerImageUri(uri)}
                   onOpenVideo={(uri) => setViewerVideoUri(uri)}
                   onQuickReact={(event) => {
@@ -2936,14 +2984,21 @@ export function ChatScreen({
             {replyTarget && (
               <View style={chatStyles.replyPreview}>
                 <View style={chatStyles.replyAccent} />
-                <View style={{ flex: 1 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Jump to the message you're replying to"
+                  style={{ flex: 1 }}
+                  onPress={() => jumpToMessage(replyTarget.id)}
+                >
                   <Text style={chatStyles.replyTitle}>
-                    Replying to your message
+                    {replyTarget.mine !== false
+                      ? "Replying to your message"
+                      : `Replying to ${displayName}`}
                   </Text>
                   <Text numberOfLines={1} style={chatStyles.replyText}>
                     {messageSummary(replyTarget)}
                   </Text>
-                </View>
+                </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Cancel reply"
@@ -3292,6 +3347,18 @@ export function ChatScreen({
             visible={faceEmojiOpen}
             onClose={() => setFaceEmojiOpen(false)}
             onSend={sendFaceEmoji}
+          />
+          <MediaCaptionPreview
+            visible={!!pendingMedia}
+            kind={pendingMedia?.kind ?? "image"}
+            uri={pendingMedia?.uri ?? ""}
+            fallbackName={pendingMedia?.fallbackName ?? ""}
+            caption={pendingCaption}
+            onChangeCaption={setPendingCaption}
+            onCancel={cancelPendingMedia}
+            onSend={() => void confirmSendPendingMedia()}
+            sending={sendingPendingMedia}
+            error={pendingMediaError}
           />
           <CallModal
             mode={callMode}
@@ -3977,11 +4044,13 @@ function ChatBubble({
   onOpenVideo,
   onQuickReact,
   onSwipeReply,
+  onSwipeEdit,
 }: {
   message: ChatMessage;
   status: ChatMessage["status"];
   accent?: string;
   reaction?: string;
+  onSwipeEdit?: () => void;
   starred?: boolean;
   pinned?: boolean;
   selected?: boolean;
@@ -3999,13 +4068,13 @@ function ChatBubble({
   onSwipeReply?: () => void;
 }) {
   const mine = message.mine !== false;
-  // WhatsApp-style swipe-to-reply: drag the bubble horizontally (toward the
-  // center, same direction regardless of whose message it is) and release
-  // past the threshold to open the reply composer for this message.
-  const SWIPE_REPLY_THRESHOLD = 56;
-  const SWIPE_REPLY_MAX = 84;
+  // WhatsApp-style swipe actions: swipe right on any message to reply;
+  // swipe left on your own message to edit it (can't edit the other
+  // person's message, so a left swipe on their bubble just resists back).
+  const SWIPE_ACTION_THRESHOLD = 56;
+  const SWIPE_ACTION_MAX = 84;
+  const canSwipeEdit = mine && !!onSwipeEdit;
   const swipeX = useRef(new Animated.Value(0)).current;
-  const swipeDirection = mine ? -1 : 1;
   const resetSwipe = () =>
     Animated.spring(swipeX, {
       toValue: 0,
@@ -4018,15 +4087,16 @@ function ChatBubble({
       onMoveShouldSetPanResponder: (_, gesture) =>
         Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
       onPanResponderMove: (_, gesture) => {
-        // Only follow the drag in the "open" direction for this bubble;
-        // dragging the other way just resists back to 0.
-        const raw = gesture.dx * swipeDirection;
-        const clamped = Math.max(0, Math.min(SWIPE_REPLY_MAX, raw));
-        swipeX.setValue(clamped * swipeDirection);
+        let clamped = gesture.dx;
+        if (clamped > 0) clamped = Math.min(SWIPE_ACTION_MAX, clamped);
+        else if (canSwipeEdit) clamped = Math.max(-SWIPE_ACTION_MAX, clamped);
+        else clamped = 0;
+        swipeX.setValue(clamped);
       },
       onPanResponderRelease: (_, gesture) => {
-        const raw = gesture.dx * swipeDirection;
-        if (raw > SWIPE_REPLY_THRESHOLD) onSwipeReply?.();
+        if (gesture.dx > SWIPE_ACTION_THRESHOLD) onSwipeReply?.();
+        else if (canSwipeEdit && gesture.dx < -SWIPE_ACTION_THRESHOLD)
+          onSwipeEdit?.();
         resetSwipe();
       },
       onPanResponderTerminate: resetSwipe,
@@ -4071,13 +4141,11 @@ function ChatBubble({
       <Animated.View
         style={[
           chatStyles.swipeReplyIcon,
-          mine ? { right: 10 } : { left: 10 },
+          { left: 10 },
           {
             opacity: swipeX.interpolate({
-              inputRange: mine
-                ? [-SWIPE_REPLY_MAX, -SWIPE_REPLY_THRESHOLD, 0]
-                : [0, SWIPE_REPLY_THRESHOLD, SWIPE_REPLY_MAX],
-              outputRange: mine ? [1, 0.4, 0] : [0, 0.4, 1],
+              inputRange: [0, SWIPE_ACTION_THRESHOLD, SWIPE_ACTION_MAX],
+              outputRange: [0, 0.4, 1],
               extrapolate: "clamp",
             }),
           },
@@ -4086,6 +4154,24 @@ function ChatBubble({
       >
         <Ionicons name="arrow-undo-outline" size={16} color={colors.muted} />
       </Animated.View>
+      {canSwipeEdit && (
+        <Animated.View
+          style={[
+            chatStyles.swipeReplyIcon,
+            { right: 10 },
+            {
+              opacity: swipeX.interpolate({
+                inputRange: [-SWIPE_ACTION_MAX, -SWIPE_ACTION_THRESHOLD, 0],
+                outputRange: [1, 0.4, 0],
+                extrapolate: "clamp",
+              }),
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Ionicons name="create-outline" size={16} color={colors.muted} />
+        </Animated.View>
+      )}
       <Animated.View
         {...swipeResponder.panHandlers}
         style={{ width: "100%", transform: [{ translateX: swipeX }] }}
@@ -4262,6 +4348,16 @@ function ChatBubble({
             <View pointerEvents="none" style={chatStyles.mediaShade} />
           </View>
         )}
+      {message.type === "image" && !!message.text && (
+        <Text
+          style={[
+            chatStyles.mediaCaptionText,
+            mine ? { color: colors.textInverse } : { color: colors.text },
+          ]}
+        >
+          {message.text}
+        </Text>
+      )}
       {catalogGif && <CatalogGifMessage gif={catalogGif} />}
       {message.type === "gif" && (
         <View style={chatStyles.gifBadge}>
@@ -4414,6 +4510,18 @@ function ChatBubble({
       {message.type === "document" && message.document && (
         <DocumentChatCard document={message.document} mine={mine} />
       )}
+      {message.type === "document" &&
+        message.document?.kind === "video" &&
+        !!message.text && (
+          <Text
+            style={[
+              chatStyles.mediaCaptionText,
+              mine ? { color: colors.textInverse } : { color: colors.text },
+            ]}
+          >
+            {message.text}
+          </Text>
+        )}
       <View style={chatStyles.messageMeta}>
         {message.editedAt && (
           <Text
@@ -5049,6 +5157,114 @@ function InlineVideoPlayer({ uri }: { uri: string }) {
     playsInline: true,
     style: { width: "100%", height: "100%", objectFit: "contain" },
   });
+}
+
+// WhatsApp-style "about to send" screen: shown after picking a photo or
+// video from the gallery/camera, before it's uploaded. Lets the user add a
+// caption and confirms with a share/send icon instead of silently sending
+// the media the moment it was picked.
+function MediaCaptionPreview({
+  visible,
+  kind,
+  uri,
+  fallbackName,
+  caption,
+  onChangeCaption,
+  onCancel,
+  onSend,
+  sending,
+  error,
+}: {
+  visible: boolean;
+  kind: "image" | "video";
+  uri: string;
+  fallbackName: string;
+  caption: string;
+  onChangeCaption: (value: string) => void;
+  onCancel: () => void;
+  onSend: () => void;
+  sending: boolean;
+  error: string;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onCancel}>
+      <SafeAreaView style={chatStyles.mediaPreviewRoot}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={chatStyles.mediaPreviewHeader}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Discard and go back"
+              hitSlop={accessibilityHitSlop}
+              onPress={onCancel}
+              style={chatStyles.mediaPreviewClose}
+            >
+              <Ionicons name="close" size={20} color="#FFF" />
+            </Pressable>
+          </View>
+          <View style={chatStyles.mediaPreviewBody}>
+            {kind === "image" ? (
+              <Image
+                source={{ uri }}
+                style={chatStyles.mediaPreviewImage}
+                resizeMode="contain"
+              />
+            ) : Platform.OS === "web" ? (
+              <View style={chatStyles.mediaPreviewVideoFrame}>
+                {React.createElement("video", {
+                  src: uri,
+                  controls: true,
+                  playsInline: true,
+                  style: { width: "100%", height: "100%", objectFit: "contain" },
+                })}
+              </View>
+            ) : (
+              <View style={chatStyles.mediaPreviewVideoFrame}>
+                <Ionicons name="play-circle" size={54} color="#FFF" />
+                <Text
+                  numberOfLines={1}
+                  style={[chatStyles.documentFine, { color: "#FFF", marginTop: 8 }]}
+                >
+                  {fallbackName}
+                </Text>
+              </View>
+            )}
+          </View>
+          {!!error && (
+            <Text style={chatStyles.mediaPreviewErrorText}>{error}</Text>
+          )}
+          <View style={chatStyles.mediaPreviewFooter}>
+            <TextInput
+              accessibilityLabel="Add a caption"
+              value={caption}
+              onChangeText={onChangeCaption}
+              placeholder="Add a caption…"
+              placeholderTextColor="rgba(255,255,255,.5)"
+              multiline
+              editable={!sending}
+              style={chatStyles.mediaPreviewInput}
+            />
+            <Pressable
+              disabled={sending}
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              hitSlop={accessibilityHitSlop}
+              onPress={onSend}
+              style={[chatStyles.sendButton, sending && { opacity: 0.6 }]}
+            >
+              <Ionicons
+                name={sending ? "time-outline" : "send"}
+                size={20}
+                color={colors.textInverse}
+              />
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
 }
 
 function DocumentChatCard({
