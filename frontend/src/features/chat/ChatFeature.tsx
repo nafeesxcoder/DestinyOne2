@@ -875,40 +875,35 @@ const formatChatFileSize = (bytes?: number) => {
 // preview, which is why nothing appeared to happen.
 //
 // We can't patch the vendored library, so on web we drive our own minimal
-// <input type="file"> instead and only ever trust a real 'change' event; a
-// genuine cancel is inferred only from the window regaining focus with no
-// file selected, which is the one signal that isn't racy.
+// <input type="file"> instead and ONLY act on a real 'change' event that
+// carries a file. We deliberately do not try to detect a cancel at all (no
+// 'cancel' listener, no window-focus heuristic): on Android the picked file
+// can arrive well after both of those signals fire, so any timer-based
+// "nothing was chosen" guess just recreates the same race. A genuine cancel
+// simply never resolves -- harmless, since the caller has no loading state
+// waiting on it -- and the next pick discards the stale input.
+let activeWebPickerInput: HTMLInputElement | null = null;
+
 function pickWebMedia(opts: { accept: string }): Promise<File | null> {
   return new Promise((resolve) => {
+    if (activeWebPickerInput?.parentNode) {
+      activeWebPickerInput.parentNode.removeChild(activeWebPickerInput);
+    }
     const input = document.createElement("input");
     input.type = "file";
     input.accept = opts.accept;
     input.style.position = "fixed";
     input.style.top = "-1000px";
     input.style.left = "-1000px";
-    let settled = false;
-    const finish = (file: File | null) => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("focus", onFocus);
-      if (input.parentNode) document.body.removeChild(input);
-      resolve(file);
-    };
-    const onFocus = () => {
-      // The native picker UI has closed and focus has returned to the page.
-      // Give the browser a beat to populate input.files before deciding
-      // nothing was chosen.
-      setTimeout(() => {
-        if (!settled && (!input.files || input.files.length === 0)) {
-          finish(null);
-        }
-      }, 300);
-    };
+    activeWebPickerInput = input;
     input.addEventListener("change", () => {
       const file = input.files && input.files[0] ? input.files[0] : null;
-      finish(file);
+      // A 'change' with no file is not a pick; keep waiting for a real one.
+      if (!file) return;
+      if (activeWebPickerInput === input) activeWebPickerInput = null;
+      if (input.parentNode) input.parentNode.removeChild(input);
+      resolve(file);
     });
-    window.addEventListener("focus", onFocus);
     document.body.appendChild(input);
     input.click();
   });
