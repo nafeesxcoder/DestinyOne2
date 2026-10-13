@@ -1863,6 +1863,34 @@ export function ChatScreen({
         return;
       }
       const isVideo = asset.mimeType?.startsWith("video/") ?? false;
+      const isImage = asset.mimeType?.startsWith("image/") ?? false;
+      if (isVideo || isImage) {
+        // A photo/video picked through the Document button gets the same
+        // caption preview as the Media button, instead of being sent
+        // instantly with no way to add text.
+        const name =
+          asset.name?.trim() ||
+          `DestinyOne-media-${Date.now()}.${isVideo ? "mp4" : "jpg"}`;
+        setPendingCaption("");
+        setPendingMediaError("");
+        setPendingMedia({
+          kind: isVideo ? "video" : "image",
+          uri: asset.uri,
+          asset: {
+            uri: asset.uri,
+            width: 0,
+            height: 0,
+            type: isVideo ? "video" : "image",
+            fileName: name,
+            fileSize: asset.size,
+            mimeType: asset.mimeType,
+          } as ImagePicker.ImagePickerAsset,
+          fallbackName: name,
+        });
+        setShowAttachments(false);
+        setAttachmentPage("main");
+        return;
+      }
       const uploadedUri = accessToken
         ? await chatApi
             .uploadMedia(
