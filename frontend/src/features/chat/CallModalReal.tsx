@@ -26,6 +26,11 @@ const CONTROLS_AUTO_HIDE_MS = 4000;
 // handful of browsers support setSinkId (Chrome/Edge do; Safari/Firefox
 // don't), so this is always a best-effort no-op fallback to whatever the
 // OS currently treats as the default output.
+// Device labels that mean "this is a Bluetooth audio device". Android Chrome
+// labels it "Bluetooth headset"; desktop browsers use the product name plus
+// "Hands-Free" / "(Bluetooth)". A plain "Wired headset" must NOT match.
+const BLUETOOTH_LABEL = /bluetooth|airpods|\bbuds\b|hands-?free|\bhfp\b|\ba2dp\b/i;
+
 function applySinkId(
   element: HTMLMediaElement | null,
   sinkId: string | undefined,
@@ -193,9 +198,13 @@ export function CallModal({
   // Bluetooth headset). Lets someone route call audio to Bluetooth even
   // when the OS doesn't default to it for this page.
   const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
-  const [selectedSinkId, setSelectedSinkId] = useState<string | undefined>(
-    undefined,
-  );
+  // True while a Bluetooth audio device is connected. Drives the WhatsApp-
+  // style Bluetooth button: shown while connected, gone when it is removed.
+  const [bluetoothAvailable, setBluetoothAvailable] = useState(false);
+  // Whether call audio is currently sent to the Bluetooth device (default
+  // on when one connects, like WhatsApp); tapping the button flips it back
+  // to the phone's own speaker/earpiece.
+  const [routeBluetooth, setRouteBluetooth] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const engine = useCallEngine({
     accessToken,
@@ -220,41 +229,62 @@ export function CallModal({
     return () => clearInterval(timer);
   }, [engine.phase]);
 
+  // Watches the audio devices for the whole call (ringing included, not just
+  // once connected) and re-checks whenever one is plugged in or removed.
+  // Labels are only filled in once the mic permission is granted, so this
+  // also re-runs when the call phase changes.
   useEffect(() => {
     if (
-      engine.phase !== "connected" ||
+      !callId ||
       Platform.OS !== "web" ||
       typeof navigator === "undefined" ||
       !navigator.mediaDevices?.enumerateDevices
-    )
+    ) {
+      setBluetoothAvailable(false);
       return;
+    }
     let active = true;
-    navigator.mediaDevices
-      .enumerateDevices()
-      .then((devices) => {
-        if (!active) return;
-        setAudioOutputs(devices.filter((d) => d.kind === "audiooutput"));
-      })
-      .catch(() => undefined);
+    const refresh = () => {
+      navigator.mediaDevices
+        .enumerateDevices()
+        .then((devices) => {
+          if (!active) return;
+          setAudioOutputs(devices.filter((d) => d.kind === "audiooutput"));
+          setBluetoothAvailable(
+            devices.some(
+              (d) =>
+                (d.kind === "audiooutput" || d.kind === "audioinput") &&
+                BLUETOOTH_LABEL.test(d.label),
+            ),
+          );
+        })
+        .catch(() => undefined);
+    };
+    refresh();
+    navigator.mediaDevices.addEventListener?.("devicechange", refresh);
     return () => {
       active = false;
+      navigator.mediaDevices.removeEventListener?.("devicechange", refresh);
     };
-  }, [engine.phase]);
+  }, [callId, engine.phase]);
 
-  const cycleAudioOutput = () => {
-    if (audioOutputs.length < 2) return;
-    const currentIndex = audioOutputs.findIndex(
-      (d) => d.deviceId === selectedSinkId,
-    );
-    const next = audioOutputs[(currentIndex + 1) % audioOutputs.length];
-    if (next) setSelectedSinkId(next.deviceId);
-  };
+  // A newly connected Bluetooth device gets the call audio by default.
+  useEffect(() => {
+    if (!bluetoothAvailable) setRouteBluetooth(true);
+  }, [bluetoothAvailable]);
 
-  const selectedOutputLabel =
-    audioOutputs.find((d) => d.deviceId === selectedSinkId)?.label || "";
-  const isBluetoothOutput = /bluetooth|headset|airpods|buds/i.test(
-    selectedOutputLabel,
-  );
+  const bluetoothOutputId = audioOutputs.find((d) =>
+    BLUETOOTH_LABEL.test(d.label),
+  )?.deviceId;
+  const bluetoothRouted = bluetoothAvailable && routeBluetooth;
+  // Where the call audio plays on browsers that support picking an output
+  // (setSinkId). On Android Chrome the OS routes to the connected Bluetooth
+  // headset by itself; this just keeps desktop/other browsers in step.
+  const selectedSinkId: string | undefined = bluetoothAvailable
+    ? bluetoothRouted
+      ? bluetoothOutputId
+      : "default"
+    : undefined;
 
   // On Android (and installed-PWA/webview) Chrome, the hardware/gesture
   // back button is a browser "go back" by default — while a call is open
@@ -369,7 +399,7 @@ export function CallModal({
   // devices, so this now drops it much further to make the toggle feel
   // like it's actually doing something, while staying non-zero so the
   // call isn't silently unusable if someone taps it by accident.
-  const remoteVolume = speakerOn ? 1 : 0.06;
+  const remoteVolume = speakerOn || bluetoothRouted ? 1 : 0.06;
   const showControls = controlsVisible || !isFullScreenVideo;
 
   return (
@@ -575,11 +605,11 @@ export function CallModal({
                   onPress={engine.switchCamera}
                 />
               )}
-              {audioOutputs.length > 1 ? (
+              {bluetoothAvailable ? (
                 <CircleButton
-                  icon={isBluetoothOutput ? "bluetooth" : "volume-high"}
-                  active={isBluetoothOutput}
-                  onPress={cycleAudioOutput}
+                  icon="bluetooth"
+                  active={routeBluetooth}
+                  onPress={() => setRouteBluetooth((value) => !value)}
                 />
               ) : (
                 <CircleButton
