@@ -26,10 +26,26 @@ const CONTROLS_AUTO_HIDE_MS = 4000;
 // handful of browsers support setSinkId (Chrome/Edge do; Safari/Firefox
 // don't), so this is always a best-effort no-op fallback to whatever the
 // OS currently treats as the default output.
-// Device labels that mean "this is a Bluetooth audio device". Android Chrome
+// Device labels that clearly mean "Bluetooth audio device". Android Chrome
 // labels it "Bluetooth headset"; desktop browsers use the product name plus
 // "Hands-Free" / "(Bluetooth)". A plain "Wired headset" must NOT match.
 const BLUETOOTH_LABEL = /bluetooth|airpods|\bbuds\b|hands-?free|\bhfp\b|\ba2dp\b/i;
+// Labels for the phone's own audio (speaker, earpiece, wired or USB
+// accessories, generic virtual devices). Anything else on a phone is a
+// named external device — in practice a Bluetooth earbud/headset that the
+// browser lists by product name ("Realme Buds Air 3") without the word
+// "Bluetooth".
+const NON_BLUETOOTH_LABEL =
+  /^default\b|communications|speaker|earpiece|handset|built-?in|internal|wired|usb|line|hdmi|display|digital|spdif|virtual|monitor|realtek|nvidia|intel|stereo mix|microphone|^phone$|^mic\b/i;
+const IS_ANDROID =
+  typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+
+function isBluetoothDeviceLabel(label: string) {
+  const text = label.trim();
+  if (!text) return false;
+  if (BLUETOOTH_LABEL.test(text)) return true;
+  return IS_ANDROID && !NON_BLUETOOTH_LABEL.test(text);
+}
 
 function applySinkId(
   element: HTMLMediaElement | null,
@@ -201,6 +217,14 @@ export function CallModal({
   // True while a Bluetooth audio device is connected. Drives the WhatsApp-
   // style Bluetooth button: shown while connected, gone when it is removed.
   const [bluetoothAvailable, setBluetoothAvailable] = useState(false);
+  // Troubleshooting aid: open the app with ?btdebug=1 and the call screen
+  // lists every audio device the browser reports, so a headset that is not
+  // being recognised can be diagnosed from a screenshot.
+  const btDebug =
+    Platform.OS === "web" &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("btdebug") === "1";
+  const [deviceDebugLines, setDeviceDebugLines] = useState<string[]>([]);
   // Whether call audio is currently sent to the Bluetooth device (default
   // on when one connects, like WhatsApp); tapping the button flips it back
   // to the phone's own speaker/earpiece.
@@ -250,11 +274,20 @@ export function CallModal({
         .then((devices) => {
           if (!active) return;
           setAudioOutputs(devices.filter((d) => d.kind === "audiooutput"));
+          if (btDebug)
+            setDeviceDebugLines(
+              devices
+                .filter((d) => d.kind !== "videoinput")
+                .map(
+                  (d) =>
+                    `${d.kind === "audioinput" ? "in" : "out"}: "${d.label || "(no label)"}" ${isBluetoothDeviceLabel(d.label) ? "=> BT" : ""}`,
+                ),
+            );
           setBluetoothAvailable(
             devices.some(
               (d) =>
                 (d.kind === "audiooutput" || d.kind === "audioinput") &&
-                BLUETOOTH_LABEL.test(d.label),
+                isBluetoothDeviceLabel(d.label),
             ),
           );
         })
@@ -266,7 +299,7 @@ export function CallModal({
       active = false;
       navigator.mediaDevices.removeEventListener?.("devicechange", refresh);
     };
-  }, [callId, engine.phase]);
+  }, [callId, engine.phase, btDebug]);
 
   // A newly connected Bluetooth device gets the call audio by default.
   useEffect(() => {
@@ -274,7 +307,7 @@ export function CallModal({
   }, [bluetoothAvailable]);
 
   const bluetoothOutputId = audioOutputs.find((d) =>
-    BLUETOOTH_LABEL.test(d.label),
+    isBluetoothDeviceLabel(d.label),
   )?.deviceId;
   const bluetoothRouted = bluetoothAvailable && routeBluetooth;
   // Where the call audio plays on browsers that support picking an output
@@ -504,6 +537,36 @@ export function CallModal({
         )}
 
         <SafeAreaView style={callStyles.fullScreenSafe} pointerEvents="box-none">
+          {btDebug && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: 110,
+                left: 8,
+                right: 8,
+                zIndex: 50,
+                backgroundColor: "rgba(0,0,0,.75)",
+                padding: 8,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: "#9EF", fontSize: 11 }}>
+                {`BT debug · bluetoothAvailable=${bluetoothAvailable} · android=${IS_ANDROID}`}
+              </Text>
+              {deviceDebugLines.length === 0 ? (
+                <Text style={{ color: "#FFF", fontSize: 11 }}>
+                  no audio devices reported
+                </Text>
+              ) : (
+                deviceDebugLines.map((line, index) => (
+                  <Text key={index} style={{ color: "#FFF", fontSize: 11 }}>
+                    {line}
+                  </Text>
+                ))
+              )}
+            </View>
+          )}
           {showControls && (
             <View style={callStyles.topBarFull}>
               <Text style={callStyles.topBarNameFull}>{match.name}</Text>
