@@ -1311,6 +1311,9 @@ export function ChatScreen({
   const deliveryTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const pendingDeleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messageOffsets = useRef<Record<string, number>>({});
+  // After jumping to a quoted message, the list must not snap back to the
+  // bottom when its content size changes (the highlight resizes it).
+  const holdAutoScrollUntil = useRef(0);
   const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restTypingActiveRef = useRef(false);
   const realtimeSession = useRef<MatchRealtimeSession | null>(null);
@@ -2399,6 +2402,7 @@ export function ChatScreen({
   const jumpToMessage = (messageId: string) => {
     const y = messageOffsets.current[messageId];
     if (typeof y === "number") {
+      holdAutoScrollUntil.current = Date.now() + 3000;
       messagesRef.current?.scrollTo({ y: Math.max(0, y - 90), animated: true });
       setHighlightedMessageId(null);
       setTimeout(() => setHighlightedMessageId(messageId), 250);
@@ -2876,9 +2880,10 @@ export function ChatScreen({
             keyboardDismissMode={
               Platform.OS === "ios" ? "interactive" : "on-drag"
             }
-            onContentSizeChange={() =>
-              messagesRef.current?.scrollToEnd({ animated: true })
-            }
+            onContentSizeChange={() => {
+              if (Date.now() < holdAutoScrollUntil.current) return;
+              messagesRef.current?.scrollToEnd({ animated: true });
+            }}
             contentContainerStyle={[
               styles.messages,
               chatPremiumStyles.messages,
