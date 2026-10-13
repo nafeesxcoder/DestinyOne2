@@ -21,7 +21,7 @@ export const relationshipJourneySteps=[
 export const chatPrimaryAttachments=[
   {id:'date_market',label:'Date',icon:'calendar',color:'#A75A1D'},
   {id:'camera',label:'Camera',icon:'camera',color:'#E5092F'},
-  {id:'gallery',label:'Media',icon:'images',color:'#A71D35'},
+  {id:'gallery',label:'Photo',icon:'images',color:'#A71D35'},
   {id:'location',label:'Location',icon:'location',color:'#D4AF37'},
   {id:'document',label:'Document',icon:'document-text',color:'#7A1FE0'},
   {id:'more',label:'More',icon:'ellipsis-horizontal',color:'#7A1FE0'},

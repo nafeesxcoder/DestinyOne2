@@ -2152,7 +2152,7 @@ export const chatStyles=StyleSheet.create({
   messageActionIcon:{width:33,height:33,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(255,255,255,.05)'},
   emptySearch:{alignSelf:'center',alignItems:'center',gap:8,padding:18},
   emptySearchText:{fontFamily:'Poppins_400Regular',fontSize:11,color:colors.muted,textAlign:'center'},
-  keyboardWrap:{marginBottom:78,backgroundColor:'#FFFDFC',position:'relative',zIndex:12},
+  keyboardWrap:{marginBottom:0,backgroundColor:'#FFFDFC',position:'relative',zIndex:12},
   inputWrap:{flex:1,minWidth:0,height:43,borderRadius:22,backgroundColor:colors.surface,flexDirection:'row',alignItems:'center',paddingLeft:10,paddingRight:6,gap:6},
   chatInputInline:{flex:1,minWidth:0,paddingHorizontal:0,marginHorizontal:2,outlineWidth:0,outlineStyle:'none' as any,outlineColor:'transparent'},
   safetyNudge:{marginHorizontal:10,marginBottom:8,padding:11,borderRadius:18,backgroundColor:'rgba(212,175,55,.08)',borderWidth:1,borderColor:'rgba(212,175,55,.22)',flexDirection:'row',alignItems:'flex-start',gap:9},

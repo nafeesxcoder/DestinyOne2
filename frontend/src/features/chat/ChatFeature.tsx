@@ -1726,7 +1726,11 @@ export function ChatScreen({
       if (Platform.OS === "web") {
         // See pickWebMedia above -- works around an expo-image-picker web
         // bug where a real selection can falsely come back as "canceled".
-        const file = await pickWebMedia({ accept: "image/*,video/*" });
+        // Photos only: Android shows a simpler picker (tap a photo to select)
+        // for an image-only input than for a mixed image+video one. Videos
+        // are sent through the Document button, which also opens the caption
+        // preview.
+        const file = await pickWebMedia({ accept: "image/*" });
         asset = file ? webFileToImagePickerAsset(file) : undefined;
       } else {
         const result = await ImagePicker.launchImageLibraryAsync({
