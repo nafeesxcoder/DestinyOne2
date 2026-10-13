@@ -607,6 +607,17 @@ function DestinyOneApp() {
   // True while the realtime socket is connected; the REST polls below slow
   // right down (kept only as a safety net) when it is.
   const chatSocketConnectedRef = useRef(false);
+  // Chat (by conversation id) that a tapped notification wants opened; kept
+  // until the matches have loaded and it can be resolved.
+  const [pendingNotificationChat, setPendingNotificationChat] = useState<
+    string | null
+  >(null);
+  // Latest delivered/read status the socket reported per message id. The
+  // server can report "read" before our own send request has even returned
+  // (so the message isn't in state yet); this lets us apply it afterwards.
+  const messageStatusCacheRef = useRef<Record<string, ChatMessage["status"]>>(
+    {},
+  );
   const screenRef = useRef(screen);
   const isPoppingScreenRef = useRef(false);
   const hasMountedBackGuardRef = useRef(false);
@@ -1285,6 +1296,65 @@ function DestinyOneApp() {
       }
     })();
   }, [accessToken]);
+  // Notification taps: a cold start arrives as /?chat=<id>, an already-open
+  // app gets a message from the service worker. Either way, remember which
+  // chat to open instead of landing on the home screen.
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    const fromUrl = new URLSearchParams(window.location.search).get("chat");
+    if (fromUrl) {
+      setPendingNotificationChat(fromUrl);
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("chat");
+        window.history.replaceState(window.history.state, "", url.toString());
+      } catch {
+        // Leaving the param in the address bar is harmless.
+      }
+    }
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator))
+      return;
+    const onWorkerMessage = (event: MessageEvent) => {
+      const data = event.data as
+        | { type?: string; conversationId?: string }
+        | undefined;
+      if (data?.type === "open-chat" && data.conversationId)
+        setPendingNotificationChat(data.conversationId);
+    };
+    navigator.serviceWorker.addEventListener("message", onWorkerMessage);
+    return () =>
+      navigator.serviceWorker.removeEventListener("message", onWorkerMessage);
+  }, []);
+  useEffect(() => {
+    if (!pendingNotificationChat || !hydrated || !accessToken) return;
+    if (
+      coupleMode.experienceMode === "couple" &&
+      conversationIdFor(couplePartner) === pendingNotificationChat
+    ) {
+      setScreen("chat");
+      setPendingNotificationChat(null);
+      return;
+    }
+    const pool = [
+      ...(serverMatches ?? []),
+      ...(serverDiscoveredMatches ?? []),
+      ...matches,
+    ];
+    const match = pool.find(
+      (candidate) => conversationIdFor(candidate) === pendingNotificationChat,
+    );
+    if (!match) return;
+    setSelected(match);
+    setScreen("chat");
+    setPendingNotificationChat(null);
+  }, [
+    pendingNotificationChat,
+    hydrated,
+    accessToken,
+    serverMatches,
+    serverDiscoveredMatches,
+    coupleMode.experienceMode,
+  ]);
   useEffect(() => {
     if (!accessToken || Platform.OS !== "web" || typeof window === "undefined")
       return;
@@ -1519,10 +1589,25 @@ function DestinyOneApp() {
       chatSocketConnectedRef.current = false;
     };
     if (socket.connected) onConnect();
+    const onStatusCache = (data: {
+      ids?: string[];
+      status?: ChatMessage["status"];
+    }) => {
+      if (!data?.ids || !data.status) return;
+      const order: Record<string, number> = { sent: 0, delivered: 1, read: 2 };
+      const status = data.status;
+      data.ids.forEach((id) => {
+        const known = messageStatusCacheRef.current[id];
+        if (!known || (order[status] ?? 0) > (order[known] ?? 0))
+          messageStatusCacheRef.current[id] = status;
+      });
+    };
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("connect_error", onDisconnect);
+    socket.on("message:status", onStatusCache);
     return () => {
+      socket.off("message:status", onStatusCache);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("connect_error", onDisconnect);
@@ -2375,11 +2460,21 @@ function DestinyOneApp() {
       });
       return false;
     }
+    const acknowledged = result.data as ChatMessage;
+    const cachedStatus = messageStatusCacheRef.current[acknowledged.id];
+    const statusOrder: Record<string, number> = {
+      sent: 0,
+      delivered: 1,
+      read: 2,
+    };
+    const withStatus =
+      cachedStatus &&
+      (statusOrder[cachedStatus] ?? 0) > (statusOrder[acknowledged.status] ?? 0)
+        ? { ...acknowledged, status: cachedStatus }
+        : acknowledged;
     setChatMessages((current) => ({
       ...current,
-      [matchId]: mergeChatMessageList(current[matchId] ?? [], [
-        result.data as ChatMessage,
-      ]),
+      [matchId]: mergeChatMessageList(current[matchId] ?? [], [withStatus]),
     }));
     return true;
   };

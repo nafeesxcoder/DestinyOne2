@@ -1,4 +1,4 @@
-﻿self.addEventListener("push", (event) => {
+self.addEventListener("push", (event) => {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
@@ -12,18 +12,33 @@
       body,
       icon: "/favicon.ico",
       data: { conversationId: data.conversationId },
+      tag: data.conversationId ? `chat-${data.conversationId}` : undefined,
+      renotify: !!data.conversationId,
     }),
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const conversationId =
+    event.notification.data && event.notification.data.conversationId;
+  const target = conversationId
+    ? `/?chat=${encodeURIComponent(conversationId)}`
+    : "/";
   event.waitUntil(
-    self.clients.matchAll({ type: "window" }).then((clientList) => {
-      for (const client of clientList) {
-        if ("focus" in client) return client.focus();
-      }
-      if (self.clients.openWindow) return self.clients.openWindow("/");
-    }),
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // App already open: don't reload it, tell it which chat to open.
+        for (const client of clientList) {
+          if ("focus" in client) {
+            if (conversationId)
+              client.postMessage({ type: "open-chat", conversationId });
+            return client.focus();
+          }
+        }
+        // App closed: open it straight onto that chat.
+        if (self.clients.openWindow) return self.clients.openWindow(target);
+      }),
   );
 });

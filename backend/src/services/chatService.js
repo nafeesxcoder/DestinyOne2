@@ -410,7 +410,14 @@ async function notifyRecipient(conversationId, senderId, recipientId, message) {
   await pushService.notifyUser(recipientId, {
     title: senderName,
     body: preview,
-    conversationId,
+    // The id the RECIPIENT uses for this chat (for a mutual match that is
+    // the sender's user id, not the id the sender sent from), so tapping the
+    // notification can open the right conversation.
+    conversationId: conversationIdForViewer(
+      [senderId, recipientId],
+      conversationId,
+      recipientId,
+    ),
   });
 }
 

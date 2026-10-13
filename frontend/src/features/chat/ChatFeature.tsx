@@ -1121,6 +1121,12 @@ export function ChatScreen({
     null,
   );
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  // Brief highlight on the original message after tapping a reply quote.
+  // Kept separate from selectedMessageId because that one opens the
+  // message action sheet.
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    string | null
+  >(null);
   const [viewerImageUri, setViewerImageUri] = useState<string | null>(null);
   const [viewerVideoUri, setViewerVideoUri] = useState<string | null>(null);
   // Photo/video picked from gallery or camera waits here for a caption and
@@ -2394,9 +2400,9 @@ export function ChatScreen({
     const y = messageOffsets.current[messageId];
     if (typeof y === "number") {
       messagesRef.current?.scrollTo({ y: Math.max(0, y - 90), animated: true });
-      setSelectedMessageId(null);
-      setTimeout(() => setSelectedMessageId(messageId), 250);
-      setTimeout(() => setSelectedMessageId(null), 1800);
+      setHighlightedMessageId(null);
+      setTimeout(() => setHighlightedMessageId(messageId), 250);
+      setTimeout(() => setHighlightedMessageId(null), 1800);
     } else
       setMessageActionNotice(
         "The original message is outside the loaded history.",
@@ -2907,7 +2913,7 @@ export function ChatScreen({
                 }}
                 style={[
                   chatStyles.messageGroup,
-                  (selectedMessageId === message.id ||
+                  (highlightedMessageId === message.id ||
                     selectedMessageIds.includes(message.id)) &&
                     chatStyles.messageGroupSelected,
                 ]}
