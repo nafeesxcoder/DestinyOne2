@@ -4,6 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#090002" />
+    <style id="app-root-reset">
+      /* Give the app a root exactly as tall as the screen so screens that use
+         flex:1 fill it, the bottom nav stays pinned, and only inner scroll
+         views scroll (not the whole page). Same as Expo's standard reset. */
+      html, body { width: 100%; height: 100%; margin: 0; }
+      body { overflow: hidden; }
+      #root { display: flex; flex: 1; width: 100%; height: 100%; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
