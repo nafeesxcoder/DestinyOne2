@@ -142,12 +142,16 @@ function CircleButton({
   danger,
   active,
   big,
+  compact,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   danger?: boolean;
   active?: boolean;
   big?: boolean;
+  // Slightly smaller buttons, used when the Bluetooth button joins the bar
+  // so six controls still fit on a narrow phone.
+  compact?: boolean;
 }) {
   return (
     <Pressable
@@ -158,6 +162,8 @@ function CircleButton({
         active && callStyles.circleBtnOn,
         danger && callStyles.circleBtnDanger,
         big && callStyles.circleBtnBig,
+        compact && callStyles.circleBtnCompact,
+        compact && big && callStyles.circleBtnBigCompact,
       ]}
     >
       <Ionicons
@@ -653,9 +659,15 @@ export function CallModal({
           )}
 
           {showControls && (
-            <View style={callStyles.bottomBarFull}>
+            <View
+              style={[
+                callStyles.bottomBarFull,
+                bluetoothAvailable && callStyles.bottomBarCompact,
+              ]}
+            >
               {mode === "video" && (
                 <CircleButton
+                  compact={bluetoothAvailable}
                   icon={engine.cameraEnabled ? "videocam" : "videocam-off"}
                   active={!engine.cameraEnabled}
                   onPress={engine.toggleCamera}
@@ -663,17 +675,33 @@ export function CallModal({
               )}
               {mode === "video" && engine.canSwitchCamera && (
                 <CircleButton
+                  compact={bluetoothAvailable}
                   icon="camera-reverse-outline"
                   active={!engine.isFrontCamera}
                   onPress={engine.switchCamera}
                 />
               )}
               {bluetoothAvailable ? (
-                <CircleButton
-                  icon="bluetooth"
-                  active={routeBluetooth}
-                  onPress={() => setRouteBluetooth((value) => !value)}
-                />
+                <>
+                  {/* Both routes are always offered while a Bluetooth device
+                      is connected: tap the speaker to leave Bluetooth, tap
+                      Bluetooth to go back. The active one is highlighted. */}
+                  <CircleButton
+                    compact
+                    icon="volume-high"
+                    active={!routeBluetooth}
+                    onPress={() => {
+                      setRouteBluetooth(false);
+                      setSpeakerOn(true);
+                    }}
+                  />
+                  <CircleButton
+                    compact
+                    icon="bluetooth"
+                    active={routeBluetooth}
+                    onPress={() => setRouteBluetooth(true)}
+                  />
+                </>
               ) : (
                 <CircleButton
                   icon={speakerOn ? "volume-high" : "volume-mute"}
@@ -682,12 +710,14 @@ export function CallModal({
                 />
               )}
               <CircleButton
+                compact={bluetoothAvailable}
                 icon={engine.micEnabled ? "mic" : "mic-off"}
                 active={!engine.micEnabled}
                 onPress={engine.toggleMic}
               />
               <CircleButton
                 big
+                compact={bluetoothAvailable}
                 danger
                 icon="call"
                 onPress={() => engine.hangUp("hangup")}
