@@ -1314,6 +1314,14 @@ export function ChatScreen({
   // After jumping to a quoted message, the list must not snap back to the
   // bottom when its content size changes (the highlight resizes it).
   const holdAutoScrollUntil = useRef(0);
+  // Whether the person is reading at the bottom of the chat. The list only
+  // follows new content (new messages, ticks, typing…) while this is true,
+  // so scrolling up to read old messages is no longer undone every time
+  // something resizes the list.
+  const nearBottomRef = useRef(true);
+  // While the list is animating to the bottom itself, intermediate scroll
+  // positions must not count as "the person scrolled away".
+  const followingBottomUntil = useRef(0);
   const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restTypingActiveRef = useRef(false);
   const realtimeSession = useRef<MatchRealtimeSession | null>(null);
@@ -1479,6 +1487,9 @@ export function ChatScreen({
   };
   const dispatchMessage = async (message: ChatMessage) => {
     setChatError("");
+    // The person's own message always scrolls into view.
+    nearBottomRef.current = true;
+    holdAutoScrollUntil.current = 0;
     setDeliveryOverrides((current) => ({ ...current, [message.id]: "sent" }));
     const sent = await onSend(message);
     if (!sent) {
@@ -2403,6 +2414,7 @@ export function ChatScreen({
     const y = messageOffsets.current[messageId];
     if (typeof y === "number") {
       holdAutoScrollUntil.current = Date.now() + 3000;
+      nearBottomRef.current = false;
       messagesRef.current?.scrollTo({ y: Math.max(0, y - 90), animated: true });
       setHighlightedMessageId(null);
       setTimeout(() => setHighlightedMessageId(messageId), 250);
@@ -2874,7 +2886,16 @@ export function ChatScreen({
           )}
           <ScrollView
             ref={messagesRef}
-            onScroll={handleBottomNavScroll}
+            onScroll={(event) => {
+              handleBottomNavScroll(event);
+              const { contentOffset, contentSize, layoutMeasurement } =
+                event.nativeEvent;
+              const atBottom =
+                contentOffset.y + layoutMeasurement.height >=
+                contentSize.height - 160;
+              if (atBottom || Date.now() > followingBottomUntil.current)
+                nearBottomRef.current = atBottom;
+            }}
             scrollEventThrottle={16}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={
@@ -2882,6 +2903,8 @@ export function ChatScreen({
             }
             onContentSizeChange={() => {
               if (Date.now() < holdAutoScrollUntil.current) return;
+              if (!nearBottomRef.current) return;
+              followingBottomUntil.current = Date.now() + 800;
               messagesRef.current?.scrollToEnd({ animated: true });
             }}
             contentContainerStyle={[
