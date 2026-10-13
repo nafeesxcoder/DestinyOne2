@@ -171,13 +171,15 @@ export const chatApi = {
     accessToken: string,
     localUri: string,
     fileName: string,
+    signal?: AbortSignal,
   ): Promise<string> {
-    const response = await fetch(localUri);
+    const response = await fetch(localUri, { signal });
     const blob = await response.blob();
     const formData = new FormData();
     formData.append("file", blob, fileName);
     const uploadResponse = await fetch(`${API_URL}/chat/upload`, {
       method: "POST",
+      signal,
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

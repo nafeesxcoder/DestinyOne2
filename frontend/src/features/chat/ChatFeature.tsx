@@ -6,6 +6,7 @@
   useState,
 } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   Image,
@@ -855,6 +856,10 @@ const coupleThemes = [
   },
 ];
 
+// Cancel handlers for media that is still uploading, keyed by the local
+// placeholder message id. The loader's X button on the bubble calls these.
+const mediaUploadCancels = new Map<string, () => void>();
+
 const maxChatFileBytes = 100 * 1024 * 1024;
 const formatChatFileSize = (bytes?: number) => {
   if (!bytes || bytes < 1) return "Size unavailable";
@@ -1117,7 +1122,10 @@ export function ChatScreen({
   } | null>(null);
   const [pendingCaption, setPendingCaption] = useState("");
   const [pendingMediaError, setPendingMediaError] = useState("");
-  const [sendingPendingMedia, setSendingPendingMedia] = useState(false);
+  // Photos/videos/voice notes that are still uploading. They show up in the
+  // chat right away with a loader on the bubble (like WhatsApp) and are
+  // swapped for the real message once the server confirms it.
+  const [uploadingMessages, setUploadingMessages] = useState<ChatMessage[]>([]);
   const [quickReactFor, setQuickReactFor] = useState<{
     message: ChatMessage;
     pageX: number;
@@ -1135,7 +1143,6 @@ export function ChatScreen({
   const [journeyOpen, setJourneyOpen] = useState(
     previewState === "chat-relationship-path" || !!showcaseDateStatus,
   );
-  const [sending, setSending] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [partnerOnline, setPartnerOnline] = useState(false);
   // The realtime port (below) never actually fires in production — see its
@@ -1478,6 +1485,53 @@ export function ChatScreen({
     }
     return sent;
   };
+  // Shows the media in the chat immediately with a loader on the bubble,
+  // uploads it in the background, then sends the real message. The X on the
+  // loader aborts the upload and nothing is sent.
+  const sendMediaWithLoader = async (opts: {
+    localUri: string;
+    fileName: string;
+    build: (uri: string) => Omit<ChatMessage, "id" | "createdAt" | "status">;
+  }) => {
+    const placeholder: ChatMessage = {
+      ...createMessage(opts.build(opts.localUri)),
+      uploading: true,
+    };
+    const controller = new AbortController();
+    mediaUploadCancels.set(placeholder.id, () => controller.abort());
+    setUploadingMessages((current) => [...current, placeholder]);
+    try {
+      const uploadedUri = accessToken
+        ? await chatApi
+            .uploadMedia(
+              accessToken,
+              opts.localUri,
+              opts.fileName,
+              controller.signal,
+            )
+            .catch((error) => {
+              if (controller.signal.aborted) throw error;
+              return opts.localUri;
+            })
+        : opts.localUri;
+      if (controller.signal.aborted) return false;
+      return await dispatchMessage(createMessage(opts.build(uploadedUri)));
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setChatError(
+          error instanceof Error
+            ? error.message
+            : "Could not send. Please try again.",
+        );
+      }
+      return false;
+    } finally {
+      mediaUploadCancels.delete(placeholder.id);
+      setUploadingMessages((current) =>
+        current.filter((item) => item.id !== placeholder.id),
+      );
+    }
+  };
   const updateText = (value: string) => {
     setText(value);
     if (isChatPreview) return;
@@ -1507,33 +1561,30 @@ export function ChatScreen({
   };
   const sendText = async () => {
     const value = text.trim();
-    if (!value || sending) return;
+    if (!value) return;
     const messageText = replyTarget
       ? `↩REPLY|${replyTarget.id}|${messageSummary(replyTarget).slice(0, 64)}|${value}`
       : value;
-    setSending(true);
-    try {
-      if (
-        await dispatchMessage(
-          createMessage({ type: "text", text: messageText }),
-        )
-      ) {
-        setText("");
-        setReplyTarget(null);
-        setShowEmoji(false);
-        if (!isChatPreview) {
-          void realtimeSession.current
-            ?.sendTyping(false)
-            .catch(() => undefined);
-          if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
-          if (restTypingActiveRef.current) {
-            restTypingActiveRef.current = false;
-            onTypingChange?.(false);
-          }
-        }
+    const previousReplyTarget = replyTarget;
+    // Clear the box right away (no "sending" clock on the button); if the
+    // server doesn't confirm, put the text back so nothing is lost.
+    setText("");
+    setReplyTarget(null);
+    setShowEmoji(false);
+    if (!isChatPreview) {
+      void realtimeSession.current?.sendTyping(false).catch(() => undefined);
+      if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
+      if (restTypingActiveRef.current) {
+        restTypingActiveRef.current = false;
+        onTypingChange?.(false);
       }
-    } finally {
-      setSending(false);
+    }
+    const sent = await dispatchMessage(
+      createMessage({ type: "text", text: messageText }),
+    );
+    if (!sent) {
+      setText((current) => current || value);
+      setReplyTarget((current) => current ?? previousReplyTarget);
     }
   };
   const sendQuickShare = (textValue: string) => {
@@ -1617,25 +1668,21 @@ export function ChatScreen({
       speechRecognitionRef.current = null;
       await setAudioModeAsync({ allowsRecording: false });
       if (recorder.uri) {
-        const uploadedUri = accessToken
-          ? await chatApi
-              .uploadMedia(accessToken, recorder.uri, `voice-${Date.now()}.m4a`)
-              .catch(() => recorder.uri!)
-          : recorder.uri;
-        await dispatchMessage(
-          createMessage({
+        const transcript = voiceTranscriptRef.current || undefined;
+        void sendMediaWithLoader({
+          localUri: recorder.uri,
+          fileName: `voice-${Date.now()}.m4a`,
+          build: (uri) => ({
             type: "voice",
-            uri: uploadedUri,
+            uri,
             voice: {
-              uri: uploadedUri,
+              uri,
               durationMs,
-              transcript: voiceTranscriptRef.current || undefined,
-              transcriptStatus: voiceTranscriptRef.current
-                ? "available"
-                : "unavailable",
+              transcript,
+              transcriptStatus: transcript ? "available" : "unavailable",
             },
           }),
-        );
+        });
       } else
         setChatError(
           "The recording could not be saved. Please record it again.",
@@ -1804,52 +1851,33 @@ export function ChatScreen({
     setPendingCaption("");
     setPendingMediaError("");
   };
-  const confirmSendPendingMedia = async () => {
-    if (!pendingMedia || sendingPendingMedia) return;
-    setSendingPendingMedia(true);
+  const confirmSendPendingMedia = () => {
+    if (!pendingMedia) return;
+    const { asset, kind, fallbackName } = pendingMedia;
+    const caption = pendingCaption.trim();
+    // Close the preview straight away; the photo/video appears in the chat
+    // with a loader on it while it uploads (see sendMediaWithLoader).
+    setPendingMedia(null);
+    setPendingCaption("");
     setPendingMediaError("");
-    try {
-      const { asset, kind, fallbackName } = pendingMedia;
-      const caption = pendingCaption.trim();
-      const uploadedUri = accessToken
-        ? await chatApi
-            .uploadMedia(accessToken, asset.uri, fallbackName)
-            .catch(() => asset.uri)
-        : asset.uri;
-      if (kind === "video") {
-        await dispatchMessage(
-          createMessage({
-            type: "document",
-            uri: uploadedUri,
-            text: caption || undefined,
-            document: {
-              name: fallbackName,
-              size: asset.fileSize,
-              mimeType: asset.mimeType ?? "video/mp4",
-              kind: "video",
-            },
-          }),
-        );
-      } else {
-        await dispatchMessage(
-          createMessage({
-            type: "image",
-            uri: uploadedUri,
-            text: caption || undefined,
-          }),
-        );
-      }
-      setPendingMedia(null);
-      setPendingCaption("");
-    } catch (error) {
-      setPendingMediaError(
-        error instanceof Error
-          ? error.message
-          : "Could not send. Please try again.",
-      );
-    } finally {
-      setSendingPendingMedia(false);
-    }
+    void sendMediaWithLoader({
+      localUri: asset.uri,
+      fileName: fallbackName,
+      build: (uri) =>
+        kind === "video"
+          ? {
+              type: "document",
+              uri,
+              text: caption || undefined,
+              document: {
+                name: fallbackName,
+                size: asset.fileSize,
+                mimeType: asset.mimeType ?? "video/mp4",
+                kind: "video",
+              },
+            }
+          : { type: "image", uri, text: caption || undefined },
+    });
   };
   const sendDocument = async () => {
     setChatError("");
@@ -2159,7 +2187,7 @@ export function ChatScreen({
           : "Last seen recently";
   const messageSafety = scanMessageSafety(text);
   const normalizedSearch = searchQuery.trim().toLowerCase();
-  const previewMessages: ChatMessage[] =
+  const previewMessagesBase: ChatMessage[] =
     previewState === "chat-document"
       ? [
           ...messages,
@@ -2210,6 +2238,9 @@ export function ChatScreen({
               },
             ]
           : messages;
+  const previewMessages: ChatMessage[] = uploadingMessages.length
+    ? [...previewMessagesBase, ...uploadingMessages]
+    : previewMessagesBase;
   const recordingUiActive =
     recorderState.isRecording || recordingPreviewVisible;
   const recordingDurationMs = recordingPreviewVisible
@@ -3193,9 +3224,9 @@ export function ChatScreen({
                       onChangeText={updateText}
                       onSubmitEditing={() => void sendText()}
                       returnKeyType="send"
-                      placeholder={sending ? "Sending…" : "Message…"}
+                      placeholder="Message…"
                       placeholderTextColor="#8C7888"
-                      editable={!sending}
+                      editable
                       style={[
                         styles.chatInput,
                         chatPremiumStyles.chatInput,
@@ -3247,24 +3278,16 @@ export function ChatScreen({
                     )}
                   </View>
                   <Pressable
-                    disabled={sending}
                     accessibilityRole="button"
                     accessibilityLabel={
-                      sending
-                        ? "Sending message"
-                        : text.trim()
-                          ? "Send message"
-                          : "Record voice note"
+                      text.trim() ? "Send message" : "Record voice note"
                     }
-                    accessibilityState={{ disabled: sending }}
                     hitSlop={accessibilityHitSlop}
                     onPress={sendOrRecord}
                     style={chatStyles.sendButton}
                   >
                     <Ionicons
-                      name={
-                        sending ? "time-outline" : text.trim() ? "send" : "mic"
-                      }
+                      name={text.trim() ? "send" : "mic"}
                       size={20}
                       color={colors.textInverse}
                     />
@@ -3473,7 +3496,7 @@ export function ChatScreen({
             onChangeCaption={setPendingCaption}
             onCancel={cancelPendingMedia}
             onSend={() => void confirmSendPendingMedia()}
-            sending={sendingPendingMedia}
+            sending={false}
             error={pendingMediaError}
           />
           <CallModal
@@ -4464,6 +4487,9 @@ function ChatBubble({
               style={chatStyles.messageMedia}
             />
             <View pointerEvents="none" style={chatStyles.mediaShade} />
+            {!!message.uploading && (
+              <UploadProgressOverlay messageId={message.id} />
+            )}
           </View>
         )}
       {message.type === "image" && !!message.text && (
@@ -4614,19 +4640,29 @@ function ChatBubble({
         </>
       )}
       {message.type === "voice" && message.uri && (
-        <VoiceNote
-          uri={message.uri}
-          durationMs={message.voice?.durationMs ?? 0}
-          transcript={message.voice?.transcript}
-          transcriptStatus={message.voice?.transcriptStatus}
-          mine={mine}
-        />
+        <View>
+          <VoiceNote
+            uri={message.uri}
+            durationMs={message.voice?.durationMs ?? 0}
+            transcript={message.voice?.transcript}
+            transcriptStatus={message.voice?.transcriptStatus}
+            mine={mine}
+          />
+          {!!message.uploading && (
+            <UploadProgressOverlay messageId={message.id} compact />
+          )}
+        </View>
       )}
       {message.type === "location" && message.location && (
         <LiveLocationCard location={message.location} />
       )}
       {message.type === "document" && message.document && (
-        <DocumentChatCard document={message.document} mine={mine} />
+        <View>
+          <DocumentChatCard document={message.document} mine={mine} />
+          {!!message.uploading && (
+            <UploadProgressOverlay messageId={message.id} compact />
+          )}
+        </View>
       )}
       {message.type === "document" &&
         message.document?.kind === "video" &&
@@ -5382,6 +5418,39 @@ function MediaCaptionPreview({
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
+  );
+}
+
+// WhatsApp-style loader drawn on top of a photo/video/voice bubble while it
+// uploads: a spinning ring with an X in the middle that cancels the upload.
+function UploadProgressOverlay({
+  messageId,
+  compact = false,
+}: {
+  messageId: string;
+  compact?: boolean;
+}) {
+  const size = compact ? 40 : 56;
+  return (
+    <View pointerEvents="box-none" style={chatStyles.uploadOverlay}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Cancel upload"
+        hitSlop={8}
+        onPress={() => mediaUploadCancels.get(messageId)?.()}
+        style={[
+          chatStyles.uploadBadge,
+          { width: size, height: size, borderRadius: size / 2 },
+        ]}
+      >
+        <ActivityIndicator
+          size={compact ? "small" : "large"}
+          color="#FFFFFF"
+          style={chatStyles.uploadSpinner}
+        />
+        <Ionicons name="close" size={compact ? 16 : 20} color="#FFFFFF" />
+      </Pressable>
+    </View>
   );
 }
 

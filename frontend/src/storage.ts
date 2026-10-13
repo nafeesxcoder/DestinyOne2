@@ -72,6 +72,9 @@ export type ChatMessage = {
   linkPreview?: { url: string; host: string; title: string; description: string; safety: 'safe' | 'caution' | 'danger' };
   createdAt: number;
   status: 'sent' | 'delivered' | 'read';
+  // Local-only: the media is still uploading, so the bubble shows a loader.
+  // Never sent to the server or persisted.
+  uploading?: boolean;
 };
 
 export type MatchFilters = {
