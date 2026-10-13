@@ -1,6 +1,7 @@
 ﻿const crypto = require("crypto");
 const { query } = require("../config/db");
 const pushService = require("./pushService");
+const realtime = require("./realtime");
 
 async function assertParticipant(conversationId, userId) {
   const mutual = await query(
@@ -41,6 +42,15 @@ async function assertParticipant(conversationId, userId) {
   return participants;
 }
 
+// A mutual-match conversation is addressed by the OTHER person's user id, so
+// the same chat has a different id for each participant. Couple chats use
+// the shared connection id for both. Translate for the viewer receiving an
+// event.
+function conversationIdForViewer(participants, conversationId, viewerId) {
+  if (!participants.includes(conversationId)) return conversationId;
+  return participants.find((pid) => pid !== viewerId) || conversationId;
+}
+
 function parseJsonColumn(value, fallback) {
   if (value === null || value === undefined) return fallback;
   return typeof value === "string" ? JSON.parse(value) : value;
@@ -79,6 +89,22 @@ function rowToMessage(row, viewerId) {
   };
 }
 
+// Push a changed message (edit / delete / reaction) to both participants,
+// each rendered from their own point of view (mine, reactions, stars).
+async function emitMessageUpdate(conversationId, row, actingUserId) {
+  try {
+    const participants = await assertParticipant(conversationId, actingUserId);
+    participants.forEach((pid) =>
+      realtime.emitToUser(pid, "message:update", {
+        conversationId: conversationIdForViewer(participants, conversationId, pid),
+        message: rowToMessage(row, pid),
+      }),
+    );
+  } catch {
+    /* realtime is best-effort */
+  }
+}
+
 async function getOwnedMessage(conversationId, userId, messageId) {
   await assertParticipant(conversationId, userId);
   const rows = await query(
@@ -115,6 +141,7 @@ async function editMessage(conversationId, userId, messageId, text) {
     "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
     [messageId, conversationId],
   );
+  emitMessageUpdate(conversationId, updated, userId);
   return rowToMessage(updated, userId);
 }
 
@@ -152,6 +179,7 @@ async function deleteMessage(conversationId, userId, messageId) {
     "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
     [messageId, conversationId],
   );
+  emitMessageUpdate(conversationId, updated, userId);
   return rowToMessage(updated, userId);
 }
 
@@ -190,6 +218,7 @@ async function setMessageState(conversationId, userId, messageId, input) {
       conversationId,
     ],
   );
+  emitMessageUpdate(conversationId, { ...row, starred_by: JSON.stringify(starredBy), hidden_by: JSON.stringify(hiddenBy), pinned_at: pinnedAt, reactions: JSON.stringify(reactionsMap) }, userId);
   return { ok: true };
 }
 
@@ -204,7 +233,7 @@ async function getRetentionMode(conversationId, userId) {
 }
 
 async function listMessages(conversationId, userId, sinceMs) {
-  await assertParticipant(conversationId, userId);
+  const participants = await assertParticipant(conversationId, userId);
   const expired = await query(
     `SELECT id FROM chat_messages WHERE conversation_id = ? AND expires_at IS NOT NULL
      AND expires_at <= NOW(6) AND deleted_for_everyone = 0`,
@@ -239,6 +268,14 @@ async function listMessages(conversationId, userId, sinceMs) {
     toMarkRead.forEach((row) => {
       row.status = "read";
     });
+    const senderIds = [...new Set(toMarkRead.map((row) => row.sender_id))];
+    senderIds.forEach((sid) =>
+      realtime.emitToUser(sid, "message:status", {
+        conversationId: conversationIdForViewer(participants, conversationId, sid),
+        ids: toMarkRead.filter((row) => row.sender_id === sid).map((row) => row.id),
+        status: "read",
+      }),
+    );
   }
   const messages = rows.map((row) => rowToMessage(row, userId));
   const seenNow = rows.filter(
@@ -252,6 +289,32 @@ async function listMessages(conversationId, userId, sinceMs) {
     seenNow.map((row) => row.id),
   );
   return messages;
+}
+
+// Called over the socket when the recipient has the chat open: marks every
+// unread message from the partner as read and tells the partner instantly.
+async function markConversationRead(conversationId, userId) {
+  const participants = await assertParticipant(conversationId, userId);
+  const rows = await query(
+    `SELECT id FROM chat_messages
+     WHERE conversation_id = ? AND sender_id <> ? AND status <> 'read' AND deleted_for_everyone = 0`,
+    [conversationId, userId],
+  );
+  const ids = rows.map((row) => row.id);
+  if (ids.length) {
+    await query(
+      `UPDATE chat_messages SET status = 'read', updated_at_ms = ?
+       WHERE conversation_id = ? AND id IN (${ids.map(() => "?").join(",")})`,
+      [Date.now(), conversationId, ...ids],
+    );
+    const partnerId = participants.find((pid) => pid !== userId);
+    realtime.emitToUser(partnerId, "message:status", {
+      conversationId: conversationIdForViewer(participants, conversationId, partnerId),
+      ids,
+      status: "read",
+    });
+  }
+  return { ids };
 }
 
 async function sendMessage(conversationId, userId, message) {
@@ -305,6 +368,10 @@ async function sendMessage(conversationId, userId, message) {
   const stored = rowToMessage(row, userId);
   const recipientId = participants.find((pid) => pid !== userId);
   if (recipientId) {
+    realtime.emitToUser(recipientId, "message:new", {
+      conversationId: conversationIdForViewer(participants, conversationId, recipientId),
+      message: rowToMessage(row, recipientId),
+    });
     notifyRecipient(conversationId, userId, recipientId, stored).catch(
       () => undefined,
     );
@@ -318,6 +385,11 @@ async function notifyRecipient(conversationId, senderId, recipientId, message) {
      WHERE id = ? AND conversation_id = ? AND status = 'sent'`,
     [Date.now(), message.id, conversationId],
   );
+  realtime.emitToUser(senderId, "message:status", {
+    conversationId,
+    ids: [message.id],
+    status: "delivered",
+  });
   const settingsRows = await query(
     "SELECT settings FROM chat_conversation_settings WHERE conversation_id = ? AND user_id = ?",
     [conversationId, recipientId],
@@ -500,6 +572,9 @@ module.exports = {
   shareLiveLocation,
   getPartnerPresence,
   setTyping,
+  isTypingFresh,
+  conversationIdForViewer,
+  markConversationRead,
   editMessage,
   deleteMessage,
   setMessageState,

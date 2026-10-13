@@ -860,6 +860,18 @@ const coupleThemes = [
 // placeholder message id. The loader's X button on the bubble calls these.
 const mediaUploadCancels = new Map<string, () => void>();
 
+// A tick can only move forward (sent -> delivered -> read). Local overrides
+// used to always win, which pinned sent messages to a single grey tick even
+// after the server reported them delivered/read.
+const statusRank: Record<string, number> = { sent: 0, delivered: 1, read: 2 };
+function furthestStatus(
+  local: ChatMessage["status"] | undefined,
+  server: ChatMessage["status"],
+): ChatMessage["status"] {
+  if (!local) return server;
+  return (statusRank[local] ?? 0) >= (statusRank[server] ?? 0) ? local : server;
+}
+
 const maxChatFileBytes = 100 * 1024 * 1024;
 const formatChatFileSize = (bytes?: number) => {
   if (!bytes || bytes < 1) return "Size unavailable";
@@ -2902,7 +2914,7 @@ export function ChatScreen({
               >
                 <ChatBubble
                   message={message}
-                  status={deliveryOverrides[message.id] ?? message.status}
+                  status={furthestStatus(deliveryOverrides[message.id], message.status)}
                   accent={activeTheme.accent}
                   reaction={
                     message.reactions?.partner ||
@@ -3313,7 +3325,7 @@ export function ChatScreen({
             onInfo={() =>
               setMessageActionNotice(
                 selectedMessage
-                  ? `${selectedMessage.mine === false ? "Received" : "Sent"} ${new Date(selectedMessage.createdAt).toLocaleString()} · ${deliveryOverrides[selectedMessage.id] ?? selectedMessage.status}${selectedMessage.editedAt ? " · Edited" : ""}`
+                  ? `${selectedMessage.mine === false ? "Received" : "Sent"} ${new Date(selectedMessage.createdAt).toLocaleString()} · ${furthestStatus(deliveryOverrides[selectedMessage.id], selectedMessage.status)}${selectedMessage.editedAt ? " · Edited" : ""}`
                   : "",
               )
             }

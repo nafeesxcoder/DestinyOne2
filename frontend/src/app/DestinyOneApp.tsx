@@ -122,6 +122,13 @@ import {
   subscribePersistedChatMessages as subscribePersistedChatMessagesPreview,
 } from "./adapters/previewPersistence";
 import { chatApi } from "../api/chatApi";
+import {
+  connectChatSocket,
+  disconnectChatSocket,
+  emitChatRead,
+  emitChatTyping,
+  getChatSocket,
+} from "../api/chatSocket";
 import { minimizeActiveCallIfAny } from "../features/chat/activeCallBackGuard";
 import { pushApi } from "../api/pushApi";
 import { safetyApi } from "../api/safetyApi";
@@ -597,6 +604,9 @@ function DestinyOneApp() {
   // screens instead of exiting the whole app/webview. Without this, the
   // very first back press anywhere (e.g. on the profile screen) would
   // close the app, since nothing was ever pushed onto history.
+  // True while the realtime socket is connected; the REST polls below slow
+  // right down (kept only as a safety net) when it is.
+  const chatSocketConnectedRef = useRef(false);
   const screenRef = useRef(screen);
   const isPoppingScreenRef = useRef(false);
   const hasMountedBackGuardRef = useRef(false);
@@ -1491,6 +1501,172 @@ function DestinyOneApp() {
       unsubscribe();
     };
   }, [hydrated, screen, conversationPartner.id]);
+  // Realtime connection (socket.io). Connects once the person is signed in
+  // and stays up app-wide; reconnects by itself. Chat falls back to the REST
+  // polling below whenever it is not connected.
+  useEffect(() => {
+    if (!accessToken) {
+      chatSocketConnectedRef.current = false;
+      disconnectChatSocket();
+      return;
+    }
+    const socket = connectChatSocket(accessToken);
+    if (!socket) return;
+    const onConnect = () => {
+      chatSocketConnectedRef.current = true;
+    };
+    const onDisconnect = () => {
+      chatSocketConnectedRef.current = false;
+    };
+    if (socket.connected) onConnect();
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onDisconnect);
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onDisconnect);
+    };
+  }, [accessToken]);
+  // Live events for the chat that is open: new messages, ticks, edits,
+  // typing and the partner's online/offline state.
+  useEffect(() => {
+    if (!hydrated || screen !== "chat" || !accessToken) return;
+    const socket = getChatSocket();
+    if (!socket) return;
+    const matchId = conversationPartner.id;
+    const backendMatchId = conversationIdFor(conversationPartner);
+    let partnerId = "";
+    let typingTimer: ReturnType<typeof setTimeout> | null = null;
+    const rank: Record<string, number> = { sent: 0, delivered: 1, read: 2 };
+    const chatVisible = () =>
+      typeof document === "undefined" || document.visibilityState !== "hidden";
+    const markRead = () => {
+      if (chatVisible()) emitChatRead(backendMatchId);
+    };
+    const patchPresence = (
+      patch: Partial<{
+        online: boolean;
+        lastActiveAt: string | null;
+        typing: boolean;
+      }>,
+    ) =>
+      setPartnerPresence((current) => ({
+        online: false,
+        lastActiveAt: null,
+        typing: false,
+        ...(current ?? {}),
+        ...patch,
+      }));
+    const watch = () => {
+      socket.emit(
+        "conversation:watch",
+        backendMatchId,
+        (ack?: {
+          ok?: boolean;
+          partnerId?: string;
+          online?: boolean;
+          lastActiveAt?: string | null;
+          typing?: boolean;
+        }) => {
+          if (!ack?.ok) return;
+          partnerId = ack.partnerId ?? "";
+          patchPresence({
+            online: !!ack.online,
+            lastActiveAt: ack.lastActiveAt ?? null,
+            typing: !!ack.typing,
+          });
+        },
+      );
+      markRead();
+    };
+    const onNew = (data: { conversationId?: string; message?: ChatMessage }) => {
+      if (data?.conversationId !== backendMatchId || !isChatMessage(data.message))
+        return;
+      const incoming = data.message;
+      setChatMessages((current) => ({
+        ...current,
+        [matchId]: mergeChatMessageList(current[matchId] ?? [], [incoming]),
+      }));
+      patchPresence({ typing: false });
+      markRead();
+    };
+    const onUpdate = (data: {
+      conversationId?: string;
+      message?: ChatMessage;
+    }) => {
+      if (data?.conversationId !== backendMatchId || !isChatMessage(data.message))
+        return;
+      const incoming = data.message;
+      setChatMessages((current) => ({
+        ...current,
+        [matchId]: mergeChatMessageList(current[matchId] ?? [], [incoming]),
+      }));
+    };
+    const onStatus = (data: {
+      conversationId?: string;
+      ids?: string[];
+      status?: ChatMessage["status"];
+    }) => {
+      if (data?.conversationId !== backendMatchId || !data.ids || !data.status)
+        return;
+      const ids = new Set(data.ids);
+      const status = data.status;
+      setChatMessages((current) => ({
+        ...current,
+        [matchId]: (current[matchId] ?? []).map((message) =>
+          ids.has(message.id) &&
+          (rank[status] ?? 0) > (rank[message.status] ?? 0)
+            ? { ...message, status }
+            : message,
+        ),
+      }));
+    };
+    const onTyping = (data: { conversationId?: string; typing?: boolean }) => {
+      if (data?.conversationId !== backendMatchId) return;
+      patchPresence({ typing: !!data.typing });
+      if (typingTimer) clearTimeout(typingTimer);
+      // Safety: if the "stopped typing" signal is lost, clear it ourselves.
+      if (data.typing)
+        typingTimer = setTimeout(() => patchPresence({ typing: false }), 6000);
+    };
+    const onPresence = (data: {
+      userId?: string;
+      online?: boolean;
+      lastActiveAt?: string;
+    }) => {
+      if (!partnerId || data?.userId !== partnerId) return;
+      patchPresence({
+        online: !!data.online,
+        lastActiveAt: data.lastActiveAt ?? null,
+        ...(data.online ? {} : { typing: false }),
+      });
+    };
+    const onVisible = () => {
+      if (chatVisible()) emitChatRead(backendMatchId);
+    };
+    socket.on("connect", watch);
+    socket.on("message:new", onNew);
+    socket.on("message:update", onUpdate);
+    socket.on("message:status", onStatus);
+    socket.on("typing", onTyping);
+    socket.on("presence", onPresence);
+    if (typeof document !== "undefined")
+      document.addEventListener("visibilitychange", onVisible);
+    if (socket.connected) watch();
+    return () => {
+      if (typingTimer) clearTimeout(typingTimer);
+      socket.off("connect", watch);
+      socket.off("message:new", onNew);
+      socket.off("message:update", onUpdate);
+      socket.off("message:status", onStatus);
+      socket.off("typing", onTyping);
+      socket.off("presence", onPresence);
+      if (typeof document !== "undefined")
+        document.removeEventListener("visibilitychange", onVisible);
+      if (socket.connected) socket.emit("conversation:unwatch", backendMatchId);
+    };
+  }, [hydrated, screen, conversationPartner.id, accessToken]);
   // Polls the partner's real last-active status for the "online"/"last
   // seen X ago" line at the top of the chat, and now also their "is
   // typing…" status. Only while the chat screen is actually open and
@@ -1507,7 +1683,11 @@ function DestinyOneApp() {
     }
     let active = true;
     const backendMatchId = conversationIdFor(conversationPartner);
+    let tick = 0;
     const poll = () => {
+      tick += 1;
+      // Presence/typing arrive over the socket; poll only every ~30s then.
+      if (chatSocketConnectedRef.current && tick % 10 !== 1) return;
       void chatApi
         .getPresence(accessToken, backendMatchId)
         .then((presence) => {
@@ -1801,8 +1981,12 @@ function DestinyOneApp() {
       return subscribePersistedChatMessagesPreview(conversationId, onMessage);
     let active = true;
     let sinceMs = Date.now();
+    let tick = 0;
     const poll = () => {
       if (!active) return;
+      tick += 1;
+      // Socket delivers new messages instantly; poll only every ~15s then.
+      if (chatSocketConnectedRef.current && tick % 5 !== 0) return;
       const pollStartedAt = Date.now();
       void chatApi
         .fetchMessagesSince(accessToken, conversationId, sinceMs)
@@ -3843,6 +4027,8 @@ function DestinyOneApp() {
             livePartnerTyping={partnerPresence?.typing}
             onTypingChange={(typing) => {
               if (!accessToken) return;
+              if (emitChatTyping(conversationIdFor(conversationPartner), typing))
+                return;
               void chatApi
                 .setTyping(
                   accessToken,
