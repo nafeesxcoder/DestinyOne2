@@ -14,3 +14,21 @@ export const isEligibleMemberAge = (value: string, min = 18, max = 50) => {
   const age = Number(value.replace(/\D/g, ''));
   return Number.isInteger(age) && age >= min && age <= max;
 };
+
+/**
+ * Build an E.164 number from a country dial code and what the user typed.
+ * A number typed with its own "+" is used as-is. Returns null if invalid.
+ * US/Canada (+1) must be exactly 10 digits.
+ */
+export const buildPhoneNumber = (dial: string, input: string) => {
+  const trimmed = input.trim();
+  if (trimmed.startsWith('+')) return normalizeAuthPhone(trimmed);
+  let national = trimmed.replace(/\D/g, '');
+  if (dial === '+1') {
+    if (national.length === 11 && national.startsWith('1')) national = national.slice(1);
+    return national.length === 10 ? `+1${national}` : null;
+  }
+  national = national.replace(/^0+/, '');
+  const full = `${dial}${national}`;
+  return national.length >= 6 && full.replace(/\D/g, '').length <= 15 ? full : null;
+};

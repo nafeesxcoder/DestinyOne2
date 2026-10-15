@@ -1,20 +1,34 @@
 import React, { useEffect, useState, type ReactNode } from "react";
-import { Image, Pressable, Text, TextInput, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 
-import { Button, Field, SectionTitle, shared } from "../../../components";
+import {
+  Button,
+  Field,
+  fieldStyles,
+  SectionTitle,
+  shared,
+} from "../../../components";
 import { FormPage, Segment } from "../../../components/forms/FormScaffold";
 import {
   PremiumIcon,
   ReferenceIconTile,
 } from "../../../components/premium/PremiumIcon";
 import {
+  buildPhoneNumber,
   isValidEmail,
   isValidPassword,
-  isValidPhone,
 } from "../../../domain/validation";
+import { COUNTRIES, DEFAULT_COUNTRY } from "../../../domain/countries";
 import { colors } from "../../../theme";
 import {
   authStyles,
@@ -130,7 +144,10 @@ export function AuthScreen({
   const [authError, setAuthError] = useState("");
   const [socialStatus, setSocialStatus] = useState("");
   const [loading, setLoading] = useState(false);
-  const phoneValid = isValidPhone(phone);
+  const [country, setCountry] = useState(DEFAULT_COUNTRY);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const fullPhone = buildPhoneNumber(country.dial, phone);
+  const phoneValid = fullPhone !== null;
   const emailValid = isValidEmail(email);
   const passwordValid = isValidPassword(password);
   const valid = mode === "phone" ? phoneValid : emailValid && passwordValid;
@@ -144,7 +161,7 @@ export function AuthScreen({
     try {
       await onRequestCode(
         mode === "phone"
-          ? { method: "phone", destination: phone }
+          ? { method: "phone", destination: fullPhone as string }
           : {
               method: "email",
               destination: email.trim().toLowerCase(),
@@ -255,19 +272,130 @@ export function AuthScreen({
         <View style={{ gap: 16 }}>
           {mode === "phone" ? (
             <>
-              <Field
-                emphasis
-                label="Phone number"
-                placeholder="+1  (555)  000-0000"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                error={
-                  submitted && !phoneValid
-                    ? "Enter a valid 10-digit phone number."
-                    : ""
-                }
-              />
+              <View style={{ gap: 8 }}>
+                <Text maxFontSizeMultiplier={1.3} style={fieldStyles.label}>
+                  Phone number
+                </Text>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Country code, ${country.name} ${country.dial}`}
+                    onPress={() => setCountryOpen((open) => !open)}
+                    style={[
+                      fieldStyles.input,
+                      {
+                        width: 112,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingHorizontal: 12,
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18 }}>{country.flag}</Text>
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontFamily: "Poppins_600SemiBold",
+                      }}
+                    >
+                      {country.dial}
+                    </Text>
+                    <Ionicons
+                      name={countryOpen ? "chevron-up" : "chevron-down"}
+                      size={16}
+                      color={colors.text}
+                    />
+                  </Pressable>
+                  <TextInput
+                    accessibilityLabel="Phone number"
+                    placeholder={
+                      country.dial === "+1" ? "(555) 000-0000" : "Phone number"
+                    }
+                    placeholderTextColor="#6F6875"
+                    selectionColor={colors.wine}
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                    style={[
+                      fieldStyles.input,
+                      fieldStyles.inputEmphasis,
+                      submitted && !phoneValid && fieldStyles.inputError,
+                      { flex: 1, width: undefined },
+                    ]}
+                  />
+                </View>
+                {countryOpen && (
+                  <View
+                    style={{
+                      maxHeight: 240,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: colors.line,
+                      backgroundColor: colors.surface,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                      {COUNTRIES.map((item) => (
+                        <Pressable
+                          key={item.code}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${item.name} ${item.dial}`}
+                          onPress={() => {
+                            setCountry(item);
+                            setCountryOpen(false);
+                          }}
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 12,
+                            paddingHorizontal: 14,
+                            paddingVertical: 12,
+                            backgroundColor:
+                              item.code === country.code
+                                ? "rgba(229,9,47,0.08)"
+                                : "transparent",
+                          }}
+                        >
+                          <Text style={{ fontSize: 20 }}>{item.flag}</Text>
+                          <Text
+                            style={{
+                              flex: 1,
+                              color: colors.text,
+                              fontFamily: "Poppins_400Regular",
+                            }}
+                          >
+                            {item.name}
+                          </Text>
+                          <Text
+                            style={{
+                              color: colors.text,
+                              fontFamily: "Poppins_600SemiBold",
+                            }}
+                          >
+                            {item.dial}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+                {submitted && !phoneValid ? (
+                  <Text
+                    accessibilityRole="alert"
+                    style={{
+                      color: colors.danger,
+                      fontFamily: "Poppins_500Medium",
+                      fontSize: 13,
+                    }}
+                  >
+                    {country.dial === "+1"
+                      ? "Enter a valid 10-digit phone number."
+                      : "Enter a valid phone number."}
+                  </Text>
+                ) : null}
+              </View>
               <Text style={[styles.helper, onboardingStyles.supportingText]}>
                 We’ll text you a one-time code. Your number stays private.
               </Text>

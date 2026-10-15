@@ -274,6 +274,13 @@ export const shared = StyleSheet.create({
   spacer: { flex: 1 },
 });
 
+export const fieldStyles = {
+  get input() { return styles.input; },
+  get inputEmphasis() { return styles.inputEmphasis; },
+  get inputError() { return styles.inputError; },
+  get label() { return styles.label; },
+};
+
 const styles = StyleSheet.create({
   brand: { flexDirection: "row", alignItems: "center", gap: 9 },
   logoMark: {
