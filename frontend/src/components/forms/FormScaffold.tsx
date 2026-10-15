@@ -74,8 +74,16 @@ export function FormPage({
         >
           <ScrollView
             keyboardShouldPersistTaps="handled"
+            // On web, react-native-web's "on-drag" closes the keyboard on ANY
+            // scroll event, including the browser's own scroll-into-view when
+            // a field is focused. That made the keyboard close before it even
+            // opened and kicked the page down, so fields couldn't be tapped.
             keyboardDismissMode={
-              Platform.OS === "ios" ? "interactive" : "on-drag"
+              Platform.OS === "web"
+                ? "none"
+                : Platform.OS === "ios"
+                  ? "interactive"
+                  : "on-drag"
             }
             showsVerticalScrollIndicator={false}
             contentContainerStyle={formPageStyles.scrollContent}
