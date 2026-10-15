@@ -21,8 +21,16 @@ async function compareCode(code, hash) {
 
 function normalizeIdentifier(channel, value) {
   if (channel === 'email') return String(value).trim().toLowerCase();
-  // Basic phone normalization: strip spaces/dashes, keep leading +
-  return String(value).trim().replace(/[^\d+]/g, '');
+  // Phone normalization to E.164: strip spaces/dashes/brackets, turn a
+  // leading "00" into "+". Numbers without a country code are returned
+  // as-is and rejected by isValidPhone().
+  let phone = String(value).trim().replace(/[^\d+]/g, '');
+  if (phone.startsWith('00')) phone = `+${phone.slice(2)}`;
+  return phone;
 }
 
-module.exports = { generateNumericCode, hashCode, compareCode, normalizeIdentifier };
+function isValidPhone(phone) {
+  return /^\+[1-9]\d{7,14}$/.test(phone);
+}
+
+module.exports = { generateNumericCode, hashCode, compareCode, normalizeIdentifier, isValidPhone };

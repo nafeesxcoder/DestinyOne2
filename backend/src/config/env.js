@@ -81,13 +81,3 @@ module.exports = {
     publishableKey: required("STRIPE_PUBLISHABLE_KEY", ""),
   },
 };
-
-console.log(
-  "DEBUG â†’",
-  "twilio SID:",
-  module.exports.twilio.accountSid,
-  "| resend key:",
-  module.exports.resend.apiKey,
-  "| nodeEnv:",
-  module.exports.nodeEnv,
-);

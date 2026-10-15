@@ -6,6 +6,7 @@ const {
   hashCode,
   compareCode,
   normalizeIdentifier,
+  isValidPhone,
 } = require("../utils/otp");
 const { sendOtpSms } = require("./smsService");
 const { sendOtpEmail } = require("./emailService");
@@ -13,6 +14,12 @@ const { ApiError } = require("../middleware/errorHandler");
 
 async function requestOtp({ channel, identifier }) {
   const normalized = normalizeIdentifier(channel, identifier);
+  if (channel === "phone" && !isValidPhone(normalized)) {
+    throw new ApiError(
+      400,
+      "Enter your phone number with the country code, e.g. +919876543210",
+    );
+  }
 
   // Cooldown: block rapid resends for the same identifier
   const recent = await query(
@@ -43,10 +50,25 @@ async function requestOtp({ channel, identifier }) {
     [id, normalized, channel, codeHash, env.otp.maxAttempts, expiresAt],
   );
 
-  if (channel === "phone") {
-    await sendOtpSms(normalized, code);
-  } else {
-    await sendOtpEmail(normalized, code);
+  try {
+    if (channel === "phone") {
+      await sendOtpSms(normalized, code);
+    } else {
+      await sendOtpEmail(normalized, code);
+    }
+  } catch (err) {
+    // Delivery failed: drop the code so the cooldown doesn't lock the user
+    // out of retrying, and return a clean error instead of a 500.
+    await query("DELETE FROM otp_codes WHERE id = ?", [id]);
+    // Twilio 21211 / 21614 = invalid / non-mobile destination number
+    if (err && (err.code === 21211 || err.code === 21614)) {
+      throw new ApiError(
+        400,
+        "That phone number looks invalid. Include the country code, e.g. +919876543210",
+      );
+    }
+    console.error("OTP delivery failed:", err && (err.message || err));
+    throw new ApiError(502, "Could not send the code right now. Please try again.");
   }
 
   return {
