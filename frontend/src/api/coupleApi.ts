@@ -3,6 +3,11 @@
   parseCoupleConnectionRequest,
   parseCouplePartnerSummary,
   isCoupleSearchMiss,
+  parseCoupleContactMatches,
+  parseCouplePartnerProfile,
+  CoupleSearchMissError,
+  type CoupleContactMatch,
+  type CouplePartnerProfile,
   type CoupleConnectionHub,
   type CoupleConnectionRequest,
   type CouplePartnerSummary,
@@ -36,12 +41,27 @@ export const coupleApi = {
       : `phone=${encodeURIComponent(trimmed)}`;
     const data = await authFetch(`/couple/search?${query}`, accessToken);
     if (isCoupleSearchMiss(data))
-      throw new Error(
+      throw new CoupleSearchMissError(
         isEmail
           ? "No member found with that email address."
           : "No member found with that phone number.",
       );
     return parseCouplePartnerSummary(data);
+  },
+
+  // Sends the phone numbers from the member's address book and gets back
+  // only the ones that already have a DestinyOne account.
+  async matchContacts(accessToken: string, phones: string[]): Promise<CoupleContactMatch[]> {
+    const data = await authFetch("/couple/contacts/match", accessToken, {
+      method: "POST",
+      body: JSON.stringify({ phones }),
+    });
+    return parseCoupleContactMatches(data);
+  },
+
+  async getPartnerProfile(accessToken: string, connectionId: string): Promise<CouplePartnerProfile> {
+    const data = await authFetch(`/couple/partner/${encodeURIComponent(connectionId)}`, accessToken);
+    return parseCouplePartnerProfile(data);
   },
 
   async sendRequest(accessToken: string, memberId: string): Promise<CoupleConnectionRequest> {

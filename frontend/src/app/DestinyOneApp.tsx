@@ -166,6 +166,9 @@ import {
 } from "./adapters/previewCoupleConnection";
 import {
   type CoupleConnectionHub,
+  CoupleSearchMissError,
+  type CoupleContactMatch,
+  type CouplePartnerProfile,
   type CouplePartnerSummary,
 } from "../domain/coupleConnection";
 import { coupleApi } from "../api/coupleApi";
@@ -2148,10 +2151,33 @@ function DestinyOneApp() {
     accessToken
       ? chatApi.setMessageState(accessToken, conversationId, messageId, input)
       : persistMessageUserStatePreview(conversationId, messageId, input);
-  const searchCouplePartner = (identifier: string) =>
-    accessToken
-      ? coupleApi.searchPartner(accessToken, identifier)
-      : searchCouplePartnerByPhonePreview(identifier);
+  // Resolves to null when nobody has an account with that phone / email,
+  // so the screen can offer to invite them instead of showing an error.
+  const searchCouplePartner = async (
+    identifier: string,
+  ): Promise<CouplePartnerSummary | null> => {
+    try {
+      return accessToken
+        ? await coupleApi.searchPartner(accessToken, identifier)
+        : await searchCouplePartnerByPhonePreview(identifier);
+    } catch (error) {
+      if (error instanceof CoupleSearchMissError) return null;
+      throw error;
+    }
+  };
+  const matchCoupleContacts = async (
+    phones: string[],
+  ): Promise<CoupleContactMatch[]> =>
+    accessToken ? coupleApi.matchContacts(accessToken, phones) : [];
+  const loadCouplePartnerProfile = (
+    connectionId: string,
+  ): Promise<CouplePartnerProfile> => {
+    if (!accessToken)
+      return Promise.reject(
+        new Error("Sign in to view your partner's profile."),
+      );
+    return coupleApi.getPartnerProfile(accessToken, connectionId);
+  };
   const requestCoupleConnection = async (member: CouplePartnerSummary) => {
     const request = accessToken
       ? await coupleApi.sendRequest(accessToken, member.memberId)
@@ -3602,6 +3628,8 @@ function DestinyOneApp() {
             }
             onSaveProfile={saveCoupleProfile}
             onSearch={searchCouplePartner}
+            onMatchContacts={matchCoupleContacts}
+            onLoadPartnerProfile={loadCouplePartnerProfile}
             onRequest={requestCoupleConnection}
             onRespond={respondCoupleConnection}
             onOpenSpace={(connectionId) => {

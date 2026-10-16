@@ -39,10 +39,19 @@ async function findActiveConnections(userId) {
 // Accepts either a phone number or an email address and looks the partner
 // up by whichever one was given, so a couple can connect with either —
 // previously only a phone-number match was supported here.
+function normalizePhone(value) {
+  let phone = String(value || '').trim().replace(/[^\d+]/g, '');
+  if (phone.startsWith('00')) phone = `+${phone.slice(2)}`;
+  return phone;
+}
+
+const PHONE_RE = /^\+[1-9]\d{7,14}$/;
+const MAX_CONTACTS_PER_MATCH = 300;
+
 async function searchByIdentifier(identifier, selfUserId) {
   const isEmail = identifier.includes('@');
   const column = isEmail ? 'email' : 'phone';
-  const value = isEmail ? identifier.toLowerCase() : identifier;
+  const value = isEmail ? identifier.trim().toLowerCase() : normalizePhone(identifier);
   const users = await query(
     `SELECT id FROM users WHERE ${column} = ? AND id != ? LIMIT 1`,
     [value, selfUserId],
@@ -236,6 +245,90 @@ async function disconnectConnection(userId, connectionId) {
   return { ok: true };
 }
 
+// WhatsApp-style contact matching: the app sends the phone numbers from the
+// member's address book and gets back only the ones that already have a
+// DestinyOne account (plus whether they're already connected / pending), so
+// the rest can be invited. Only name, city, profession and the verified
+// badge come back; phone numbers and emails are never returned.
+async function matchContacts(userId, rawPhones) {
+  const phones = [...new Set((Array.isArray(rawPhones) ? rawPhones : []).map(normalizePhone))]
+    .filter((phone) => PHONE_RE.test(phone))
+    .slice(0, MAX_CONTACTS_PER_MATCH);
+  if (!phones.length) return [];
+  const placeholders = phones.map(() => '?').join(',');
+  const users = await query(
+    `SELECT id, phone FROM users WHERE phone IN (${placeholders}) AND id != ?`,
+    [...phones, userId],
+  );
+  if (!users.length) return [];
+
+  const connected = new Set();
+  for (const row of await findActiveConnections(userId)) {
+    connected.add(row.requester_id === userId ? row.partner_id : row.requester_id);
+  }
+  const pendingOut = new Set();
+  const pendingIn = new Set();
+  const pending = await query(
+    `SELECT requester_id, target_id FROM couple_requests
+     WHERE status = 'pending' AND expires_at > NOW(6) AND (requester_id = ? OR target_id = ?)`,
+    [userId, userId],
+  );
+  for (const row of pending) {
+    if (row.requester_id === userId) pendingOut.add(row.target_id);
+    else pendingIn.add(row.requester_id);
+  }
+
+  const results = [];
+  for (const user of users) {
+    const [profile] = await query('SELECT * FROM profiles WHERE user_id = ?', [user.id]);
+    let relation = 'none';
+    if (connected.has(user.id)) relation = 'connected';
+    else if (pendingOut.has(user.id)) relation = 'pending_out';
+    else if (pendingIn.has(user.id)) relation = 'pending_in';
+    results.push({ phone: user.phone, relation, member: toPartnerRow(profile, user.id) });
+  }
+  return results;
+}
+
+// Full profile of someone the member is actively connected to, for the
+// WhatsApp-style "tap a partner to see their profile" view. Contact details
+// (phone / email) are deliberately not included.
+async function getPartnerProfile(userId, connectionId) {
+  const [connection] = await query(
+    `SELECT * FROM couple_connections
+     WHERE id = ? AND status = 'active' AND (requester_id = ? OR partner_id = ?)`,
+    [connectionId, userId, userId],
+  );
+  if (!connection) {
+    const err = new Error('This partner connection is no longer available.');
+    err.status = 404;
+    throw err;
+  }
+  const partnerId = connection.requester_id === userId ? connection.partner_id : connection.requester_id;
+  const [profile] = await query('SELECT * FROM profiles WHERE user_id = ?', [partnerId]);
+  const photos = await query(
+    'SELECT photo_url FROM profile_photos WHERE user_id = ? ORDER BY position ASC',
+    [partnerId],
+  );
+  const vibes = await query('SELECT vibe FROM profile_vibes WHERE user_id = ?', [partnerId]);
+  return {
+    connection_id: connection.id,
+    member_id: partnerId,
+    display_name: profile?.first_name || 'Your partner',
+    age: profile?.age ?? null,
+    city: profile?.city || '',
+    profession: profile?.profession || '',
+    religion: profile?.religion || '',
+    community: profile?.community || '',
+    height: profile?.height || '',
+    about: profile?.about || '',
+    verified: !!profile?.verified,
+    photos: photos.map((row) => row.photo_url),
+    vibes: vibes.map((row) => row.vibe),
+    connected_since: connection.created_at || null,
+  };
+}
+
 module.exports = {
   searchByIdentifier,
   createRequest,
@@ -243,4 +336,6 @@ module.exports = {
   getHub,
   setMode,
   disconnectConnection,
+  matchContacts,
+  getPartnerProfile,
 };

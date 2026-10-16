@@ -56,4 +56,20 @@ const disconnect = asyncHandler(async (req, res) => {
   res.json({ ok: true, saved: true, reason: 'backend' });
 });
 
-module.exports = { searchPartner, sendRequest, respondRequest, getHub, setMode, disconnect };
+const matchContacts = asyncHandler(async (req, res) => {
+  const { phones } = req.body || {};
+  if (!Array.isArray(phones)) throw new ApiError(400, 'phones (array) is required');
+  const matches = await coupleService.matchContacts(req.user.id, phones);
+  res.json({ ok: true, matches });
+});
+
+const getPartnerProfile = asyncHandler(async (req, res) => {
+  try {
+    const profile = await coupleService.getPartnerProfile(req.user.id, req.params.connectionId);
+    res.json({ ok: true, ...profile });
+  } catch (error) {
+    throw new ApiError(error.status || 500, error.message || 'Could not load this profile');
+  }
+});
+
+module.exports = { matchContacts, getPartnerProfile, searchPartner, sendRequest, respondRequest, getHub, setMode, disconnect };

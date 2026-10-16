@@ -108,3 +108,90 @@ export function parseCoupleConnectionRequest(value: unknown): CoupleConnectionRe
 export function isCoupleSearchMiss(value: unknown) {
   return isRecord(value) && value.found === false;
 }
+
+// ---- WhatsApp-style contacts + partner profile ----------------------
+
+export class CoupleSearchMissError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CoupleSearchMissError';
+  }
+}
+
+export type ContactRelation = 'none' | 'connected' | 'pending_out' | 'pending_in';
+
+export type CoupleContactMatch = {
+  phone: string;
+  relation: ContactRelation;
+  member: CouplePartnerSummary;
+};
+
+export type CouplePartnerProfile = {
+  connectionId: string;
+  memberId: string;
+  displayName: string;
+  age: number | null;
+  city: string;
+  profession: string;
+  religion: string;
+  community: string;
+  height: string;
+  about: string;
+  verified: boolean;
+  photos: string[];
+  vibes: string[];
+};
+
+function text(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function textList(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && !!item.trim()) : [];
+}
+
+export function parseCoupleContactMatches(value: unknown): CoupleContactMatch[] {
+  if (!isRecord(value) || !Array.isArray(value.matches)) return [];
+  const matches: CoupleContactMatch[] = [];
+  for (const entry of value.matches) {
+    if (!isRecord(entry) || !isRecord(entry.member)) continue;
+    const memberId = text(entry.member.member_id);
+    const phone = text(entry.phone);
+    if (!memberId || !phone) continue;
+    const relation = ['connected', 'pending_out', 'pending_in'].includes(String(entry.relation))
+      ? (entry.relation as ContactRelation)
+      : 'none';
+    matches.push({
+      phone,
+      relation,
+      // Lenient on purpose: a member may not have filled in city/profession yet.
+      member: {
+        memberId,
+        displayName: text(entry.member.display_name) || 'Member',
+        city: text(entry.member.city),
+        profession: text(entry.member.profession),
+        verified: entry.member.verified === true,
+      },
+    });
+  }
+  return matches;
+}
+
+export function parseCouplePartnerProfile(value: unknown): CouplePartnerProfile {
+  if (!isRecord(value)) throw new Error('The partner profile could not be read.');
+  return {
+    connectionId: requiredText(value, 'connection_id'),
+    memberId: requiredText(value, 'member_id'),
+    displayName: text(value.display_name) || 'Your partner',
+    age: typeof value.age === 'number' ? value.age : null,
+    city: text(value.city),
+    profession: text(value.profession),
+    religion: text(value.religion),
+    community: text(value.community),
+    height: text(value.height),
+    about: text(value.about),
+    verified: value.verified === true,
+    photos: textList(value.photos),
+    vibes: textList(value.vibes),
+  };
+}
