@@ -60,15 +60,18 @@ export async function pickContacts(): Promise<PickedContact[]> {
   return result;
 }
 
-function inviteLink() {
-  return Platform.OS === "web" && typeof window !== "undefined"
-    ? window.location.origin
-    : "https://destinyone.co";
+function inviteLink(senderName?: string) {
+  const base =
+    Platform.OS === "web" && typeof window !== "undefined"
+      ? window.location.origin
+      : "https://destinyone.co";
+  const who = senderName?.trim();
+  return who ? `${base}/?invite=${encodeURIComponent(who.slice(0, 40))}` : base;
 }
 
 export function inviteMessage(senderName?: string) {
   const who = senderName?.trim() ? `${senderName.trim()} invited you to` : "Join me on";
-  return `${who} DestinyOne, a private space for serious, family-minded South Asian matches. Create your account here: ${inviteLink()}`;
+  return `${who} DestinyOne, a private space for serious, family-minded South Asian matches. Create your account here: ${inviteLink(senderName)}`;
 }
 
 // Opens the phone's own messaging / share sheet, so the invite goes out from

@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState, type ReactNode } from "react";
+import { captureInviteFromUrl } from "../features/onboarding/inviteTracking";
 import { Image, Platform, Share, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
@@ -624,6 +625,9 @@ function DestinyOneApp() {
   const screenRef = useRef(screen);
   const isPoppingScreenRef = useRef(false);
   const hasMountedBackGuardRef = useRef(false);
+  useEffect(() => {
+    captureInviteFromUrl();
+  }, []);
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
