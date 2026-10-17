@@ -3,6 +3,7 @@
 // REST endpoints stay in place as the fallback; if the socket is down the
 // app keeps polling, so nothing here is required for correctness.
 const { Server } = require("socket.io");
+const { isAllowedOrigin } = require("../config/security");
 const { verifyAccessToken } = require("../utils/jwt");
 const { query } = require("../config/db");
 
@@ -48,7 +49,10 @@ function partnerOf(participants, userId) {
 
 function init(httpServer) {
   io = new Server(httpServer, {
-    cors: { origin: true, credentials: false },
+    cors: {
+      origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
+      credentials: false,
+    },
     // Mobile browsers drop sockets often; detect a dead one quickly.
     pingInterval: 15000,
     pingTimeout: 10000,

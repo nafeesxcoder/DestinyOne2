@@ -11,8 +11,15 @@ const callRoutes = require("./routes/callRoutes"); // Directly import call route
 const giftRoutes = require("./routes/giftRoutes"); // Directly import gift ordering routes
 const safetyRoutes = require("./routes/safetyRoutes"); // Directly import safety routes
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
+const { corsOptions, securityHeaders } = require("./config/security");
 const app = express();
-app.use(cors());
+// The API runs behind nginx, so trust one proxy hop. Without this every
+// request looks like it comes from 127.0.0.1 and the rate limiters would
+// count all users together.
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
+app.use(securityHeaders);
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For Apple's form_post callback
 // Serve uploaded photos (e.g. https://api.destinyone.co/uploads/photos/xyz.jpg)
