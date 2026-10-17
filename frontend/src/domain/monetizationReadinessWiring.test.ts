@@ -9,7 +9,10 @@ const app = [
   readFileSync('src/features/marketplace/EventsHubScreen.tsx', 'utf8'),
   readFileSync('src/features/pricing/PricingScreen.tsx', 'utf8'),
 ].join('\n');
-const compact = (value: string) => value.replace(/\s+/g, '');
+// Formatting-insensitive: ignores whitespace, quote style and trailing commas
+// so a Prettier pass over the source doesn't break these wiring checks.
+const compact = (value: string) =>
+  value.replace(/\s+/g, '').replace(/"/g, "'").replace(/,([)}\]])/g, '$1');
 const contains = (value: string) => expect(compact(app)).toContain(compact(value));
 
 describe('monetization readiness wiring', () => {

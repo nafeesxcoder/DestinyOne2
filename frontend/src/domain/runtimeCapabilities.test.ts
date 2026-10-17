@@ -10,7 +10,10 @@ const appSource = [
   'src/features/gifts/GiftMarketplaceScreen.tsx',
   'src/features/marketplace/EventsHubScreen.tsx',
 ].map(file=>readFileSync(file,'utf8')).join('\n');
-const compact=(value:string)=>value.replace(/\s+/g,'');
+// Formatting-insensitive: ignores whitespace, quote style and trailing commas
+// so a Prettier pass over the source doesn't break these wiring checks.
+const compact = (value: string) =>
+  value.replace(/\s+/g, '').replace(/"/g, "'").replace(/,([)}\]])/g, '$1');
 
 const base: RuntimeCapabilitiesInput = {
   appEnvironment: 'development',
