@@ -779,6 +779,9 @@ function DestinyOneApp() {
   // single connection the coupleMode reducer already tracks (the primary
   // one, kept for the existing single-partner flows) when nothing's been
   // explicitly picked yet.
+  const [coupleProfileTarget, setCoupleProfileTarget] = useState<
+    string | null
+  >(null);
   const [activeCoupleConnectionId, setActiveCoupleConnectionId] = useState<
     string | null
   >(null);
@@ -3275,6 +3278,30 @@ function DestinyOneApp() {
     });
     return true;
   };
+  const blockCouplePartner = async (memberId: string) => {
+    if (!accessToken) return false;
+    const result = await safetyApi.block(accessToken, memberId);
+    return confirmMemberMutation(
+      result,
+      "Member not blocked",
+      "The block could not be confirmed. Please try again.",
+    );
+  };
+  const reportCouplePartner = async (memberId: string, reason: string) => {
+    if (!accessToken) return false;
+    const result = await safetyApi.report(
+      accessToken,
+      memberId,
+      reason,
+      undefined,
+      `report-${Date.now()}`,
+    );
+    return confirmMemberMutation(
+      result,
+      "Report not submitted",
+      "Your safety report could not be confirmed. Please try again.",
+    );
+  };
   const unblockMatch = async (match: Match) => {
     if (accessToken) {
       const result = await safetyApi.unblock(accessToken, profileIdFor(match));
@@ -3623,9 +3650,11 @@ function DestinyOneApp() {
           <CoupleSetupScreen
             profile={profileDraft}
             hub={coupleHub}
-            onBack={() =>
-              setScreen(onboardingComplete ? "profile" : "modeSelect")
-            }
+            key={coupleProfileTarget ?? "list"}
+            onBack={() => {
+              setCoupleProfileTarget(null);
+              setScreen(onboardingComplete ? "profile" : "modeSelect");
+            }}
             onSaveProfile={saveCoupleProfile}
             onSearch={searchCouplePartner}
             onMatchContacts={matchCoupleContacts}
@@ -3637,6 +3666,9 @@ function DestinyOneApp() {
               setScreen("home");
             }}
             onDisconnect={disconnectCoupleConnection}
+            onBlockPartner={blockCouplePartner}
+            onReportPartner={reportCouplePartner}
+            initialViewingId={coupleProfileTarget}
           />
         )}
         {screen === "profileSetup" && (
@@ -4143,6 +4175,16 @@ function DestinyOneApp() {
             onUnmatch={async () => {
               if (await unmatchMatch(conversationPartner)) setScreen("home");
             }}
+            onOpenPartnerProfile={
+              activeCoupleHubConnection
+                ? () => {
+                    setCoupleProfileTarget(
+                      activeCoupleHubConnection.connectionId,
+                    );
+                    setScreen("coupleSetup");
+                  }
+                : undefined
+            }
             navigate={navigateTo}
             accessToken={accessToken}
             livePartnerOnline={partnerPresence?.online}

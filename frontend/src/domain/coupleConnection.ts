@@ -18,6 +18,8 @@ export type CouplePairingConnection = {
   connectionId: string;
   partnerMemberId: string;
   partnerDisplayName: string;
+  lastMessage?: { preview: string; at: number; mine: boolean } | null;
+  unreadCount?: number;
 };
 
 export type CoupleConnectionHub = {
@@ -66,7 +68,15 @@ function parseConnection(value: unknown): CouplePairingConnection | null {
     connectionId: requiredText(value, 'connection_id'),
     partnerMemberId: requiredText(value, 'partner_member_id'),
     partnerDisplayName: requiredText(value, 'partner_display_name'),
+    lastMessage: parseLastMessage(value.last_message),
+    unreadCount: typeof value.unread_count === 'number' ? value.unread_count : 0,
   };
+}
+
+function parseLastMessage(value: unknown) {
+  if (!isRecord(value) || typeof value.preview !== 'string') return null;
+  const at = Number(value.at);
+  return { preview: value.preview, at: Number.isFinite(at) ? at : 0, mine: value.mine === true };
 }
 
 function parseRequest(value: unknown): CoupleConnectionRequest {

@@ -994,6 +994,7 @@ export function ChatScreen({
   isBlocked,
   onUnblock,
   onUnmatch,
+  onOpenPartnerProfile,
   navigate,
   accessToken,
   livePartnerOnline,
@@ -1055,6 +1056,8 @@ export function ChatScreen({
   isBlocked?: boolean;
   onUnblock: () => void;
   onUnmatch: () => void;
+  // Couple chats: tapping the header avatar opens the partner's profile.
+  onOpenPartnerProfile?: () => void;
   navigate: (s: Screen) => void;
   accessToken: string;
   // Polled from the backend's real last-active timestamp (see
@@ -2472,6 +2475,12 @@ export function ChatScreen({
                 iconSize={17}
               />
             </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`View ${match.name}'s profile`}
+              disabled={!onOpenPartnerProfile}
+              onPress={onOpenPartnerProfile}
+            >
             {match.photo ? (
               <Image
                 accessible
@@ -2497,6 +2506,7 @@ export function ChatScreen({
                 </Text>
               </View>
             )}
+            </Pressable>
             <View accessibilityRole="header" style={{ flex: 1 }}>
               <Pressable
                 accessibilityRole="button"

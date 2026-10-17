@@ -151,6 +151,54 @@ async function respondToRequest(userId, requestId, accept) {
   return getHub(userId);
 }
 
+function previewFor(payload) {
+  let p = payload;
+  if (typeof p === 'string') { try { p = JSON.parse(p); } catch { p = {}; } }
+  p = p || {};
+  const clip = (t) => (String(t).length > 80 ? `${String(t).slice(0, 80)}…` : String(t));
+  switch (p.type) {
+    case 'image': return p.text ? `📷 ${clip(p.text)}` : '📷 Photo';
+    case 'gif': return 'GIF';
+    case 'sticker': return 'Sticker';
+    case 'voice': return '🎤 Voice message';
+    case 'location': return '📍 Location';
+    case 'document': return '📄 Document';
+    case 'gift': return '🎁 Gift';
+    case 'date': return '📅 Date plan';
+    case 'snap': return '📸 Snap';
+    default: return clip(p.text || 'Message');
+  }
+}
+
+async function connectionActivity(connectionId, userId) {
+  try {
+    const rows = await query(
+      `SELECT sender_id, payload, created_at_ms, hidden_by FROM chat_messages
+       WHERE conversation_id = ? AND deleted_for_everyone = 0
+       ORDER BY created_at_ms DESC LIMIT 20`,
+      [connectionId],
+    );
+    const visible = rows.find((r) => {
+      let hidden = r.hidden_by;
+      if (typeof hidden === 'string') { try { hidden = JSON.parse(hidden); } catch { hidden = []; } }
+      return !(Array.isArray(hidden) && hidden.includes(userId));
+    });
+    const [unread] = await query(
+      `SELECT COUNT(*) AS n FROM chat_messages
+       WHERE conversation_id = ? AND sender_id <> ? AND status <> 'read' AND deleted_for_everyone = 0`,
+      [connectionId, userId],
+    );
+    return {
+      last_message: visible
+        ? { preview: previewFor(visible.payload), at: Number(visible.created_at_ms), mine: visible.sender_id === userId }
+        : null,
+      unread_count: Number(unread?.n || 0),
+    };
+  } catch (err) {
+    return { last_message: null, unread_count: 0 };
+  }
+}
+
 async function getHub(userId) {
   const [modeRow] = await query('SELECT mode FROM experience_mode WHERE user_id = ?', [userId]);
   const experienceMode = modeRow?.mode || 'seeking';
@@ -160,12 +208,17 @@ async function getHub(userId) {
   for (const active of activeRows) {
     const partnerId = active.requester_id === userId ? active.partner_id : active.requester_id;
     const [partnerProfile] = await query('SELECT * FROM profiles WHERE user_id = ?', [partnerId]);
+    const activity = await connectionActivity(active.id, userId);
     connections.push({
       connection_id: active.id,
       partner_member_id: partnerId,
       partner_display_name: partnerProfile?.first_name || 'Your partner',
+      last_message: activity.last_message,
+      unread_count: activity.unread_count,
     });
   }
+  // Most recent conversation first, like WhatsApp.
+  connections.sort((a, b) => (b.last_message?.at || 0) - (a.last_message?.at || 0));
   // `connection` (singular) is kept for older clients/screens that only
   // know about one partner — it's just the most recently active one.
   const connection = connections[0] || null;

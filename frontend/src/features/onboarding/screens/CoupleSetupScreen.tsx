@@ -73,8 +73,21 @@ type Props = {
   // Opens the chat with one specific partner, like tapping a chat in WhatsApp.
   onOpenSpace: (connectionId: string) => void;
   onDisconnect: (connectionId: string) => Promise<void>;
+  // Safety actions on a partner's profile (same endpoints as the normal chat).
+  onBlockPartner?: (memberId: string) => Promise<boolean>;
+  onReportPartner?: (memberId: string, reason: string) => Promise<boolean>;
+  // Open straight on this partner's profile (chat header avatar tap).
+  initialViewingId?: string | null;
   onBack: () => void;
 };
+
+const REPORT_REASONS = [
+  "Fake or misleading profile",
+  "Harassment or disrespect",
+  "Asked for money",
+  "Inappropriate content",
+  "Safety concern",
+];
 
 type Miss = { phone?: string; email?: string };
 
@@ -153,14 +166,20 @@ function PartnerProfileView({
   onLoad,
   onOpenChat,
   onDisconnect,
+  onBlock,
+  onReport,
   onClose,
 }: {
   connection: CouplePairingConnection;
   onLoad: (connectionId: string) => Promise<CouplePartnerProfile>;
   onOpenChat: () => void;
   onDisconnect: () => Promise<void>;
+  onBlock?: () => Promise<boolean>;
+  onReport?: (reason: string) => Promise<boolean>;
   onClose: () => void;
 }) {
+  const [safety, setSafety] = useState<"" | "report" | "block">("");
+  const [safetyNote, setSafetyNote] = useState("");
   const [data, setData] = useState<CouplePartnerProfile | null>(null);
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -289,6 +308,91 @@ function PartnerProfileView({
         </View>
       )}
 
+      {(onBlock || onReport) && (
+        <View style={local.card}>
+          {safetyNote ? <Text style={styles.helper}>{safetyNote}</Text> : null}
+          {safety === "report" ? (
+            <View style={{ gap: 8 }}>
+              <Text style={local.rowTitle}>Report {name} privately</Text>
+              {REPORT_REASONS.map((reason) => (
+                <Pressable
+                  key={reason}
+                  accessibilityRole="button"
+                  onPress={async () => {
+                    const ok = await onReport?.(reason);
+                    setSafety("");
+                    setSafetyNote(
+                      ok
+                        ? "Report sent. Our safety team will review it."
+                        : "Could not send the report. Please try again.",
+                    );
+                  }}
+                  style={local.dangerRow}
+                >
+                  <Text style={styles.helper}>{reason}</Text>
+                </Pressable>
+              ))}
+              <Button
+                label="Cancel"
+                variant="secondary"
+                onPress={() => setSafety("")}
+              />
+            </View>
+          ) : safety === "block" ? (
+            <View style={{ gap: 10 }}>
+              <Text style={styles.helper}>
+                Block {name}? You will no longer see each other's messages.
+              </Text>
+              <View style={styles.twoCol}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label="Cancel"
+                    variant="secondary"
+                    onPress={() => setSafety("")}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label="Yes, block"
+                    icon="ban"
+                    onPress={async () => {
+                      const ok = await onBlock?.();
+                      setSafety("");
+                      setSafetyNote(
+                        ok ? `${name} is blocked.` : "Could not block. Try again.",
+                      );
+                    }}
+                  />
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {onReport && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setSafety("report")}
+                  style={local.dangerRow}
+                >
+                  <Ionicons name="flag-outline" size={20} color={colors.danger} />
+                  <Text style={local.dangerText}>Report {name}</Text>
+                </Pressable>
+              )}
+              {onBlock && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setSafety("block")}
+                  style={local.dangerRow}
+                >
+                  <Ionicons name="ban-outline" size={20} color={colors.danger} />
+                  <Text style={local.dangerText}>Block {name}</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+
       <View style={local.card}>
         {confirming ? (
           <View style={{ gap: 10 }}>
@@ -343,6 +447,17 @@ function PartnerProfileView({
 /* ----------------------------------------------------------------------
    Main screen
    ---------------------------------------------------------------------- */
+function formatChatTime(at: number) {
+  if (!at) return "";
+  const d = new Date(at);
+  const now = new Date();
+  if (d.toDateString() === now.toDateString())
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const y = new Date(now.getTime() - 86400000);
+  if (d.toDateString() === y.toDateString()) return "Yesterday";
+  return d.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+
 export function CoupleSetupScreen({
   profile,
   hub,
@@ -354,6 +469,9 @@ export function CoupleSetupScreen({
   onRespond,
   onOpenSpace,
   onDisconnect,
+  onBlockPartner,
+  onReportPartner,
+  initialViewingId,
   onBack,
 }: Props) {
   const [memberName, setMemberName] = useState(profile.firstName);
@@ -412,7 +530,7 @@ export function CoupleSetupScreen({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(initialViewingId ?? null);
   const contactsSupported = useMemo(() => canPickContacts(), []);
 
   const viewing = hub.connections.find((c) => c.connectionId === viewingId);
@@ -663,6 +781,16 @@ export function CoupleSetupScreen({
               await onDisconnect(viewing.connectionId);
               setViewingId(null);
             }}
+            onBlock={
+              onBlockPartner
+                ? () => onBlockPartner(viewing.partnerMemberId)
+                : undefined
+            }
+            onReport={
+              onReportPartner
+                ? (reason) => onReportPartner(viewing.partnerMemberId, reason)
+                : undefined
+            }
             onClose={() => setViewingId(null)}
           />
         </FormPage>
@@ -918,8 +1046,51 @@ export function CoupleSetupScreen({
                   <Text style={local.rowTitle} numberOfLines={1}>
                     {connection.partnerDisplayName}
                   </Text>
-                  <Text style={styles.helper}>Tap to open chat</Text>
+                  <Text
+                    style={[
+                      styles.helper,
+                      (connection.unreadCount ?? 0) > 0 && {
+                        color: colors.pink,
+                        fontWeight: "700",
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {connection.lastMessage
+                      ? `${connection.lastMessage.mine ? "You: " : ""}${connection.lastMessage.preview}`
+                      : "Tap to open chat"}
+                  </Text>
                 </View>
+                {connection.lastMessage ? (
+                  <View style={{ alignItems: "flex-end", gap: 4 }}>
+                    <Text style={styles.helper}>
+                      {formatChatTime(connection.lastMessage.at)}
+                    </Text>
+                    {(connection.unreadCount ?? 0) > 0 && (
+                      <View
+                        style={{
+                          minWidth: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          paddingHorizontal: 6,
+                          backgroundColor: colors.pink,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontSize: 11,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {connection.unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ) : null}
               </Pressable>
               <Pressable
                 accessibilityRole="button"
