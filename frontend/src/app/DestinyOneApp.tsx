@@ -653,10 +653,7 @@ function DestinyOneApp() {
       } else {
         // Bottom of our in-app stack — never let the back button exit the
         // app; just re-seed a history entry and stay on the current screen.
-        window.history.pushState(
-          { destinyoneScreen: screenRef.current },
-          "",
-        );
+        window.history.pushState({ destinyoneScreen: screenRef.current }, "");
       }
     };
     window.addEventListener("popstate", handlePopState);
@@ -783,9 +780,9 @@ function DestinyOneApp() {
   // single connection the coupleMode reducer already tracks (the primary
   // one, kept for the existing single-partner flows) when nothing's been
   // explicitly picked yet.
-  const [coupleProfileTarget, setCoupleProfileTarget] = useState<
-    string | null
-  >(null);
+  const [coupleProfileTarget, setCoupleProfileTarget] = useState<string | null>(
+    null,
+  );
   const [activeCoupleConnectionId, setActiveCoupleConnectionId] = useState<
     string | null
   >(null);
@@ -1675,8 +1672,14 @@ function DestinyOneApp() {
       );
       markRead();
     };
-    const onNew = (data: { conversationId?: string; message?: ChatMessage }) => {
-      if (data?.conversationId !== backendMatchId || !isChatMessage(data.message))
+    const onNew = (data: {
+      conversationId?: string;
+      message?: ChatMessage;
+    }) => {
+      if (
+        data?.conversationId !== backendMatchId ||
+        !isChatMessage(data.message)
+      )
         return;
       const incoming = data.message;
       setChatMessages((current) => ({
@@ -1690,7 +1693,10 @@ function DestinyOneApp() {
       conversationId?: string;
       message?: ChatMessage;
     }) => {
-      if (data?.conversationId !== backendMatchId || !isChatMessage(data.message))
+      if (
+        data?.conversationId !== backendMatchId ||
+        !isChatMessage(data.message)
+      )
         return;
       const incoming = data.message;
       setChatMessages((current) => ({
@@ -1866,7 +1872,8 @@ function DestinyOneApp() {
               `${origin}/?giftOrderId=${orderId}`,
               `${origin}/?giftOrderCancelled=${orderId}`,
             );
-            if (typeof window !== "undefined") window.location.href = checkoutUrl;
+            if (typeof window !== "undefined")
+              window.location.href = checkoutUrl;
             return;
           }
         } catch {
@@ -1938,10 +1945,7 @@ function DestinyOneApp() {
       } catch (error) {
         setAppNotice({
           title: "Could not disconnect",
-          body:
-            error instanceof Error
-              ? error.message
-              : "Please try again.",
+          body: error instanceof Error ? error.message : "Please try again.",
           icon: "cloud-offline-outline",
           tone: "ruby",
         });
@@ -3794,14 +3798,17 @@ function DestinyOneApp() {
               createIdempotencyKey: createGiftIdempotencyKey,
               estimateQuote: estimateGiftOrderQuote,
               formatMoney: formatGiftMoney,
-              createOrder: (input: Parameters<typeof createPhysicalGiftOrder>[0]) =>
+              createOrder: (
+                input: Parameters<typeof createPhysicalGiftOrder>[0],
+              ) =>
                 accessToken
                   ? createPhysicalGiftOrderLive(
                       accessToken,
                       conversationIdFor(conversationPartner),
                       input,
                     )
-                  : createPhysicalGiftOrder(input),              recordRecommendationFeedback: recordGiftRecommendationFeedback,
+                  : createPhysicalGiftOrder(input),
+              recordRecommendationFeedback: recordGiftRecommendationFeedback,
               requestConcierge: requestGiftConciergeV2,
             }}
             recipient={conversationPartner}
@@ -4049,20 +4056,44 @@ function DestinyOneApp() {
             runtimePorts={{
               realtime: { connect: async () => null },
               gifSearch: {
-                configured: false,
-                providerName: "Built-in preview catalog",
+                configured: true,
+                providerName: "Tenor (Live)",
                 search: async ({ query, offset = 0, limit = 36 }) => {
-                  const all = searchChatGifCatalog(query);
-                  const items = all.slice(offset, offset + limit);
-                  return {
-                    items,
-                    totalCount: all.length,
-                    nextOffset:
-                      offset + items.length < all.length
-                        ? offset + items.length
-                        : null,
-                    provider: "preview",
-                  };
+                  try {
+                    // Note: 'LIVDSRZULELA' Tenor ka public beta API key hai testing ke liye
+                    const apiKey = "LIVDSRZULELA";
+                    const url = `https://g.tenor.com/v1/search?q=${encodeURIComponent(query || "trending")}&key=${apiKey}&limit=${limit}&pos=${offset}`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    const results = data.results || [];
+
+                    return {
+                      items: results.map((item: any) => ({
+                        id: item.id,
+                        title: item.content_description || "GIF",
+                        uri: item.media[0].gif.url,
+                        style: "GIF",
+                        previewEmoji: "✨",
+                        searchText: item.content_description || "",
+                      })),
+                      totalCount: 100,
+                      nextOffset: offset + limit < 100 ? offset + limit : null,
+                      provider: "tenor",
+                    };
+                  } catch (e) {
+                    // Agar API fail ho jaye toh built-in catalog use karo
+                    const all = searchChatGifCatalog(query);
+                    const items = all.slice(offset, offset + limit);
+                    return {
+                      items,
+                      totalCount: all.length,
+                      nextOffset:
+                        offset + items.length < all.length
+                          ? offset + items.length
+                          : null,
+                      provider: "preview",
+                    };
+                  }
                 },
               },
               gifts: {
@@ -4073,7 +4104,9 @@ function DestinyOneApp() {
                 estimateQuote: estimateGiftOrderQuote,
                 buildFulfillmentPlan: buildGiftFulfillmentPlan,
                 orderSummary: giftOrderSummary,
-                createOrder: (input: Parameters<typeof createPhysicalGiftOrder>[0]) =>
+                createOrder: (
+                  input: Parameters<typeof createPhysicalGiftOrder>[0],
+                ) =>
                   accessToken
                     ? createPhysicalGiftOrderLive(
                         accessToken,
@@ -4196,7 +4229,9 @@ function DestinyOneApp() {
             livePartnerTyping={partnerPresence?.typing}
             onTypingChange={(typing) => {
               if (!accessToken) return;
-              if (emitChatTyping(conversationIdFor(conversationPartner), typing))
+              if (
+                emitChatTyping(conversationIdFor(conversationPartner), typing)
+              )
                 return;
               void chatApi
                 .setTyping(

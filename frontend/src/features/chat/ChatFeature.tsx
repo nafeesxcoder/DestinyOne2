@@ -1,7 +1,8 @@
-﻿import React, {
+import React, {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -27,6 +28,7 @@ import {
 import type { GestureResponderEvent } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -51,6 +53,10 @@ import {
 } from "../../components/premium/PremiumIcon";
 import { SheetHeader } from "../../components/sheets/SheetHeader";
 import { SafetyActions } from "../trust/screens/SafetyScreens";
+import {
+  createBackendGifSearch,
+  isLiveGifSearchAvailable,
+} from "../../api/gifApi";
 import { CallModal } from "./CallModalReal";
 import { callApi } from "../../api/callApi";
 import { chatApi } from "../../api/chatApi";
@@ -1078,6 +1084,38 @@ export function ChatScreen({
   } = runtimePorts.gifts;
   const { width: chatWidth, height: chatHeight } = useWindowDimensions();
   const messagesRef = useRef<ScrollView | null>(null);
+  // When the server has a GIPHY key, GIF search goes through it; otherwise the
+  // built-in reaction catalog from runtimePorts stays in use.
+  const [liveGifSearch, setLiveGifSearch] = useState<ReturnType<
+    typeof createBackendGifSearch
+  > | null>(null);
+  useEffect(() => {
+    if (!accessToken) {
+      setLiveGifSearch(null);
+      return;
+    }
+    let alive = true;
+    void isLiveGifSearchAvailable(accessToken).then((available) => {
+      if (alive) {
+        setLiveGifSearch(available ? createBackendGifSearch(accessToken) : null);
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [accessToken]);
+  const effectivePorts = useMemo(
+    () =>
+      liveGifSearch
+        ? { ...runtimePorts, gifSearch: liveGifSearch }
+        : runtimePorts,
+    [runtimePorts, liveGifSearch],
+  );
+  const chatInputRef = useRef<TextInput | null>(null);
+  const textSelectionRef = useRef<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
   const [text, setText] = useState("");
   const [showAttachments, setShowAttachments] = useState(
     previewState === "chat-attachments",
@@ -1171,10 +1209,12 @@ export function ChatScreen({
   // parent screen, chatApi.getPresence) is the real source of truth for
   // online status. Keep partnerOnline in sync with it whenever it's given.
   useEffect(() => {
-    if (typeof livePartnerOnline === "boolean") setPartnerOnline(livePartnerOnline);
+    if (typeof livePartnerOnline === "boolean")
+      setPartnerOnline(livePartnerOnline);
   }, [livePartnerOnline]);
   useEffect(() => {
-    if (typeof livePartnerTyping === "boolean") setPartnerTyping(livePartnerTyping);
+    if (typeof livePartnerTyping === "boolean")
+      setPartnerTyping(livePartnerTyping);
   }, [livePartnerTyping]);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [activeRealtimeSession, setActiveRealtimeSession] =
@@ -1567,6 +1607,22 @@ export function ChatScreen({
       );
     }
   };
+  const insertEmojiAtCursor = (emoji: string) => {
+    const { start, end } = textSelectionRef.current;
+    setText((current) => {
+      const safeStart = Math.min(start, current.length);
+      const safeEnd = Math.min(end, current.length);
+      return current.slice(0, safeStart) + emoji + current.slice(safeEnd);
+    });
+    // move cursor after inserted emoji
+    requestAnimationFrame(() => {
+      textSelectionRef.current = {
+        start: start + emoji.length,
+        end: start + emoji.length,
+      };
+    });
+  };
+
   const updateText = (value: string) => {
     setText(value);
     if (isChatPreview) return;
@@ -1877,7 +1933,12 @@ export function ChatScreen({
         asset.fileName?.trim() || `DestinyOne-photo-${Date.now()}.jpg`;
       setPendingCaption("");
       setPendingMediaError("");
-      setPendingMedia({ kind: "image", uri: asset.uri, asset, fallbackName: name });
+      setPendingMedia({
+        kind: "image",
+        uri: asset.uri,
+        asset,
+        fallbackName: name,
+      });
       setShowAttachments(false);
     }
   };
@@ -2428,7 +2489,7 @@ export function ChatScreen({
       );
   };
   return (
-    <ChatRuntimeContext.Provider value={runtimePorts}>
+    <ChatRuntimeContext.Provider value={effectivePorts}>
       <View style={{ flex: 1, backgroundColor: "#FFF7F8" }}>
         <Image
           source={backgroundImage}
@@ -2481,31 +2542,31 @@ export function ChatScreen({
               disabled={!onOpenPartnerProfile}
               onPress={onOpenPartnerProfile}
             >
-            {match.photo ? (
-              <Image
-                accessible
-                accessibilityLabel={`${match.name} profile photo`}
-                source={{ uri: match.photo }}
-                style={[
-                  styles.chatAvatar,
-                  chatPremiumStyles.chatAvatar,
-                  { borderWidth: 1, borderColor: activeTheme.accent },
-                ]}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.chatAvatar,
-                  chatPremiumStyles.chatAvatar,
-                  chatStyles.initialAvatar,
-                  { borderColor: activeTheme.accent },
-                ]}
-              >
-                <Text style={chatStyles.initialAvatarText}>
-                  {match.name[0]?.toUpperCase()}
-                </Text>
-              </View>
-            )}
+              {match.photo ? (
+                <Image
+                  accessible
+                  accessibilityLabel={`${match.name} profile photo`}
+                  source={{ uri: match.photo }}
+                  style={[
+                    styles.chatAvatar,
+                    chatPremiumStyles.chatAvatar,
+                    { borderWidth: 1, borderColor: activeTheme.accent },
+                  ]}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.chatAvatar,
+                    chatPremiumStyles.chatAvatar,
+                    chatStyles.initialAvatar,
+                    { borderColor: activeTheme.accent },
+                  ]}
+                >
+                  <Text style={chatStyles.initialAvatarText}>
+                    {match.name[0]?.toUpperCase()}
+                  </Text>
+                </View>
+              )}
             </Pressable>
             <View accessibilityRole="header" style={{ flex: 1 }}>
               <Pressable
@@ -2958,7 +3019,10 @@ export function ChatScreen({
               >
                 <ChatBubble
                   message={message}
-                  status={furthestStatus(deliveryOverrides[message.id], message.status)}
+                  status={furthestStatus(
+                    deliveryOverrides[message.id],
+                    message.status,
+                  )}
                   accent={activeTheme.accent}
                   reaction={
                     message.reactions?.partner ||
@@ -3045,9 +3109,7 @@ export function ChatScreen({
                   justifyContent: "center",
                 }}
               >
-                {viewerVideoUri && (
-                  <InlineVideoPlayer uri={viewerVideoUri} />
-                )}
+                {viewerVideoUri && <InlineVideoPlayer uri={viewerVideoUri} />}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Close video"
@@ -3179,7 +3241,7 @@ export function ChatScreen({
             )}
             {showEmoji && (
               <EmojiMediaPanel
-                onEmoji={(emoji) => setText((value) => value + emoji)}
+                onEmoji={insertEmojiAtCursor}
                 onGif={sendGif}
                 onSticker={sendEmojiSticker}
               />
@@ -3274,6 +3336,7 @@ export function ChatScreen({
                       />
                     </Pressable>
                     <TextInput
+                      ref={chatInputRef}
                       accessibilityLabel="Message"
                       accessibilityHint="Type a message to this mutual match"
                       value={text}
@@ -3283,6 +3346,9 @@ export function ChatScreen({
                       placeholder="Message…"
                       placeholderTextColor="#8C7888"
                       editable
+                      onSelectionChange={(event) => {
+                        textSelectionRef.current = event.nativeEvent.selection;
+                      }}
                       style={[
                         styles.chatInput,
                         chatPremiumStyles.chatInput,
@@ -4282,7 +4348,8 @@ function ChatBubble({
   const swipeResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
-        Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+        Math.abs(gesture.dx) > 10 &&
+        Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
       onPanResponderMove: (_, gesture) => {
         let clamped = gesture.dx;
         if (clamped > 0) clamped = Math.min(SWIPE_ACTION_MAX, clamped);
@@ -4314,9 +4381,8 @@ function ChatBubble({
   const emojiText =
     stickerPayload?.emoji ??
     (message.type === "text" ? (message.text?.trim() ?? "") : "");
-  const emojiOnly =
-    message.type === "text" &&
-    (!!stickerPayload || isAnimatedEmojiText(message.text));
+  const isJustEmoji = isAnimatedEmojiText(message.text);
+  const emojiOnly = message.type === "text" && !!stickerPayload; // Only animate custom stickers
   const textBody = quotedReply?.body ?? message.text;
   const linkPreview =
     message.linkPreview ?? buildPrivacySafeLinkPreview(textBody);
@@ -4373,399 +4439,467 @@ function ChatBubble({
         {...swipeResponder.panHandlers}
         style={{ width: "100%", transform: [{ translateX: swipeX }] }}
       >
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Message: ${messageSummaryForAccessibility(message)}. ${mine ? status : "Received"}.`}
-      accessibilityHint={
-        message.type === "document"
-          ? isVideoDocument
-            ? "Play shared video"
-            : "Open shared file"
-          : gamePayload
-            ? "Answer inside this game card"
-            : message.type === "gift" && message.gift?.physical
-              ? "Use the private gift controls inside this card"
-              : "Open message actions"
-      }
-      onPress={
-        message.type === "document"
-          ? openDocument
-          : gamePayload || (message.type === "gift" && message.gift?.physical)
-            ? undefined
-            : (message.type === "image" || message.type === "snap") &&
-                message.uri
-              ? () => onOpenImage?.(message.uri!)
-              : onPress
-      }
-      onLongPress={
-        gamePayload || (message.type === "gift" && message.gift?.physical)
-          ? undefined
-          : (event) => onQuickReact?.(event)
-      }
-      delayLongPress={280}
-      style={[
-        mine ? styles.myBubble : styles.theirBubble,
-        message.type === "text" &&
-          !gamePayload &&
-          !emojiOnly &&
-          (mine ? chatStyles.textBubbleMine : chatStyles.textBubbleTheirs),
-        emojiOnly && chatStyles.emojiOnlyBubble,
-        !!gamePayload && chatStyles.gameMessageBubble,
-        !!gamePayload && !mine && chatStyles.gameMessageBubbleTheirs,
-        (message.type === "image" ||
-          message.type === "gif" ||
-          message.type === "snap") &&
-          chatStyles.mediaBubble,
-        (message.type === "image" ||
-          message.type === "gif" ||
-          message.type === "snap") &&
-          !mine &&
-          chatStyles.mediaBubbleTheirs,
-        message.type === "gift" && chatStyles.giftBubble,
-        message.type === "gift" &&
-          message.gift?.physical &&
-          chatStyles.physicalGiftBubble,
-        message.type === "sticker" && chatStyles.stickerBubble,
-        message.type === "date" && dateStyles.dateBubble,
-        message.type === "voice" && chatStyles.voiceBubble,
-        message.type === "voice" && !mine && chatStyles.voiceBubbleTheirs,
-        message.type === "location" && chatStyles.locationBubble,
-        message.type === "document" && chatStyles.documentBubble,
-        message.type === "document" && !mine && chatStyles.documentBubbleTheirs,
-      ]}
-    >
-      {selected && (
-        <View pointerEvents="none" style={chatStyles.selectedMessageCheck}>
-          <Ionicons name="checkmark" size={13} color="#FFF" />
-        </View>
-      )}
-      {message.forwarded && (
-        <View style={chatStyles.forwardedLabel}>
-          <Ionicons
-            name="arrow-redo-outline"
-            size={10}
-            color={mine ? "#F8CDD7" : "#8D747C"}
-          />
-          <Text
-            style={[
-              chatStyles.forwardedText,
-              mine && chatStyles.forwardedTextMine,
-            ]}
-          >
-            Forwarded
-          </Text>
-        </View>
-      )}
-      {message.type === "text" && !gamePayload && !emojiOnly && (
-        <View
-          pointerEvents="none"
-          style={[
-            chatStyles.messageTail,
-            mine ? chatStyles.messageTailMine : chatStyles.messageTailTheirs,
-          ]}
-        />
-      )}
-      {quotedReply && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Jump to original message"
-          onPress={() => onReplyJump?.(quotedReply.parentId)}
+          accessibilityLabel={`Message: ${messageSummaryForAccessibility(message)}. ${mine ? status : "Received"}.`}
+          accessibilityHint={
+            message.type === "document"
+              ? isVideoDocument
+                ? "Play shared video"
+                : "Open shared file"
+              : gamePayload
+                ? "Answer inside this game card"
+                : message.type === "gift" && message.gift?.physical
+                  ? "Use the private gift controls inside this card"
+                  : "Open message actions"
+          }
+          onPress={
+            message.type === "document"
+              ? openDocument
+              : gamePayload ||
+                  (message.type === "gift" && message.gift?.physical)
+                ? undefined
+                : (message.type === "image" || message.type === "snap") &&
+                    message.uri
+                  ? () => onOpenImage?.(message.uri!)
+                  : onPress
+          }
+          onLongPress={
+            gamePayload || (message.type === "gift" && message.gift?.physical)
+              ? undefined
+              : (event) => onQuickReact?.(event)
+          }
+          delayLongPress={280}
           style={[
-            chatStyles.quotedReply,
-            mine ? chatStyles.quotedReplyMine : chatStyles.quotedReplyTheirs,
+            mine ? styles.myBubble : styles.theirBubble,
+            message.type === "text" &&
+              !gamePayload &&
+              !emojiOnly &&
+              (mine ? chatStyles.textBubbleMine : chatStyles.textBubbleTheirs),
+            emojiOnly && {
+              backgroundColor: "transparent",
+              borderWidth: 0,
+              elevation: 0,
+              shadowOpacity: 0,
+              paddingHorizontal: 8,
+              paddingVertical: 8,
+            },
+            isJustEmoji && {
+              backgroundColor: "transparent",
+              borderColor: "transparent",
+              elevation: 0,
+              shadowOpacity: 0,
+            },
+            isJustEmoji && {
+              backgroundColor: "transparent",
+              borderColor: "transparent",
+              elevation: 0,
+              shadowOpacity: 0,
+            },
+            !!gamePayload && chatStyles.gameMessageBubble,
+            !!gamePayload && !mine && chatStyles.gameMessageBubbleTheirs,
+            (message.type === "image" ||
+              message.type === "gif" ||
+              message.type === "snap") &&
+              chatStyles.mediaBubble,
+            (message.type === "image" ||
+              message.type === "gif" ||
+              message.type === "snap") &&
+              !mine &&
+              chatStyles.mediaBubbleTheirs,
+            message.type === "gift" && chatStyles.giftBubble,
+            message.type === "gift" &&
+              message.gift?.physical &&
+              chatStyles.physicalGiftBubble,
+            message.type === "sticker" && chatStyles.stickerBubble,
+            message.type === "date" && dateStyles.dateBubble,
+            message.type === "voice" && chatStyles.voiceBubble,
+            message.type === "voice" && !mine && chatStyles.voiceBubbleTheirs,
+            message.type === "location" && chatStyles.locationBubble,
+            message.type === "document" && chatStyles.documentBubble,
+            message.type === "document" &&
+              !mine &&
+              chatStyles.documentBubbleTheirs,
           ]}
         >
-          <View style={chatStyles.quotedReplyAccent} />
-          <View style={{ flex: 1 }}>
-            <Text
-              style={[
-                chatStyles.quotedReplyLabel,
-                mine && chatStyles.quotedReplyLabelMine,
-              ]}
-            >
-              Reply · tap to view
-            </Text>
-            <Text
-              numberOfLines={2}
-              style={[
-                chatStyles.quotedReplyText,
-                mine && chatStyles.quotedReplyTextMine,
-              ]}
-            >
-              {quotedReply.quote}
-            </Text>
-          </View>
-          <Ionicons
-            name="arrow-up"
-            size={13}
-            color={mine ? "#F5D77A" : "#8B1732"}
-          />
-        </Pressable>
-      )}
-      {message.type === "text" && !gamePayload && !emojiOnly && (
-        <Text
-          style={[
-            styles.bubbleText,
-            mine ? { color: colors.textInverse } : { color: colors.text },
-          ]}
-        >
-          {textBody}
-        </Text>
-      )}
-      {linkPreview && <LinkPreviewCard preview={linkPreview} mine={mine} />}
-      {!!incomingSafety?.signals.length &&
-        incomingSafety.severity !== "calm" && (
-          <IncomingMessageSafety scan={incomingSafety} />
-        )}
-      {emojiOnly && (
-        <AnimatedEmojiMessage emoji={emojiText} sticker={stickerPayload} />
-      )}
-      {!!gamePayload && (
-        <GameChatCard
-          title={gameTitle}
-          prompt={gamePrompt}
-          mine={mine}
-          replies={gameReplies}
-          onReply={onGameReply}
-        />
-      )}
-      {(message.type === "image" ||
-        (message.type === "gif" && !catalogGif) ||
-        message.type === "snap") &&
-        message.uri && (
-          <View style={chatStyles.messageMediaFrame}>
-            <Image
-              accessible
-              accessibilityLabel={
-                message.type === "gif" ? "Shared GIF" : "Shared photo"
-              }
-              source={{ uri: message.uri }}
-              style={chatStyles.messageMedia}
-            />
-            <View pointerEvents="none" style={chatStyles.mediaShade} />
-            {!!message.uploading && (
-              <UploadProgressOverlay messageId={message.id} />
-            )}
-          </View>
-        )}
-      {message.type === "image" && !!message.text && (
-        <Text
-          style={[
-            chatStyles.mediaCaptionText,
-            mine ? { color: colors.textInverse } : { color: colors.text },
-          ]}
-        >
-          {message.text}
-        </Text>
-      )}
-      {catalogGif && <CatalogGifMessage gif={catalogGif} />}
-      {message.type === "gif" && (
-        <View style={chatStyles.gifBadge}>
-          <Text style={chatStyles.gifBadgeText}>GIF</Text>
-        </View>
-      )}
-      {message.type === "snap" && message.snap && (
-        <>
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                backgroundColor:
-                  snapFilters.find((item) => item.name === message.snap?.filter)
-                    ?.color ?? "transparent",
-              },
-            ]}
-          />
-          {!!message.snap.sticker && (
-            <Text style={chatStyles.snapSticker}>{message.snap.sticker}</Text>
+          {selected && (
+            <View pointerEvents="none" style={chatStyles.selectedMessageCheck}>
+              <Ionicons name="checkmark" size={13} color="#FFF" />
+            </View>
           )}
-          <View style={chatStyles.snapBadge}>
-            <MiniPremiumIcon
-              name={message.snap.viewOnce ? "eye-off" : "time"}
-              tone="dark"
-              size={22}
-              iconSize={10}
-            />
-            <Text style={chatStyles.snapBadgeText}>
-              {message.snap.viewOnce ? "VIEW ONCE" : "24H SNAP"} ·{" "}
-              {message.snap.filter}
-            </Text>
-          </View>
-        </>
-      )}
-      {message.type === "sticker" && message.sticker && (
-        <>
-          <View style={stickerStyles.faceStickerFrame}>
-            <Image
-              source={{ uri: message.sticker.faceUri }}
-              style={chatStyles.faceStickerImage}
-            />
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor:
-                    snapFilters.find(
-                      (item) => item.name === message.sticker?.filter,
-                    )?.color ?? "transparent",
-                },
-              ]}
-            />
-          </View>
-          <Text style={chatStyles.faceStickerEmoji}>
-            {message.sticker.emoji}
-          </Text>
-          <Text style={chatStyles.giftCaption}>
-            {message.sticker.filter ?? "Made by me"}
-          </Text>
-        </>
-      )}
-      {message.type === "gift" &&
-        message.gift &&
-        (message.gift.physical ? (
-          <PhysicalGiftChatCard
-            gift={message.gift}
-            messageText={message.text}
-            mine={mine}
-            onResponse={onGiftResponse}
-          />
-        ) : (
-          <>
-            <PremiumIcon name="sparkles" tone="gold" size={62} iconSize={29} />
-            <Text style={chatStyles.giftTitle}>{message.gift.name}</Text>
-            <Text style={chatStyles.giftCaption}>
-              {message.text ?? "A digital gift sent with intention"}
-            </Text>
-          </>
-        ))}
-      {message.type === "date" && message.date && (
-        <>
-          <View style={dateStyles.messageDateHeader}>
-            <PremiumIcon name="calendar" tone="gold" size={42} iconSize={19} />
-            <View>
-              <Text style={dateStyles.messageEyebrow}>
-                {message.date.packageTitle ?? "DATE IDEA"}
+          {message.forwarded && (
+            <View style={chatStyles.forwardedLabel}>
+              <Ionicons
+                name="arrow-redo-outline"
+                size={10}
+                color={mine ? "#F8CDD7" : "#8D747C"}
+              />
+              <Text
+                style={[
+                  chatStyles.forwardedText,
+                  mine && chatStyles.forwardedTextMine,
+                ]}
+              >
+                Forwarded
               </Text>
-              <Text style={dateStyles.messageVenue}>{message.date.venue}</Text>
-              {message.date.packageTier && (
-                <Text style={dateStyles.messagePackageTier}>
-                  {message.date.packageTier}
+            </View>
+          )}
+          {message.type === "text" &&
+            !gamePayload &&
+            !emojiOnly &&
+            !isJustEmoji && (
+              <View
+                pointerEvents="none"
+                style={[
+                  chatStyles.messageTail,
+                  mine
+                    ? chatStyles.messageTailMine
+                    : chatStyles.messageTailTheirs,
+                ]}
+              />
+            )}
+          {quotedReply && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Jump to original message"
+              onPress={() => onReplyJump?.(quotedReply.parentId)}
+              style={[
+                chatStyles.quotedReply,
+                mine
+                  ? chatStyles.quotedReplyMine
+                  : chatStyles.quotedReplyTheirs,
+              ]}
+            >
+              <View style={chatStyles.quotedReplyAccent} />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[
+                    chatStyles.quotedReplyLabel,
+                    mine && chatStyles.quotedReplyLabelMine,
+                  ]}
+                >
+                  Reply · tap to view
+                </Text>
+                <Text
+                  numberOfLines={2}
+                  style={[
+                    chatStyles.quotedReplyText,
+                    mine && chatStyles.quotedReplyTextMine,
+                  ]}
+                >
+                  {quotedReply.quote}
+                </Text>
+              </View>
+              <Ionicons
+                name="arrow-up"
+                size={13}
+                color={mine ? "#F5D77A" : "#8B1732"}
+              />
+            </Pressable>
+          )}
+          {message.type === "text" && !gamePayload && !emojiOnly && (
+            <Text
+              style={[
+                styles.bubbleText,
+                mine ? { color: colors.textInverse } : { color: colors.text },
+              ]}
+            >
+              {textBody}
+            </Text>
+          )}
+          {linkPreview && <LinkPreviewCard preview={linkPreview} mine={mine} />}
+          {!!incomingSafety?.signals.length &&
+            incomingSafety.severity !== "calm" && (
+              <IncomingMessageSafety scan={incomingSafety} />
+            )}
+          {emojiOnly && (
+            <AnimatedEmojiMessage emoji={emojiText} sticker={stickerPayload} />
+          )}
+          {!!gamePayload && (
+            <GameChatCard
+              title={gameTitle}
+              prompt={gamePrompt}
+              mine={mine}
+              replies={gameReplies}
+              onReply={onGameReply}
+            />
+          )}
+          {(message.type === "image" ||
+            (message.type === "gif" && !catalogGif) ||
+            message.type === "snap") &&
+            message.uri && (
+              <View style={chatStyles.messageMediaFrame}>
+                {message.type === "gif" ? (
+                  <ExpoImage
+                    accessible
+                    accessibilityLabel="Shared GIF"
+                    source={{ uri: message.uri }}
+                    style={chatStyles.messageMedia}
+                    contentFit="cover"
+                    autoplay
+                    cachePolicy="memory-disk"
+                  />
+                ) : (
+                  <Image
+                    accessible
+                    accessibilityLabel={
+                      message.type === "snap"
+                        ? "View once photo"
+                        : "Shared photo"
+                    }
+                    source={{ uri: message.uri }}
+                    style={chatStyles.messageMedia}
+                  />
+                )}
+                <View pointerEvents="none" style={chatStyles.mediaShade} />
+                {!!message.uploading && (
+                  <UploadProgressOverlay messageId={message.id} />
+                )}
+              </View>
+            )}
+          {message.type === "image" && !!message.text && (
+            <Text
+              style={[
+                chatStyles.mediaCaptionText,
+                mine ? { color: colors.textInverse } : { color: colors.text },
+              ]}
+            >
+              {message.text}
+            </Text>
+          )}
+          {catalogGif && <CatalogGifMessage gif={catalogGif} />}
+          {message.type === "gif" && (
+            <View style={chatStyles.gifBadge}>
+              <Text style={chatStyles.gifBadgeText}>GIF</Text>
+            </View>
+          )}
+          {message.type === "snap" && message.snap && (
+            <>
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    backgroundColor:
+                      snapFilters.find(
+                        (item) => item.name === message.snap?.filter,
+                      )?.color ?? "transparent",
+                  },
+                ]}
+              />
+              {!!message.snap.sticker && (
+                <Text style={chatStyles.snapSticker}>
+                  {message.snap.sticker}
                 </Text>
               )}
-            </View>
-          </View>
-          <View style={dateStyles.messageDivider} />
-          <View style={dateStyles.messageLine}>
-            <MiniPremiumIcon
-              name="location-outline"
-              tone="rose"
-              size={28}
-              iconSize={13}
-            />
-            <Text style={dateStyles.messageLineText}>{message.date.area}</Text>
-          </View>
-          <View style={dateStyles.messageLine}>
-            <MiniPremiumIcon
-              name="time-outline"
-              tone="rose"
-              size={28}
-              iconSize={13}
-            />
-            <Text style={dateStyles.messageLineText}>{message.date.time}</Text>
-          </View>
-          {message.date.safetyCheckIn && (
-            <View style={dateStyles.safePill}>
-              <MiniPremiumIcon
-                name="shield-checkmark"
-                tone="gold"
-                size={24}
-                iconSize={11}
-              />
-              <Text style={dateStyles.safePillText}>
-                Safety check-in enabled
+              <View style={chatStyles.snapBadge}>
+                <MiniPremiumIcon
+                  name={message.snap.viewOnce ? "eye-off" : "time"}
+                  tone="dark"
+                  size={22}
+                  iconSize={10}
+                />
+                <Text style={chatStyles.snapBadgeText}>
+                  {message.snap.viewOnce ? "VIEW ONCE" : "24H SNAP"} ·{" "}
+                  {message.snap.filter}
+                </Text>
+              </View>
+            </>
+          )}
+          {message.type === "sticker" && message.sticker && (
+            <>
+              <View style={stickerStyles.faceStickerFrame}>
+                <Image
+                  source={{ uri: message.sticker.faceUri }}
+                  style={chatStyles.faceStickerImage}
+                />
+                <View
+                  style={[
+                    StyleSheet.absoluteFill,
+                    {
+                      backgroundColor:
+                        snapFilters.find(
+                          (item) => item.name === message.sticker?.filter,
+                        )?.color ?? "transparent",
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={chatStyles.faceStickerEmoji}>
+                {message.sticker.emoji}
               </Text>
+              <Text style={chatStyles.giftCaption}>
+                {message.sticker.filter ?? "Made by me"}
+              </Text>
+            </>
+          )}
+          {message.type === "gift" &&
+            message.gift &&
+            (message.gift.physical ? (
+              <PhysicalGiftChatCard
+                gift={message.gift}
+                messageText={message.text}
+                mine={mine}
+                onResponse={onGiftResponse}
+              />
+            ) : (
+              <>
+                <PremiumIcon
+                  name="sparkles"
+                  tone="gold"
+                  size={62}
+                  iconSize={29}
+                />
+                <Text style={chatStyles.giftTitle}>{message.gift.name}</Text>
+                <Text style={chatStyles.giftCaption}>
+                  {message.text ?? "A digital gift sent with intention"}
+                </Text>
+              </>
+            ))}
+          {message.type === "date" && message.date && (
+            <>
+              <View style={dateStyles.messageDateHeader}>
+                <PremiumIcon
+                  name="calendar"
+                  tone="gold"
+                  size={42}
+                  iconSize={19}
+                />
+                <View>
+                  <Text style={dateStyles.messageEyebrow}>
+                    {message.date.packageTitle ?? "DATE IDEA"}
+                  </Text>
+                  <Text style={dateStyles.messageVenue}>
+                    {message.date.venue}
+                  </Text>
+                  {message.date.packageTier && (
+                    <Text style={dateStyles.messagePackageTier}>
+                      {message.date.packageTier}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <View style={dateStyles.messageDivider} />
+              <View style={dateStyles.messageLine}>
+                <MiniPremiumIcon
+                  name="location-outline"
+                  tone="rose"
+                  size={28}
+                  iconSize={13}
+                />
+                <Text style={dateStyles.messageLineText}>
+                  {message.date.area}
+                </Text>
+              </View>
+              <View style={dateStyles.messageLine}>
+                <MiniPremiumIcon
+                  name="time-outline"
+                  tone="rose"
+                  size={28}
+                  iconSize={13}
+                />
+                <Text style={dateStyles.messageLineText}>
+                  {message.date.time}
+                </Text>
+              </View>
+              {message.date.safetyCheckIn && (
+                <View style={dateStyles.safePill}>
+                  <MiniPremiumIcon
+                    name="shield-checkmark"
+                    tone="gold"
+                    size={24}
+                    iconSize={11}
+                  />
+                  <Text style={dateStyles.safePillText}>
+                    Safety check-in enabled
+                  </Text>
+                </View>
+              )}
+              <DatePlanStatusMini
+                safetyCheckIn={!!message.date.safetyCheckIn}
+                status={message.date.planStatus}
+              />
+              <Text style={dateStyles.waitingText}>
+                {datePlanStatusLabel(message.date.planStatus ?? "proposed")}
+              </Text>
+            </>
+          )}
+          {message.type === "voice" && message.uri && (
+            <View>
+              <VoiceNote
+                uri={message.uri}
+                durationMs={message.voice?.durationMs ?? 0}
+                transcript={message.voice?.transcript}
+                transcriptStatus={message.voice?.transcriptStatus}
+                mine={mine}
+              />
+              {!!message.uploading && (
+                <UploadProgressOverlay messageId={message.id} compact />
+              )}
             </View>
           )}
-          <DatePlanStatusMini
-            safetyCheckIn={!!message.date.safetyCheckIn}
-            status={message.date.planStatus}
-          />
-          <Text style={dateStyles.waitingText}>
-            {datePlanStatusLabel(message.date.planStatus ?? "proposed")}
-          </Text>
-        </>
-      )}
-      {message.type === "voice" && message.uri && (
-        <View>
-          <VoiceNote
-            uri={message.uri}
-            durationMs={message.voice?.durationMs ?? 0}
-            transcript={message.voice?.transcript}
-            transcriptStatus={message.voice?.transcriptStatus}
-            mine={mine}
-          />
-          {!!message.uploading && (
-            <UploadProgressOverlay messageId={message.id} compact />
+          {message.type === "location" && message.location && (
+            <LiveLocationCard location={message.location} />
           )}
-        </View>
-      )}
-      {message.type === "location" && message.location && (
-        <LiveLocationCard location={message.location} />
-      )}
-      {message.type === "document" && message.document && (
-        <View>
-          <DocumentChatCard document={message.document} mine={mine} />
-          {!!message.uploading && (
-            <UploadProgressOverlay messageId={message.id} compact />
+          {message.type === "document" && message.document && (
+            <View>
+              <DocumentChatCard document={message.document} mine={mine} />
+              {!!message.uploading && (
+                <UploadProgressOverlay messageId={message.id} compact />
+              )}
+            </View>
           )}
-        </View>
-      )}
-      {message.type === "document" &&
-        message.document?.kind === "video" &&
-        !!message.text && (
-          <Text
-            style={[
-              chatStyles.mediaCaptionText,
-              mine ? { color: colors.textInverse } : { color: colors.text },
-            ]}
-          >
-            {message.text}
-          </Text>
-        )}
-      <View style={chatStyles.messageMeta}>
-        {message.editedAt && (
-          <Text
-            style={[chatStyles.editedLabel, mine && chatStyles.editedLabelMine]}
-          >
-            edited
-          </Text>
-        )}
-        {pinned && <Ionicons name="pin" size={10} color={colors.gold} />}{" "}
-        {starred && <Ionicons name="star" size={10} color={colors.gold} />}
-        <Text
-          style={[
-            styles.time,
-            { color: mine && !emojiOnly ? "rgba(255,255,255,.78)" : "#806D73" },
-          ]}
-        >
-          {new Date(message.createdAt).toLocaleTimeString(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </Text>
-        {mine && <MessageReceipt status={status} />}
-      </View>
-      {!!reaction && (
-        <View
-          style={[
-            chatStyles.reactionPill,
-            mine && chatStyles.reactionPillMine,
-          ]}
-        >
-          <Text style={chatStyles.reactionText}>{reaction}</Text>
-        </View>
-      )}
-    </Pressable>
+          {message.type === "document" &&
+            message.document?.kind === "video" &&
+            !!message.text && (
+              <Text
+                style={[
+                  chatStyles.mediaCaptionText,
+                  mine ? { color: colors.textInverse } : { color: colors.text },
+                ]}
+              >
+                {message.text}
+              </Text>
+            )}
+          <View style={chatStyles.messageMeta}>
+            {message.editedAt && (
+              <Text
+                style={[
+                  chatStyles.editedLabel,
+                  mine && chatStyles.editedLabelMine,
+                ]}
+              >
+                edited
+              </Text>
+            )}
+            {pinned && <Ionicons name="pin" size={10} color={colors.gold} />}{" "}
+            {starred && <Ionicons name="star" size={10} color={colors.gold} />}
+            <Text
+              style={[
+                styles.time,
+                {
+                  color:
+                    mine && !emojiOnly ? "rgba(255,255,255,.78)" : "#806D73",
+                },
+              ]}
+            >
+              {new Date(message.createdAt).toLocaleTimeString(undefined, {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </Text>
+            {mine && <MessageReceipt status={status} />}
+          </View>
+          {!!reaction && (
+            <View
+              style={[
+                chatStyles.reactionPill,
+                mine && chatStyles.reactionPillMine,
+              ]}
+            >
+              <Text style={chatStyles.reactionText}>{reaction}</Text>
+            </View>
+          )}
+        </Pressable>
       </Animated.View>
     </View>
   );
@@ -5015,8 +5149,7 @@ function AnimatedEmojiMessage({
       accessibilityLabel={`${sticker ? sticker.label : "Animated"} ${emotion} emoji ${emoji}`}
       style={[
         chatStyles.animatedEmojiWrap,
-        !!sticker && chatStyles.animatedStickerWrap,
-        !!sticker && toneStyle,
+        { backgroundColor: "transparent", borderWidth: 0, padding: 0 }, // Clean background
       ]}
     >
       {emotion === "love" && (
@@ -5151,34 +5284,30 @@ function AnimatedEmojiMessage({
           {particleTwo}
         </Animated.Text>
       )}
-      {sticker && (
-        <View style={chatStyles.stickerCaptionWrap}>
-          <Text style={chatStyles.stickerLabel}>{sticker.label}</Text>
-          <Text numberOfLines={2} style={chatStyles.stickerCaption}>
-            {sticker.caption}
-          </Text>
-        </View>
-      )}
+      {/* WhatsApp style: No labels, no captions, just the big sticker */}
     </View>
   );
 }
 
 function CatalogGifMessage({ gif }: { gif: ChatGifCatalogItem }) {
-  const sticker: CustomChatSticker = {
-    id: gif.id,
-    emoji: gif.previewEmoji ?? "✨",
-    label: gif.title.toUpperCase(),
-    caption: `${gif.style} animated reaction`,
-    tone: catalogGifTone(gif),
-    motion: classifyEmojiMotion(gif.previewEmoji ?? "✨"),
-    tags: gif.searchText,
-  };
   return (
     <View
       accessibilityLabel={`${gif.title}, ${gif.style} animated GIF`}
-      style={chatStyles.catalogGifMessage}
+      style={{
+        width: 200,
+        height: 200,
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: "#F0F0F0",
+      }}
     >
-      <AnimatedEmojiMessage emoji={sticker.emoji} sticker={sticker} />
+      <ExpoImage
+        source={{ uri: gif.uri }}
+        style={{ width: "100%", height: "100%" }}
+        contentFit="cover"
+        autoplay
+        cachePolicy="memory-disk"
+      />
     </View>
   );
 }
@@ -5427,7 +5556,11 @@ function MediaCaptionPreview({
                   src: uri,
                   controls: true,
                   playsInline: true,
-                  style: { width: "100%", height: "100%", objectFit: "contain" },
+                  style: {
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  },
                 })}
               </View>
             ) : (
@@ -5435,7 +5568,10 @@ function MediaCaptionPreview({
                 <Ionicons name="play-circle" size={54} color="#FFF" />
                 <Text
                   numberOfLines={1}
-                  style={[chatStyles.documentFine, { color: "#FFF", marginTop: 8 }]}
+                  style={[
+                    chatStyles.documentFine,
+                    { color: "#FFF", marginTop: 8 },
+                  ]}
                 >
                   {fallbackName}
                 </Text>
@@ -7137,12 +7273,14 @@ function useGifProviderSearch(query: string, active: boolean) {
 function GifResultTile({
   gif,
   compact,
+  cardWidth,
   favourite,
   onSelect,
   onToggleFavourite,
 }: {
   gif: ChatGifCatalogItem;
   compact?: boolean;
+  cardWidth?: number;
   favourite?: boolean;
   onSelect: (uri: string) => void;
   onToggleFavourite?: () => void;
@@ -7155,15 +7293,23 @@ function GifResultTile({
       accessibilityLabel={`Send ${gif.title} GIF`}
       disabled={failed || !gif.uri}
       onPress={() => onSelect(gif.uri)}
-      style={compact ? chatStyles.inlineGifCard : chatStyles.gifCard}
+      style={[
+        compact ? chatStyles.inlineGifCard : chatStyles.gifCard,
+        compact && cardWidth
+          ? { width: cardWidth, height: Math.round(cardWidth * 0.8) }
+          : null,
+      ]}
     >
       {!failed && !!gif.uri ? (
-        <Image
+        <ExpoImage
           accessible
           accessibilityLabel={`${gif.title} animated GIF`}
           source={{ uri: gif.uri }}
           onError={() => setFailed(true)}
           style={styles.fill}
+          contentFit="cover"
+          autoplay
+          cachePolicy="memory-disk"
         />
       ) : (
         <View style={chatStyles.gifUnavailable}>
@@ -7349,12 +7495,14 @@ function CatalogGifArtwork({
 function CatalogGifTile({
   gif,
   compact,
+  cardWidth,
   favourite,
   onSelect,
   onToggleFavourite,
 }: {
   gif: ChatGifCatalogItem;
   compact?: boolean;
+  cardWidth?: number;
   favourite?: boolean;
   onSelect: (uri: string) => void;
   onToggleFavourite?: () => void;
@@ -7364,7 +7512,12 @@ function CatalogGifTile({
       accessibilityRole="button"
       accessibilityLabel={`Send ${gif.title}, ${gif.style} animated GIF`}
       onPress={() => onSelect(buildCatalogGifUri(gif))}
-      style={compact ? chatStyles.inlineGifCard : chatStyles.gifCard}
+      style={[
+        compact ? chatStyles.inlineGifCard : chatStyles.gifCard,
+        compact && cardWidth
+          ? { width: cardWidth, height: Math.round(cardWidth * 0.8) }
+          : null,
+      ]}
     >
       <CatalogGifArtwork gif={gif} compact={compact} />
       <LinearGradient
@@ -7699,36 +7852,46 @@ function GifPicker({
         >
           {libraryMode !== "all"
             ? libraryEntries.map(renderLibraryEntry)
-            : gifSearchConfigured
-              ? provider.items.map((gif) => (
-                  <GifResultTile
-                    key={gif.id}
-                    gif={gif}
-                    favourite={favourites.some((item) => item.uri === gif.uri)}
-                    onSelect={(uri) => choose(gif, uri)}
-                    onToggleFavourite={() => favourite(gif, gif.uri)}
-                  />
-                ))
-              : catalogPage.map((gif) => {
-                  const uri = buildCatalogGifUri(gif);
-                  return (
-                    <CatalogGifTile
+            : (() => {
+                // Prefer live provider results; fall back to built-in catalog
+                if (gifSearchConfigured && provider.items.length > 0) {
+                  return provider.items.map((gif) => (
+                    <GifResultTile
                       key={gif.id}
                       gif={gif}
-                      favourite={favourites.some((item) => item.uri === uri)}
-                      onSelect={(selectedUri) => choose(gif, selectedUri)}
-                      onToggleFavourite={() => favourite(gif, uri)}
+                      favourite={favourites.some(
+                        (item) => item.uri === gif.uri,
+                      )}
+                      onSelect={(uri) => choose(gif, uri)}
+                      onToggleFavourite={() => favourite(gif, gif.uri)}
                     />
-                  );
-                })}
-          {libraryMode === "all" && !gifSearchConfigured && (
-            <CatalogGifPager
-              offset={catalogOffset}
-              total={catalogMatches.length}
-              pageSize={catalogPageSize}
-              onChange={setCatalogOffset}
-            />
-          )}{" "}
+                  ));
+                }
+                if (!provider.loading) {
+                  return catalogPage.map((gif) => {
+                    const uri = buildCatalogGifUri(gif);
+                    return (
+                      <CatalogGifTile
+                        key={gif.id}
+                        gif={gif}
+                        favourite={favourites.some((item) => item.uri === uri)}
+                        onSelect={(selectedUri) => choose(gif, selectedUri)}
+                        onToggleFavourite={() => favourite(gif, uri)}
+                      />
+                    );
+                  });
+                }
+                return null;
+              })()}
+          {libraryMode === "all" &&
+            !(gifSearchConfigured && provider.items.length > 0) && (
+              <CatalogGifPager
+                offset={catalogOffset}
+                total={catalogMatches.length}
+                pageSize={catalogPageSize}
+                onChange={setCatalogOffset}
+              />
+            )}{" "}
           {libraryMode === "all" && provider.nextOffset !== null && (
             <Pressable
               accessibilityRole="button"
@@ -7759,8 +7922,9 @@ function GifPicker({
               </Text>
             )}
           {libraryMode === "all" &&
-            !gifSearchConfigured &&
-            !catalogPage.length && (
+            !provider.loading &&
+            !catalogPage.length &&
+            !provider.items.length && (
               <Text style={chatStyles.emojiEmpty}>
                 No GIF found. Try good morning, hug, kiss, love, laugh or chai.
               </Text>
@@ -7770,6 +7934,14 @@ function GifPicker({
     </Modal>
   );
 }
+
+const panelFix = StyleSheet.create({
+  // Horizontal ScrollViews collapse in a column on web unless told not to
+  // flex; this keeps the category chips fully visible.
+  categoryScroll: { flexGrow: 0, flexShrink: 0, height: 50 },
+  // The grid takes whatever room is left between the chips and the tabs.
+  content: { flex: 1, height: "auto", minHeight: 0 },
+});
 
 function EmojiMediaPanel({
   onEmoji,
@@ -7781,6 +7953,22 @@ function EmojiMediaPanel({
   onSticker: (sticker: CustomChatSticker) => void;
 }) {
   const gifSearchConfigured = useChatRuntime().gifSearch.configured;
+  const { height: windowHeight } = useWindowDimensions();
+  // Fit short windows (laptops) instead of squashing the grid, and size the
+  // emoji cells from the real panel width so rows are evenly filled.
+  const panelHeight = Math.round(
+    Math.min(370, Math.max(290, windowHeight * 0.48)),
+  );
+  const [gridWidth, setGridWidth] = useState(0);
+  const emojiColumns = gridWidth ? Math.max(7, Math.floor(gridWidth / 46)) : 8;
+  const emojiCell = gridWidth ? gridWidth / emojiColumns : 44;
+  // GIF tiles: 3 per row on a phone, up to 6 on a wide window.
+  const gifColumns = gridWidth
+    ? Math.max(3, Math.min(6, Math.floor((gridWidth + 7) / 130)))
+    : 3;
+  const gifCardWidth = gridWidth
+    ? Math.floor((gridWidth - 7 * (gifColumns - 1)) / gifColumns)
+    : undefined;
   const [mode, setMode] = useState<"emoji" | "gif" | "sticker">("emoji");
   const [category, setCategory] = useState<EmojiCategoryId>("recent");
   const [query, setQuery] = useState("");
@@ -7838,7 +8026,17 @@ function EmojiMediaPanel({
   return (
     <View
       accessibilityLabel="Emoji, GIF and sticker picker"
-      style={chatStyles.emojiMediaPanel}
+      style={[
+        chatStyles.emojiMediaPanel,
+        {
+          height: panelHeight,
+          borderTopWidth: 1,
+          borderTopColor: "#E8D6D9",
+          backgroundColor: "#FFFDFC",
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+        },
+      ]}
     >
       <View style={chatStyles.emojiSearchWrap}>
         <Ionicons name="search-outline" size={17} color="#806D73" />
@@ -7865,6 +8063,7 @@ function EmojiMediaPanel({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={panelFix.categoryScroll}
           contentContainerStyle={chatStyles.emojiCategoryRow}
         >
           {emojiCategories.map((item) => (
@@ -7894,14 +8093,22 @@ function EmojiMediaPanel({
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        style={chatStyles.emojiContent}
-        contentContainerStyle={
+        style={[chatStyles.emojiContent, panelFix.content]}
+        onLayout={(event) =>
+          setGridWidth(Math.max(0, event.nativeEvent.layout.width - 24))
+        }
+        contentContainerStyle={[
           mode === "gif"
             ? chatStyles.inlineGifGrid
             : mode === "sticker"
               ? chatStyles.stickerGrid
-              : chatStyles.richEmojiGrid
-        }
+              : {},
+          mode === "emoji" && {
+            flexDirection: "row",
+            flexWrap: "wrap",
+            paddingBottom: 10,
+          },
+        ]}
       >
         {mode === "emoji" && (
           <>
@@ -7921,9 +8128,14 @@ function EmojiMediaPanel({
                 accessibilityLabel={`Add ${emoji}`}
                 key={`${emoji}-${index}`}
                 onPress={() => onEmoji(emoji)}
-                style={chatStyles.richEmojiButton}
+                style={{
+                  width: emojiCell,
+                  height: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                <Text style={chatStyles.richEmoji}>{emoji}</Text>
+                <Text style={{ fontSize: 27 }}>{emoji}</Text>
               </Pressable>
             ))}
             {!visibleEmoji.length && (
@@ -7937,7 +8149,11 @@ function EmojiMediaPanel({
           <>
             <View style={chatStyles.emojiSectionHeader}>
               <Text style={chatStyles.emojiSectionTitle}>
-                {normalized ? "SEARCH RESULTS" : "1,000 DAILY-USE GIFS"}
+                {gifSearchConfigured
+                  ? `${normalized ? "SEARCH RESULTS" : "TRENDING GIFS"} · POWERED BY GIPHY`
+                  : normalized
+                    ? "SEARCH RESULTS"
+                    : "1,000 DAILY-USE GIFS"}
               </Text>
               <Text style={chatStyles.emojiSectionCount}>
                 {provider.loading
@@ -7947,14 +8163,17 @@ function EmojiMediaPanel({
                     : catalogMatches.length.toLocaleString()}
               </Text>
             </View>
-            <GifProviderLine
-              live={gifSearchConfigured}
-              error={provider.error}
-            />
-            {gifSearchConfigured
+            {!!provider.error && (
+              <GifProviderLine
+                live={gifSearchConfigured}
+                error={provider.error}
+              />
+            )}
+            {gifSearchConfigured && visibleGifs.length > 0
               ? visibleGifs.map((gif) => (
                   <GifResultTile
                     compact
+                    cardWidth={gifCardWidth}
                     key={gif.id}
                     gif={gif}
                     onSelect={onGif}
@@ -7963,6 +8182,7 @@ function EmojiMediaPanel({
               : catalogPage.map((gif) => (
                   <CatalogGifTile
                     compact
+                    cardWidth={gifCardWidth}
                     key={gif.id}
                     gif={gif}
                     onSelect={onGif}

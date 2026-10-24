@@ -336,7 +336,10 @@ export function AuthScreen({
                       overflow: "hidden",
                     }}
                   >
-                    <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                    <ScrollView
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                    >
                       {COUNTRIES.map((item) => (
                         <Pressable
                           key={item.code}
@@ -572,8 +575,6 @@ export function OtpScreen({
           />
           {error ? (
             <Text style={styles.formError}>{error}</Text>
-          ) : allowPreviewCode ? (
-            <Text style={styles.demoHint}>Showcase access code: 123456</Text>
           ) : (
             <Text style={[styles.helper, onboardingStyles.supportingText]}>
               Use the newest code from your {isEmail ? "email" : "messages"}.
