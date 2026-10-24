@@ -3,9 +3,22 @@ const chatController = require('../controllers/chatController');
 const { requireAuth } = require('../middleware/auth');
 const chatUpload = require('../middleware/chatUpload');
 
+const rateLimit = require('express-rate-limit');
+
+const gifLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 90,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `gif:${req.user?.id || req.ip}`,
+  message: { error: 'Too many GIF searches. Please wait a moment.' },
+});
+
 const router = express.Router();
 router.use(requireAuth);
 
+router.get('/gifs/status', chatController.gifStatus);
+router.get('/gifs', gifLimiter, chatController.searchGifs);
 router.get('/:conversationId/messages', chatController.getMessages);
 router.post('/:conversationId/messages', chatController.postMessage);
 router.post('/:conversationId/date-proposal', chatController.postDateProposal);

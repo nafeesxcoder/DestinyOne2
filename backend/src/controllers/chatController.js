@@ -2,11 +2,29 @@
 const { ApiError } = require('../middleware/errorHandler');
 const chatService = require('../services/chatService');
 const env = require('../config/env');
+const gifService = require('../services/gifService');
 
 const uploadMedia = asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(400, 'No file was received');
   const publicUrl = `${env.apiUrl}/uploads/chat/${req.file.filename}`;
   res.json({ ok: true, url: publicUrl, mimeType: req.file.mimetype });
+});
+
+const gifStatus = asyncHandler(async (_req, res) => {
+  res.json({ ok: true, configured: gifService.isConfigured(), provider: 'GIPHY' });
+});
+
+const searchGifs = asyncHandler(async (req, res) => {
+  try {
+    const page = await gifService.searchGifs({
+      query: req.query.q,
+      offset: req.query.offset,
+      limit: req.query.limit,
+    });
+    res.json({ ok: true, ...page });
+  } catch (err) {
+    throw new ApiError(err.status || 502, err.message || 'GIF search failed');
+  }
 });
 
 function wrap(fn) {
@@ -94,4 +112,6 @@ module.exports = {
   getSettingsHandler,
   putSettingsHandler,
   uploadMedia,
+  gifStatus,
+  searchGifs,
 };
