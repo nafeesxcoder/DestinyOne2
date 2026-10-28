@@ -11,7 +11,7 @@ describe('real gift fulfillment estimates', () => {
     expect(quote.serviceLevelLabel).toBe('On-demand courier');
     expect(quote.paymentPolicy).toContain('recipient accepts');
     expect(quote.providerCapability).toContain('Preview mode');
-    expect(quote.acceptanceWindowMinutes).toBe(30);
+    expect(quote.acceptanceWindowMinutes).toBe(1440);
     expect(quote.quoteValidMinutes).toBe(10);
     expect(quote.etaConfidence).toBe('fast');
     expect(quote.currency).toBe('USD');

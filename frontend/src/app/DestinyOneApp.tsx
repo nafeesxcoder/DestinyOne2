@@ -440,9 +440,9 @@ const showcaseChatSeed: Record<string, ChatMessage[]> =
               etaLabel: showcaseGiftQuote.etaLabel,
               provider: "DestinyOne delivery",
               totalCents: showcaseGiftQuote.totalCents,
-              acceptanceWindowMinutes: 30,
+              acceptanceWindowMinutes: 24 * 60,
               acceptanceExpiresAt: new Date(
-                Date.now() + 30 * 60 * 1000,
+                Date.now() + 24 * 60 * 60 * 1000,
               ).toISOString(),
               steps: [
                 {

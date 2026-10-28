@@ -337,10 +337,10 @@ export function estimateGiftOrderQuote(input:GiftOrderRequest, now=new Date(), p
     paymentPolicy:'Sender is not charged until the recipient accepts privately and the provider confirms availability.',
     cancellationPolicy:'Free cancellation before recipient acceptance. After provider confirmation, refunds follow merchant/courier policy.',
     supportPolicy:'If a courier fails or the recipient declines, DestinyOne support can cancel, retry, or refund from the order record.',
-    acceptanceWindowMinutes:30,
+    acceptanceWindowMinutes:GIFT_ACCEPTANCE_WINDOW_MINUTES,
     quoteValidMinutes:10,
     recipientPrivacy:'Recipient accepts privately. Address is never shown to the sender.',
-    acceptanceExpiresAt:new Date(now.getTime()+30*60*1000).toISOString(),
+    acceptanceExpiresAt:new Date(now.getTime()+GIFT_ACCEPTANCE_WINDOW_MINUTES*60*1000).toISOString(),
     expiresAt:new Date(now.getTime()+10*60*1000).toISOString(),
   };
 }
@@ -368,11 +368,22 @@ export function buildGiftSteps(status:GiftFulfillmentStatus, quote:GiftOrderQuot
   ];
 }
 
+// Matches the server: unanswered gifts expire after 24 hours (backend giftService.expireStaleOrders).
+export const GIFT_ACCEPTANCE_WINDOW_MINUTES = 24 * 60;
+
+export function formatAcceptanceWindow(minutes: number): string {
+  if (minutes >= 60 && minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
+  }
+  return `${minutes} min`;
+}
+
 export function buildGiftFulfillmentPlan(quote:GiftOrderQuote):GiftFulfillmentPlanItem[]{
   return [
     {
       title:'Recipient approval',
-      body:`They have ${quote.acceptanceWindowMinutes} minutes to accept privately. Their address stays hidden.`,
+      body:`They have ${formatAcceptanceWindow(quote.acceptanceWindowMinutes)} to accept privately. Their address stays hidden.`,
       owner:'recipient',
       ready:true,
     },

@@ -406,7 +406,7 @@ function constructStripeEvent(rawBody, signature) {
 
 // ---- Housekeeping (run by jobs/giftMaintenance.js) ------------------------------------
 
-async function expireStaleOrders({ pendingHours = 48, acceptedHours = 24 } = {}) {
+async function expireStaleOrders({ pendingHours = 24, acceptedHours = 24 } = {}) {
   const stale = await query(
     `SELECT id, status FROM gift_orders
      WHERE (status = 'recipient_pending' AND updated_at < DATE_SUB(NOW(6), INTERVAL ? HOUR))

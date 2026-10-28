@@ -133,6 +133,7 @@ import type {
   GiftFulfillmentStatus,
   GiftOrderQuote,
 } from "../gifts/contracts/GiftModels";
+import { formatAcceptanceWindow } from "../gifts/adapters/previewGiftRuntime";
 import type {
   ChatRuntimePorts,
   MatchRealtimeSession,
@@ -5961,7 +5962,7 @@ function GiftRecipientDecisionPanelV2({
     pending && Number.isFinite(expiresAt) && expiresAt <= Date.now();
   const minutesLeft = Number.isFinite(expiresAt)
     ? Math.max(0, Math.ceil((expiresAt - Date.now()) / 60000))
-    : (gift.acceptanceWindowMinutes ?? 30);
+    : (gift.acceptanceWindowMinutes ?? 24 * 60);
   useEffect(() => {
     if (mode !== "address" || knownAddress || query.trim().length < 3) {
       setSuggestions([]);
@@ -6413,7 +6414,7 @@ function GiftTrackingMini({
           <Text style={giftFlowStyles.chatTrackTitle}>Order progress</Text>
           <Text style={giftFlowStyles.chatTrackFine}>
             {gift.provider ?? "DestinyOne delivery"} ·{" "}
-            {gift.acceptanceWindowMinutes ?? 30} min acceptance window
+            {formatAcceptanceWindow(gift.acceptanceWindowMinutes ?? 24 * 60)} acceptance window
           </Text>
         </View>
         <Pressable
