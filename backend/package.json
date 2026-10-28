@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "node src/migrations/run.js",
-    "cleanup": "node src/jobs/cleanupDeletedUsers.js"
+    "cleanup": "node src/jobs/cleanupDeletedUsers.js",
+    "test": "node --test test/*.test.js",
+    "gifts:maintain": "node src/jobs/giftMaintenance.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

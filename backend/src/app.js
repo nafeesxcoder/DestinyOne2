@@ -1,4 +1,4 @@
-﻿const path = require("path");
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes"); // Directly import auth routes
@@ -10,6 +10,8 @@ const pushRoutes = require("./routes/pushRoutes"); // Directly import push notif
 const callRoutes = require("./routes/callRoutes"); // Directly import call routes
 const giftRoutes = require("./routes/giftRoutes"); // Directly import gift ordering routes
 const safetyRoutes = require("./routes/safetyRoutes"); // Directly import safety routes
+const giftOpsRoutes = require("./routes/giftOpsRoutes");
+const stripeWebhook = require("./controllers/stripeWebhookController");
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
 const { corsOptions, securityHeaders } = require("./config/security");
 const app = express();
@@ -20,6 +22,8 @@ app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(securityHeaders);
 app.use(cors(corsOptions));
+// Stripe signs the raw request body, so this must be registered BEFORE express.json().
+app.post("/webhooks/stripe", express.raw({ type: "application/json", limit: "1mb" }), stripeWebhook.handle);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For Apple's form_post callback
 // Serve uploaded photos (e.g. https://api.destinyone.co/uploads/photos/xyz.jpg)
@@ -36,6 +40,7 @@ app.use("/chat", chatRoutes);
 app.use("/push", pushRoutes);
 app.use("/calls", callRoutes);
 app.use("/gifts", giftRoutes);
+app.use("/ops/gifts", giftOpsRoutes);
 app.use("/safety", safetyRoutes);
 // If you have other route modules (like gifts, users, etc.), mount them here
 // app.use('/gifts', giftRoutes);

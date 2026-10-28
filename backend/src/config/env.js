@@ -79,5 +79,13 @@ module.exports = {
   stripe: {
     secretKey: required("STRIPE_SECRET_KEY", ""),
     publishableKey: required("STRIPE_PUBLISHABLE_KEY", ""),
+    webhookSecret: required("STRIPE_WEBHOOK_SECRET", ""),
+  },
+
+  gifts: {
+    // 32-byte key (64 hex chars or base64) used to encrypt delivery addresses at rest.
+    addressKey: required("GIFT_ADDRESS_KEY", ""),
+    // Shared secret for the /ops/gifts endpoints (sent as the X-Ops-Key header).
+    opsKey: required("GIFT_OPS_KEY", ""),
   },
 };

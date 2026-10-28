@@ -21,15 +21,24 @@ export type RealGiftOrder = {
     | "recipient_accepted"
     | "payment_authorized"
     | "merchant_preparing"
+    | "courier_assigned"
+    | "picked_up"
     | "delivered"
     | "cancelled"
-    | "failed";
+    | "failed"
+    | "refunded"
+    | "expired";
   productId: string;
   productName: string;
   note?: string | null;
   currency: string;
   totalCents: number;
   deliveryAddress?: unknown;
+  trackingUrl?: string;
+  paidAt?: string;
+  deliveredAt?: string;
+  cancelledReason?: string;
+  timeline?: Array<{ status: RealGiftOrder["status"]; at: string }>;
 };
 
 export const giftApi = {

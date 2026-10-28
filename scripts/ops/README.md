@@ -29,3 +29,18 @@ Copy backups off the server now and then (they live on the same disk as the data
 ```bash
 gunzip -c ~/backups/destinyone/<file>.sql.gz | mysql -u <user> -p <database>
 ```
+
+## Gift delivery (manual fulfilment)
+
+Env on the server (`backend/.env`): `STRIPE_WEBHOOK_SECRET`, `GIFT_ADDRESS_KEY` (`openssl rand -hex 32`), `GIFT_OPS_KEY` (`openssl rand -hex 24`).
+Stripe webhook endpoint: `https://api.destinyone.co/webhooks/stripe` (events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`).
+
+```bash
+KEY=your-ops-key; API=https://api.destinyone.co
+# what has to be delivered (paid orders, with the recipient address)
+curl -s -H "X-Ops-Key: $KEY" "$API/ops/gifts/orders?status=merchant_preparing"
+# move an order: courier_assigned | picked_up | delivered | failed | cancelled
+curl -s -X POST -H "X-Ops-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"status":"delivered"}' "$API/ops/gifts/orders/ORDER_ID/status"
+# failed/cancelled after payment refunds the customer automatically
+```

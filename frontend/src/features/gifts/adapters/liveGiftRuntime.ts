@@ -1,4 +1,4 @@
-import { giftApi } from "../../../api/giftApi";
+import { giftApi, type RealGiftOrder } from "../../../api/giftApi";
 import {
   estimateGiftOrderQuote,
   type GiftDeliveryAddress,
@@ -6,6 +6,11 @@ import {
   type GiftOrderResponse,
   type GiftRecipientResponse,
 } from "./previewGiftRuntime";
+
+// The server also reports refunded/expired; the shared UI model shows both as cancelled.
+function toUiStatus(status: RealGiftOrder["status"]): GiftOrderResponse["status"] {
+  return status === "refunded" || status === "expired" ? "cancelled" : status;
+}
 
 function buildResponse(
   quote: ReturnType<typeof estimateGiftOrderQuote>,
@@ -90,7 +95,7 @@ export async function createPhysicalGiftOrderLive(
     );
     if (typeof window !== "undefined") window.location.href = checkoutUrl;
   }
-  return buildResponse(quote, created.orderId, created.status);
+  return buildResponse(quote, created.orderId, toUiStatus(created.status));
 }
 
 export async function respondToPhysicalGiftOrderLive(
@@ -105,8 +110,8 @@ export async function respondToPhysicalGiftOrderLive(
   );
   return {
     orderId: updated.orderId,
-    status: updated.status,
-    deliveryStatus: updated.status,
+    status: toUiStatus(updated.status),
+    deliveryStatus: toUiStatus(updated.status),
     accepted: input.accept,
     addressStoredPrivately: true,
   };
