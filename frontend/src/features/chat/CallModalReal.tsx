@@ -353,14 +353,17 @@ export function CallModal({
     return () => setActiveCallMinimizer(null);
   }, [mode, minimized]);
 
+  // The call is a video call as soon as either person has a camera on, and a
+  // voice call again when both are off, so the screen follows the engine.
+  const kind = engine.kind;
   const isFullScreenVideo =
-    mode === "video" &&
+    kind === "video" &&
     engine.phase !== "permission-error" &&
     engine.phase !== "unsupported";
 
   const scheduleAutoHide = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (mode === "video" && engine.phase === "connected") {
+    if (kind === "video" && engine.phase === "connected") {
       hideTimer.current = setTimeout(
         () => setControlsVisible(false),
         CONTROLS_AUTO_HIDE_MS,
@@ -371,7 +374,7 @@ export function CallModal({
   useEffect(() => {
     // Always show controls while connecting/ringing; only start the
     // auto-hide clock once a video call is actually connected.
-    if (mode === "video" && engine.phase === "connected") {
+    if (kind === "video" && engine.phase === "connected") {
       scheduleAutoHide();
     } else {
       setControlsVisible(true);
@@ -381,7 +384,7 @@ export function CallModal({
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine.phase, mode]);
+  }, [engine.phase, kind]);
 
   const handleTapVideo = () => {
     setControlsVisible((visible) => {
@@ -413,9 +416,8 @@ export function CallModal({
                 : "";
 
   const hasRemoteVideo =
-    mode === "video" && !!engine.remoteStream && engine.phase === "connected";
-  const hasSelfVideo =
-    mode === "video" && !!engine.localStream && engine.cameraEnabled;
+    engine.remoteVideo && !!engine.remoteStream && engine.phase === "connected";
+  const hasSelfVideo = !!engine.localStream && engine.cameraEnabled;
 
   const mainIsSelf = mainView === "self" && hasSelfVideo;
   const mainStream = mainIsSelf
@@ -447,7 +449,7 @@ export function CallModal({
           keeps playing while minimized -- the Modal below, which normally
           carries the audio for a voice call or rides along with the
           full-screen <video> for a video call, unmounts when minimized. */}
-      {(mode === "audio" || minimized) && (
+      {(kind === "audio" || minimized || !hasRemoteVideo) && (
         <RTCAudioSink
           stream={engine.remoteStream}
           volume={remoteVolume}
@@ -582,6 +584,12 @@ export function CallModal({
             </View>
           )}
 
+          {!!engine.notice && (
+            <View style={callStyles.noticeToast} pointerEvents="none">
+              <Text style={callStyles.noticeToastText}>{engine.notice}</Text>
+            </View>
+          )}
+
           {!isFullScreenVideo && (
             <View style={callStyles.audioCenter} pointerEvents="box-none">
               <View style={callStyles.avatarWrap}>
@@ -665,15 +673,13 @@ export function CallModal({
                 bluetoothAvailable && callStyles.bottomBarCompact,
               ]}
             >
-              {mode === "video" && (
-                <CircleButton
-                  compact={bluetoothAvailable}
-                  icon={engine.cameraEnabled ? "videocam" : "videocam-off"}
-                  active={!engine.cameraEnabled}
-                  onPress={engine.toggleCamera}
-                />
-              )}
-              {mode === "video" && engine.canSwitchCamera && (
+              <CircleButton
+                compact={bluetoothAvailable}
+                icon={engine.cameraEnabled ? "videocam" : "videocam-off"}
+                active={!engine.cameraEnabled}
+                onPress={engine.toggleCamera}
+              />
+              {engine.cameraEnabled && engine.canSwitchCamera && (
                 <CircleButton
                   compact={bluetoothAvailable}
                   icon="camera-reverse-outline"

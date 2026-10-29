@@ -91,6 +91,7 @@ import {
   confirmPhysicalGiftPaymentLive,
 } from "../features/gifts/adapters/liveGiftRuntime";
 import { giftApi } from "../api/giftApi";
+import { CallHost } from "../features/chat/CallHost";
 import {
   giftChanged,
   isAwaitingPayment,
@@ -4535,6 +4536,7 @@ function DestinyOneApp() {
             setScreen("pricing");
           }}
         />
+        <CallHost accessToken={accessToken} />
       </PremiumBackground>
     </SafeAreaProvider>
   );

@@ -25,7 +25,15 @@ export type CallEngine = {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   micEnabled: boolean;
+  // True while MY camera is on.
   cameraEnabled: boolean;
+  // True while the OTHER person's camera is on.
+  remoteVideo: boolean;
+  // "video" as soon as either side has a camera on, otherwise "audio". A voice
+  // call becomes a video call (and back) by turning cameras on and off.
+  kind: "audio" | "video";
+  // Short message when switching to video fails (e.g. camera blocked).
+  notice: string | null;
   canSwitchCamera: boolean;
   isFrontCamera: boolean;
   toggleMic: () => void;
@@ -47,6 +55,8 @@ export function useCallEngine({
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(mode === "video");
+  const [remoteVideo, setRemoteVideo] = useState(mode === "video");
+  const [notice, setNotice] = useState<string | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const [canSwitchCamera, setCanSwitchCamera] = useState(false);
 
@@ -56,6 +66,11 @@ export function useCallEngine({
   const remoteDescriptionSetRef = useRef(false);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const endedRef = useRef(false);
+  const cameraEnabledRef = useRef(mode === "video");
+  const cameraBusyRef = useRef(false);
+  const makingOfferRef = useRef(false);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -97,18 +112,117 @@ export function useCallEngine({
     });
   }, []);
 
-  const toggleCamera = useCallback(() => {
-    setCameraEnabled((current) => {
-      const next = !current;
-      localStreamRef.current
-        ?.getVideoTracks()
-        .forEach((track) => (track.enabled = next));
-      return next;
-    });
+  const setCamera = useCallback((on: boolean) => {
+    cameraEnabledRef.current = on;
+    setCameraEnabled(on);
   }, []);
 
+  const showNotice = useCallback((message: string) => {
+    setNotice(message);
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = setTimeout(() => setNotice(null), 4500);
+  }, []);
+
+  const refreshCameraCount = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setCanSwitchCamera(devices.filter((d) => d.kind === "videoinput").length > 1);
+    } catch {
+      // Some browsers hide the device list; then the switch-camera button stays hidden.
+    }
+  }, []);
+
+  const sendModeSignal = useCallback(
+    (video: boolean) => {
+      if (callId) void callApi.sendSignal(accessToken, callId, "mode", { video });
+    },
+    [accessToken, callId],
+  );
+
+  // Sends a fresh offer to the other side (used when a video track is added mid-call).
+  const negotiate = useCallback(async () => {
+    const pc = pcRef.current;
+    if (!pc || !callId || endedRef.current) return;
+    try {
+      makingOfferRef.current = true;
+      const offer = await pc.createOffer();
+      // An offer from the other side arrived first: let that one win.
+      if (pc.signalingState !== "stable") return;
+      await pc.setLocalDescription(offer);
+      await callApi.sendSignal(accessToken, callId, "offer", offer);
+    } catch {
+      // The next camera toggle retries.
+    } finally {
+      makingOfferRef.current = false;
+    }
+  }, [accessToken, callId]);
+
+  // Turns MY camera on or off. On a voice call this is the switch to video:
+  // the video track is added and renegotiated with the other person.
+  const toggleCamera = useCallback(() => {
+    if (cameraBusyRef.current) return;
+    cameraBusyRef.current = true;
+    void (async () => {
+      try {
+        const stream = localStreamRef.current;
+        const pc = pcRef.current;
+        if (!stream || !pc || endedRef.current) return;
+        const videoTransceiver = pc
+          .getTransceivers()
+          .find((transceiver) => transceiver.receiver.track?.kind === "video");
+        if (cameraEnabledRef.current) {
+          const sender = videoTransceiver?.sender;
+          if (sender) await sender.replaceTrack(null).catch(() => undefined);
+          stream.getVideoTracks().forEach((track) => {
+            stream.removeTrack(track);
+            track.stop();
+          });
+          setLocalStream(new MediaStream(stream.getTracks()));
+          setCamera(false);
+          sendModeSignal(false);
+          return;
+        }
+        let video: MediaStream;
+        try {
+          video = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30, max: 30 },
+              facingMode: "user",
+            },
+          });
+        } catch {
+          showNotice("Camera access is blocked. Allow it in your browser settings to switch to video.");
+          return;
+        }
+        const track = video.getVideoTracks()[0];
+        if (!track) return;
+        stream.addTrack(track);
+        if (videoTransceiver) {
+          await videoTransceiver.sender.replaceTrack(track);
+          if (videoTransceiver.direction !== "sendrecv") {
+            videoTransceiver.direction = "sendrecv";
+            await negotiate();
+          }
+        } else {
+          pc.addTrack(track, stream);
+          await negotiate();
+        }
+        setLocalStream(new MediaStream(stream.getTracks()));
+        setIsFrontCamera(true);
+        setCamera(true);
+        sendModeSignal(true);
+        void refreshCameraCount();
+      } finally {
+        cameraBusyRef.current = false;
+      }
+    })();
+  }, [negotiate, refreshCameraCount, sendModeSignal, setCamera, showNotice]);
+
   const switchCamera = useCallback(() => {
-    if (mode !== "video") return;
+    if (!cameraEnabledRef.current) return;
     void (async () => {
       const nextFacingMode = isFrontCamera ? "environment" : "user";
       let newStream: MediaStream;
@@ -165,11 +279,11 @@ export function useCallEngine({
           track.stop();
         });
         current.addTrack(newTrack);
-        setLocalStream(current);
+        setLocalStream(new MediaStream(current.getTracks()));
       }
       setIsFrontCamera((prev) => !prev);
     })();
-  }, [mode, isFrontCamera, cameraEnabled]);
+  }, [isFrontCamera, cameraEnabled]);
 
   useEffect(() => {
     if (!callId) return;
@@ -208,6 +322,13 @@ export function useCallEngine({
     setPhase("connecting");
     setError(null);
     setRemoteStream(null);
+    remoteStreamRef.current = null;
+    makingOfferRef.current = false;
+    cameraBusyRef.current = false;
+    cameraEnabledRef.current = mode === "video";
+    setCameraEnabled(mode === "video");
+    setRemoteVideo(mode === "video");
+    setNotice(null);
 
     const run = async () => {
       let stream: MediaStream;
@@ -273,15 +394,10 @@ export function useCallEngine({
       setIsFrontCamera(true);
 
       if (mode === "video" && navigator.mediaDevices.enumerateDevices) {
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const videoInputs = devices.filter((d) => d.kind === "videoinput");
-          if (active) setCanSwitchCamera(videoInputs.length > 1);
-        } catch {
-          // Some browsers only report device labels/count after a stream
-          // has been granted, and a handful block enumeration entirely —
-          // in that case we just don't show the switch-camera button.
-        }
+        // Some browsers only report device labels/count after a stream has been
+        // granted, and a handful block enumeration entirely; in that case the
+        // switch-camera button just stays hidden.
+        void refreshCameraCount();
       }
 
       const { iceServers } = await callApi.getIceServers(accessToken);
@@ -292,7 +408,18 @@ export function useCallEngine({
 
       pc.ontrack = (event) => {
         if (!active) return;
-        setRemoteStream(event.streams[0] ?? null);
+        // A track added mid-call (voice -> video) may arrive without a stream
+        // attached, so keep our own stream and add the track to it.
+        let stream = remoteStreamRef.current;
+        if (event.streams[0]) {
+          stream = event.streams[0];
+        } else {
+          stream = stream ?? new MediaStream();
+          if (!stream.getTracks().includes(event.track)) stream.addTrack(event.track);
+        }
+        remoteStreamRef.current = stream;
+        if (event.track.kind === "video") setRemoteVideo(true);
+        setRemoteStream(stream);
         setPhase("connected");
       };
 
@@ -347,7 +474,18 @@ export function useCallEngine({
           );
           for (const signal of signals) {
             sinceMsRef.current = Math.max(sinceMsRef.current, signal.createdAtMs);
-            if (signal.type === "offer" && !isCaller) {
+            if (signal.type === "offer") {
+              // Either side can offer once the call is up (voice -> video).
+              // If both offer at once the caller keeps its offer and the callee
+              // rolls back and answers.
+              const collision =
+                makingOfferRef.current || pc.signalingState !== "stable";
+              if (collision && isCaller) continue;
+              if (collision) {
+                await pc
+                  .setLocalDescription({ type: "rollback" })
+                  .catch(() => undefined);
+              }
               await pc.setRemoteDescription(
                 new RTCSessionDescription(signal.payload),
               );
@@ -356,12 +494,15 @@ export function useCallEngine({
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
               await callApi.sendSignal(accessToken, callId, "answer", answer);
-            } else if (signal.type === "answer" && isCaller) {
+            } else if (signal.type === "answer") {
+              if (pc.signalingState !== "have-local-offer") continue;
               await pc.setRemoteDescription(
                 new RTCSessionDescription(signal.payload),
               );
               remoteDescriptionSetRef.current = true;
               await flushPendingCandidates();
+            } else if (signal.type === "mode") {
+              setRemoteVideo(!!(signal.payload as { video?: boolean })?.video);
             } else if (signal.type === "ice-candidate") {
               if (remoteDescriptionSetRef.current) {
                 try {
@@ -414,6 +555,7 @@ export function useCallEngine({
       active = false;
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       if (statusTimerRef.current) clearInterval(statusTimerRef.current);
+      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
       pcRef.current?.close();
       pcRef.current = null;
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -429,6 +571,9 @@ export function useCallEngine({
     remoteStream,
     micEnabled,
     cameraEnabled,
+    remoteVideo,
+    kind: cameraEnabled || remoteVideo ? "video" : "audio",
+    notice,
     canSwitchCamera,
     isFrontCamera,
     toggleMic,

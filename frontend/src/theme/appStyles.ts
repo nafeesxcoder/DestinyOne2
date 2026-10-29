@@ -1915,6 +1915,8 @@ export const pricingStyles=StyleSheet.create({
 });
 
 export const callStyles=StyleSheet.create({
+  noticeToast:{position:'absolute',top:110,left:20,right:20,backgroundColor:'rgba(20,20,24,0.88)',borderRadius:14,paddingVertical:10,paddingHorizontal:14,zIndex:20},
+  noticeToastText:{color:'#FFFFFF',fontSize:13,textAlign:'center'},
   // Full-screen WhatsApp-style call layout: the video (or, for an audio
   // call, a plain gradient) fills the entire screen, with a top name/status
   // bar and a bottom control bar that float over it and auto-hide/tap-to-

@@ -57,7 +57,7 @@ import {
   createBackendGifSearch,
   isLiveGifSearchAvailable,
 } from "../../api/gifApi";
-import { CallModal } from "./CallModalReal";
+import { callSession, useCallSession } from "./callSession";
 import { callApi } from "../../api/callApi";
 import { chatApi } from "../../api/chatApi";
 import { matches, type Match } from "../../data";
@@ -1141,21 +1141,11 @@ export function ChatScreen({
   const [faceEmojiOpen, setFaceEmojiOpen] = useState(
     previewState === "chat-face-emoji",
   );
-  const [callMode, setCallMode] = useState<"audio" | "video" | null>(
-    previewState === "chat-audio-call"
-      ? "audio"
-      : previewState === "chat-video-call"
-        ? "video"
-        : null,
-  );
-  // Lifted up from CallModal so the header's own "back to matches" button
-  // (below) can minimize an active call instead of leaving the screen --
-  // that button is a plain onPress, not a browser back/history action, so
-  // CallModal's own popstate-based back-guard never sees it. On mobile,
-  // tapping this on-screen arrow is how people normally go back (vs. a
-  // physical/gesture back elsewhere), which is why the call kept hanging
-  // up there even after the history-based fix.
-  const [callMinimized, setCallMinimized] = useState(false);
+  // The call itself lives in callSession (rendered by CallHost at the app root),
+  // so it survives leaving this screen. These are just read-only views of it.
+  const callState = useCallSession();
+  const callMode = callState.mode;
+  const callMinimized = callState.minimized;
   const [chatError, setChatError] = useState("");
   const [optionsOpen, setOptionsOpen] = useState(
     previewState === "chat-options",
@@ -1240,19 +1230,21 @@ export function ChatScreen({
     callerName: string;
     mode: "audio" | "video";
   } | null>(null);
-  const [activeCallId, setActiveCallId] = useState<string | null>(null);
-  const [isCallOutgoing, setIsCallOutgoing] = useState(true);
-  const startRealCall = async (callMode: "audio" | "video") => {
-    if (!accessToken) return;
+  const startRealCall = async (kind: "audio" | "video") => {
+    if (!accessToken || callSession.get().mode) return;
     try {
       const result = await callApi.start(
         accessToken,
         conversationIdFor(match),
-        callMode,
+        kind,
       );
-      setActiveCallId(result.id);
-      setIsCallOutgoing(true);
-      setCallMode(callMode);
+      callSession.begin({
+        mode: kind,
+        callId: result.id,
+        isCaller: true,
+        match,
+        isCoupleMode,
+      });
     } catch {
       // silent: person can retry the call button
     }
@@ -1390,6 +1382,19 @@ export function ChatScreen({
   } | null>(null);
   const voiceTranscriptRef = useRef("");
   const isCoupleMode = experienceMode === "couple";
+  // Design previews (?preview=chat-audio-call / chat-video-call) open straight into a call screen.
+  useEffect(() => {
+    if (previewState !== "chat-audio-call" && previewState !== "chat-video-call")
+      return;
+    callSession.begin({
+      mode: previewState === "chat-video-call" ? "video" : "audio",
+      callId: null,
+      isCaller: true,
+      match,
+      isCoupleMode,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {
     if (status.hasError)
       setChatError(status.error ?? "Voice note failed. Please try again.");
@@ -1449,7 +1454,7 @@ export function ChatScreen({
             setIncomingCallId(event.clientCallId);
           if (["reject", "end", "missed", "failed"].includes(event.event)) {
             setIncomingCallId(null);
-            setCallMode(null);
+            callSession.end(match.id);
           }
         },
       })
@@ -1678,6 +1683,8 @@ export function ChatScreen({
         onTypingChange?.(false);
       }
     }
+    // Refocus synchronously (inside the tap) so mobile browsers keep the keyboard.
+    if (!showEmoji) chatInputRef.current?.focus();
     const sent = await dispatchMessage(
       createMessage({ type: "text", text: messageText }),
     );
@@ -2531,7 +2538,7 @@ export function ChatScreen({
                 // leaving (same as the browser/gesture back-press guard),
                 // so it doesn't silently hang up when someone taps this.
                 if (callMode && !callMinimized) {
-                  setCallMinimized(true);
+                  callSession.setMinimized(true);
                   return;
                 }
                 navigate("home");
@@ -2725,9 +2732,13 @@ export function ChatScreen({
                   void callApi
                     .respond(accessToken, incomingCall.id, true)
                     .catch(() => undefined);
-                  setActiveCallId(incomingCall.id);
-                  setIsCallOutgoing(false);
-                  setCallMode(incomingCall.mode);
+                  callSession.begin({
+                    mode: incomingCall.mode,
+                    callId: incomingCall.id,
+                    isCaller: false,
+                    match,
+                    isCoupleMode,
+                  });
                   setIncomingCall(null);
                 }}
                 style={chatStyles.callAccept}
@@ -3333,6 +3344,10 @@ export function ChatScreen({
                       accessibilityState={{ expanded: showEmoji }}
                       hitSlop={accessibilityHitSlop}
                       onPress={() => {
+                        // Close the keyboard before the emoji panel opens, and
+                        // bring it back when the panel closes.
+                        if (showEmoji) chatInputRef.current?.focus();
+                        else chatInputRef.current?.blur();
                         setShowEmoji((value) => !value);
                         setShowAttachments(false);
                       }}
@@ -3351,6 +3366,13 @@ export function ChatScreen({
                       onChangeText={updateText}
                       onSubmitEditing={() => void sendText()}
                       returnKeyType="send"
+                      // Keep the keyboard open after sending so chatting is not
+                      // interrupted (single-line inputs blur on submit by default).
+                      blurOnSubmit={false}
+                      onFocus={() => {
+                        setShowEmoji(false);
+                        setShowAttachments(false);
+                      }}
                       placeholder="Message…"
                       placeholderTextColor="#8C7888"
                       editable
@@ -3628,21 +3650,6 @@ export function ChatScreen({
             onSend={() => void confirmSendPendingMedia()}
             sending={false}
             error={pendingMediaError}
-          />
-          <CallModal
-            mode={callMode}
-            match={match}
-            isCoupleMode={isCoupleMode}
-            accessToken={accessToken}
-            callId={activeCallId}
-            isCaller={isCallOutgoing}
-            minimized={callMinimized}
-            onMinimizedChange={setCallMinimized}
-            onClose={() => {
-              setIncomingCallId(null);
-              setActiveCallId(null);
-              setCallMode(null);
-            }}
           />
           <CoupleSettingsSheet
             visible={settingsOpen}
@@ -4612,6 +4619,11 @@ function ChatBubble({
               style={[
                 styles.bubbleText,
                 mine ? { color: colors.textInverse } : { color: colors.text },
+                // A message that is only emoji shows large, like WhatsApp.
+                isJustEmoji && {
+                  fontSize: Array.from((textBody ?? "").trim()).length <= 3 ? 56 : 38,
+                  lineHeight: Array.from((textBody ?? "").trim()).length <= 3 ? 68 : 48,
+                },
               ]}
             >
               {textBody}
