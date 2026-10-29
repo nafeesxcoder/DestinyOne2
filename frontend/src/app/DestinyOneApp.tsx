@@ -91,6 +91,12 @@ import {
   confirmPhysicalGiftPaymentLive,
 } from "../features/gifts/adapters/liveGiftRuntime";
 import { giftApi } from "../api/giftApi";
+import {
+  giftChanged,
+  isAwaitingPayment,
+  isTerminalGiftStatus,
+  mergeOrderIntoGift,
+} from "../features/gifts/giftTracking";
 import { requestGiftConciergeV2 } from "../features/gifts/adapters/previewGiftConcierge";
 import {
   fetchPersistedChatMessages as fetchPersistedChatMessagesPreview,
@@ -1840,28 +1846,39 @@ function DestinyOneApp() {
       active = false;
     };
   }, [hydrated, screen, conversationPartner.id, accessToken]);
+  // Keeps every physical gift card in this chat in step with the server: payment
+  // redirect for the sender, then preparing / courier / delivered / cancelled updates.
   useEffect(() => {
     if (!accessToken || screen !== "chat") return;
-    const messages = chatMessages[conversationPartner.id] ?? [];
-    const pending = messages.filter(
+    const partnerId = conversationPartner.id;
+    const tracked = (chatMessages[partnerId] ?? []).filter(
       (message) =>
-        message.mine &&
         message.gift?.physical &&
         message.gift.orderId &&
-        message.gift.deliveryStatus !== "merchant_preparing" &&
-        message.gift.deliveryStatus !== "delivered" &&
-        message.gift.deliveryStatus !== "cancelled" &&
-        message.gift.deliveryStatus !== "failed",
+        !isTerminalGiftStatus(message.gift.deliveryStatus),
     );
-    if (!pending.length) return;
+    if (!tracked.length) return;
     let active = true;
     const poll = async () => {
-      for (const message of pending) {
+      for (const message of tracked) {
         const orderId = message.gift!.orderId!;
         try {
           const order = await giftApi.getOrder(accessToken, orderId);
           if (!active) return;
-          if (order.status === "recipient_accepted") {
+          setChatMessages((current: Record<string, ChatMessage[]>) => {
+            const list = current[partnerId];
+            if (!list) return current;
+            let changed = false;
+            const next = list.map((item: ChatMessage) => {
+              if (item.id !== message.id || !item.gift) return item;
+              const merged = mergeOrderIntoGift(item.gift, order);
+              if (!giftChanged(item.gift, merged)) return item;
+              changed = true;
+              return { ...item, gift: merged };
+            });
+            return changed ? { ...current, [partnerId]: next } : current;
+          });
+          if (message.mine && order.status === "recipient_accepted") {
             const origin =
               typeof window !== "undefined"
                 ? window.location.origin
@@ -1881,7 +1898,11 @@ function DestinyOneApp() {
         }
       }
     };
-    const timer = setInterval(() => void poll(), 4000);
+    // Quick while waiting for acceptance/payment, relaxed once the gift is on its way.
+    const fast = tracked.some((message: ChatMessage) =>
+      isAwaitingPayment(message.gift?.deliveryStatus),
+    );
+    const timer = setInterval(() => void poll(), fast ? 4000 : 15000);
     void poll();
     return () => {
       active = false;

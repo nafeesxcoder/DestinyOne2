@@ -38,7 +38,7 @@ export type RealGiftOrder = {
   paidAt?: string;
   deliveredAt?: string;
   cancelledReason?: string;
-  timeline?: Array<{ status: RealGiftOrder["status"]; at: string }>;
+  timeline?: Array<{ status: string; at: string }>;
 };
 
 export const giftApi = {

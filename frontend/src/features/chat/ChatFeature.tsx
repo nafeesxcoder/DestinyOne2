@@ -134,6 +134,13 @@ import type {
   GiftOrderQuote,
 } from "../gifts/contracts/GiftModels";
 import { formatAcceptanceWindow } from "../gifts/adapters/previewGiftRuntime";
+import {
+  formatTimelineTime,
+  giftHeadline,
+  isClosedGiftStatus,
+  timelineLabel,
+  type TrackedGiftStatus,
+} from "../gifts/giftTracking";
 import type {
   ChatRuntimePorts,
   MatchRealtimeSession,
@@ -4268,6 +4275,8 @@ function giftStatusLabel(
     delivered: "DELIVERED",
     cancelled: "CANCELLED",
     failed: "NEEDS SUPPORT",
+    refunded: "REFUNDED",
+    expired: "EXPIRED",
   };
   return labels[status ?? "recipient_pending"] ?? "GIFT ORDER UPDATED";
 }
@@ -5812,7 +5821,7 @@ function PhysicalGiftChatCard({
     .toUpperCase();
   const status = gift.deliveryStatus ?? "recipient_pending";
   const complete = status === "delivered";
-  const attention = status === "failed" || status === "cancelled";
+  const attention = isClosedGiftStatus(status);
   return (
     <View style={giftFlowStyles.orderCard}>
       <LinearGradient
@@ -6022,6 +6031,14 @@ function GiftRecipientDecisionPanelV2({
     }
     setMode("idle");
   };
+  const acceptedState = [
+    "recipient_accepted",
+    "payment_authorized",
+    "merchant_preparing",
+    "courier_assigned",
+    "picked_up",
+    "delivered",
+  ].includes(gift.deliveryStatus ?? "");
   if (!pending)
     return (
       <View
@@ -6029,32 +6046,34 @@ function GiftRecipientDecisionPanelV2({
         accessibilityLiveRegion="polite"
         style={[
           giftFlowStyles.recipientResult,
-          gift.deliveryStatus === "recipient_accepted"
+          acceptedState
             ? giftFlowStyles.recipientAccepted
             : giftFlowStyles.recipientDeclined,
         ]}
       >
         <Ionicons
           name={
-            gift.deliveryStatus === "recipient_accepted"
+            acceptedState
               ? "checkmark-circle"
               : "close-circle"
           }
           size={18}
           color={
-            gift.deliveryStatus === "recipient_accepted" ? "#27744A" : "#9D253C"
+            acceptedState ? "#27744A" : "#9D253C"
           }
         />
         <View style={{ flex: 1 }}>
           <Text style={giftFlowStyles.recipientResultTitle}>
-            {gift.deliveryStatus === "recipient_accepted"
+            {acceptedState
               ? "Accepted privately"
               : "Gift request closed"}
           </Text>
           <Text style={giftFlowStyles.recipientResultBody}>
-            {gift.deliveryStatus === "recipient_accepted"
+            {acceptedState
               ? "Your address is encrypted and hidden from the sender. Payment and delivery updates will appear here."
-              : "No delivery will be created and no payment will be captured."}
+              : gift.deliveryStatus === "refunded" || gift.deliveryStatus === "failed"
+                ? "No delivery will be made. Any payment is refunded automatically."
+                : "No delivery will be created and no payment will be captured."}
           </Text>
         </View>
       </View>
@@ -6394,6 +6413,11 @@ function GiftTrackingMini({
     steps.findIndex((step) => step.status === "active"),
   );
   const currentStep = steps[activeIndex] ?? steps[0];
+  const liveStatus = gift.deliveryStatus as TrackedGiftStatus | undefined;
+  const headline =
+    liveStatus && (isClosedGiftStatus(liveStatus) || gift.timeline)
+      ? giftHeadline(liveStatus, gift.cancelledReason)
+      : null;
   const shortLabels: Record<string, string> = {
     request: "Sent",
     recipient: "Accept",
@@ -6405,7 +6429,7 @@ function GiftTrackingMini({
     setTrackingNotice((current) =>
       current
         ? ""
-        : `Order ${gift.orderId ?? "preview"} stays inside DestinyOne. Live merchant and courier webhooks update this timeline after private acceptance.`,
+        : `Order ${gift.orderId ? `#${gift.orderId.slice(0, 6).toUpperCase()}` : "preview"} stays inside DestinyOne. This card updates automatically as the gift moves along.`,
     );
   return (
     <View style={giftFlowStyles.chatTrack}>
@@ -6474,7 +6498,39 @@ function GiftTrackingMini({
           </View>
         ))}
       </View>
-      {currentStep && (
+      {headline && (
+        <View
+          accessibilityLiveRegion="polite"
+          style={[
+            giftFlowStyles.chatCurrent,
+            headline.tone === "warn" && { backgroundColor: "#FBEDEF" },
+            headline.tone === "success" && { backgroundColor: "#EAF6EE" },
+          ]}
+        >
+          <Ionicons
+            name={
+              headline.tone === "warn"
+                ? "alert-circle"
+                : headline.tone === "success"
+                  ? "checkmark-circle"
+                  : "sparkles"
+            }
+            size={15}
+            color={
+              headline.tone === "warn"
+                ? "#9D253C"
+                : headline.tone === "success"
+                  ? "#27744A"
+                  : "#997013"
+            }
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={giftFlowStyles.chatCurrentTitle}>{headline.title}</Text>
+            <Text style={giftFlowStyles.chatCurrentBody}>{headline.body}</Text>
+          </View>
+        </View>
+      )}
+      {!headline && currentStep && (
         <View style={giftFlowStyles.chatCurrent}>
           <Ionicons name="sparkles" size={15} color="#997013" />
           <View style={{ flex: 1 }}>
@@ -6502,6 +6558,35 @@ function GiftTrackingMini({
             <Text style={giftFlowStyles.chatTrackNoticeText}>
               {trackingNotice}
             </Text>
+            {!!gift.timeline?.length && (
+              <View style={{ marginTop: 6, gap: 3 }}>
+                {gift.timeline.map((entry, index) => (
+                  <Text
+                    key={`${entry.status}-${index}`}
+                    style={giftFlowStyles.chatTrackPolicy}
+                  >
+                    {timelineLabel(entry.status)}
+                    {formatTimelineTime(entry.at)
+                      ? ` · ${formatTimelineTime(entry.at)}`
+                      : ""}
+                  </Text>
+                ))}
+              </View>
+            )}
+            {!!gift.trackingUrl && (
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="Open live delivery tracking"
+                onPress={() =>
+                  void Linking.openURL(gift.trackingUrl!).catch(() => undefined)
+                }
+                style={{ marginTop: 8 }}
+              >
+                <Text style={[giftFlowStyles.chatTrackPolicy, { color: "#980A30", fontWeight: "700" }]}>
+                  Open live delivery tracking
+                </Text>
+              </Pressable>
+            )}
             {gift.paymentPolicy && (
               <Text style={giftFlowStyles.chatTrackPolicy}>
                 {gift.paymentPolicy}

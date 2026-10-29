@@ -37,7 +37,7 @@ export type ChatMessage = {
     priceCents?: number;
     physical?: boolean;
     orderId?: string;
-    deliveryStatus?: 'requested'|'recipient_pending'|'recipient_accepted'|'payment_authorized'|'merchant_preparing'|'courier_assigned'|'picked_up'|'delivered'|'cancelled'|'failed';
+    deliveryStatus?: 'requested'|'recipient_pending'|'recipient_accepted'|'payment_authorized'|'merchant_preparing'|'courier_assigned'|'picked_up'|'delivered'|'cancelled'|'failed'|'refunded'|'expired';
     etaLabel?: string;
     etaConfidence?: string;
     provider?: string;
@@ -52,6 +52,8 @@ export type ChatMessage = {
     acceptanceExpiresAt?: string;
     recipientAddressMode?: 'recipient_supplied_private' | 'sender_supplied_known_address';
     trackingUrl?: string;
+    cancelledReason?: string;
+    timeline?: Array<{ status: string; at: string }>;
     totalCents?: number;
     steps?: Array<{ key: string; label: string; body: string; status: 'done'|'active'|'pending'; eta?: string }>;
   };
