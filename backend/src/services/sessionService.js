@@ -40,7 +40,12 @@ async function rotateSession(oldRefreshToken) {
   }
 
   const candidates = await query(
-    'SELECT * FROM refresh_tokens WHERE user_id = ? AND revoked_at IS NULL AND expires_at > NOW()',
+    // A token used in the last minute is still accepted: when two requests
+    // (two tabs, or a reply lost on a bad network) refresh at the same moment,
+    // the loser must not be signed out.
+    `SELECT * FROM refresh_tokens
+      WHERE user_id = ? AND expires_at > NOW()
+        AND (revoked_at IS NULL OR revoked_at > DATE_SUB(NOW(), INTERVAL 60 SECOND))`,
     [payload.sub],
   );
 
@@ -59,7 +64,9 @@ async function rotateSession(oldRefreshToken) {
     throw err;
   }
 
-  await query('UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = ?', [matched.id]);
+  if (!matched.revoked_at) {
+    await query('UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = ?', [matched.id]);
+  }
 
   return issueSession(payload.sub);
 }

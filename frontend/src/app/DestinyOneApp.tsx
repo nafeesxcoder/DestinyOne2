@@ -4,7 +4,7 @@ import { Image, Platform, Share, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { authApi } from "../api/authApi";
+import { authApi, AuthRequestError, isSessionRejected } from "../api/authApi";
 import { profileApi } from "../api/profileApi";
 import { matchApi } from "../api/matchApi";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -1026,19 +1026,8 @@ function DestinyOneApp() {
             try {
               me = await authApi.me(currentToken);
             } catch {
-              const savedRefreshToken = await AsyncStorage.getItem(
-                "destinyone_refresh_token",
-              );
-              if (!savedRefreshToken) throw new Error("No refresh token");
-              const tokens = await authApi.refresh(savedRefreshToken);
-              await AsyncStorage.setItem(
-                "destinyone_access_token",
-                tokens.accessToken,
-              );
-              await AsyncStorage.setItem(
-                "destinyone_refresh_token",
-                tokens.refreshToken,
-              );
+              const tokens = await authApi.refreshSavedSession();
+              if (!tokens) throw new AuthRequestError("No saved session", 401);
               currentToken = tokens.accessToken;
               me = await authApi.me(currentToken);
             }
@@ -1092,8 +1081,12 @@ function DestinyOneApp() {
             icon: "cloud-offline-outline",
             tone: "ruby",
           });
-          await AsyncStorage.removeItem("destinyone_access_token");
-          await AsyncStorage.removeItem("destinyone_refresh_token");
+          // Only forget the saved login when the server says it is invalid.
+          // A network problem or server error must not sign the person out.
+          if (isSessionRejected(error)) {
+            await AsyncStorage.removeItem("destinyone_access_token");
+            await AsyncStorage.removeItem("destinyone_refresh_token");
+          }
         }
         const remaining = Math.max(0, 3000 - (Date.now() - started));
         ``;
@@ -1248,34 +1241,34 @@ function DestinyOneApp() {
   }, [hydrated, screen]);
   useEffect(() => {
     if (!accessToken) return;
-    const interval = setInterval(
-      async () => {
-        try {
-          const savedRefreshToken = await AsyncStorage.getItem(
-            "destinyone_refresh_token",
-          );
-          if (!savedRefreshToken) return;
-          const tokens = await authApi.refresh(savedRefreshToken);
-          await AsyncStorage.setItem(
-            "destinyone_access_token",
-            tokens.accessToken,
-          );
-          await AsyncStorage.setItem(
-            "destinyone_refresh_token",
-            tokens.refreshToken,
-          );
-          setAccessToken(tokens.accessToken);
-        } catch {
-          // Silent: a real problem will surface next time the person
-          // interacts with the app, rather than interrupting them here.
-        }
-      },
-      // Refresh well ahead of the access token's own lifetime (15m by
-      // default) so there's no window where a stale token causes an
-      // authenticated action (edit, send, etc.) to silently fail.
-      5 * 60 * 1000,
-    );
-    return () => clearInterval(interval);
+    const renew = async () => {
+      try {
+        const tokens = await authApi.refreshSavedSession();
+        if (tokens) setAccessToken(tokens.accessToken);
+      } catch {
+        // Temporary problems (offline, server busy) are retried on the next
+        // tick. The saved login is kept; it is only dropped when the app
+        // restores the session and the server rejects it.
+      }
+    };
+    // Refresh well ahead of the access token's own lifetime (15m by default).
+    const interval = setInterval(() => void renew(), 5 * 60 * 1000);
+    // Phones pause timers while the app is in the background, so renew right
+    // away when the app comes back or the connection returns.
+    const onWake = () => {
+      if (typeof document === "undefined" || document.visibilityState === "visible")
+        void renew();
+    };
+    if (typeof document !== "undefined")
+      document.addEventListener("visibilitychange", onWake);
+    if (typeof window !== "undefined") window.addEventListener("online", onWake);
+    return () => {
+      clearInterval(interval);
+      if (typeof document !== "undefined")
+        document.removeEventListener("visibilitychange", onWake);
+      if (typeof window !== "undefined")
+        window.removeEventListener("online", onWake);
+    };
   }, [accessToken]);
   useEffect(() => {
     if (!accessToken || Platform.OS !== "web") return;

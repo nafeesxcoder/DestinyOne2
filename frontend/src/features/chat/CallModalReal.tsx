@@ -731,12 +731,6 @@ export function CallModal({
             </View>
           )}
 
-          {showControls && (
-            <View style={callStyles.secureNoteFull} pointerEvents="none">
-              <Ionicons name="lock-closed" size={12} color="#D6B35B" />
-              <Text style={callStyles.callFine}>End-to-end encrypted call</Text>
-            </View>
-          )}
         </SafeAreaView>
       </View>
       </Modal>
