@@ -1,3 +1,4 @@
+import { startRingback } from "./ringback";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
@@ -252,6 +253,18 @@ export function CallModal({
     setSeconds(0);
     setMinimized(false);
   }, [callId]);
+
+  // The caller hears the same ringing tone on every call until the other
+  // person answers or the call ends.
+  const callerWaiting =
+    !!mode &&
+    isCaller &&
+    (engine.phase === "connecting" || engine.phase === "ringing");
+  useEffect(() => {
+    if (!callerWaiting) return;
+    const ringback = startRingback();
+    return () => ringback.stop();
+  }, [callerWaiting, callId]);
 
   useEffect(() => {
     if (engine.phase !== "connected") return;
