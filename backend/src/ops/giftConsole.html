@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Gift orders - ops</title>
+<style>
+  :root { --bg:#0f0b0d; --card:#1a1316; --line:#2e2227; --text:#f4ecee; --muted:#a89a9f; --gold:#d6b35b; --red:#e5092f; --green:#2fb36b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui, sans-serif; }
+  header { padding:14px 16px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  h1 { font-size:17px; margin:0; flex:1; }
+  main { max-width:900px; margin:0 auto; padding:14px 16px 60px; }
+  input, textarea { background:#120d10; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 10px; font:inherit; width:100%; }
+  button { background:#2a1d22; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 13px; font:inherit; cursor:pointer; }
+  button.primary { background:var(--gold); color:#1a1300; border-color:var(--gold); font-weight:600; }
+  button.danger { background:transparent; color:#ff6b83; border-color:#5a2230; }
+  button:disabled { opacity:.5; cursor:default; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 14px; }
+  .tabs button.on { background:var(--gold); color:#1a1300; border-color:var(--gold); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .muted { color:var(--muted); font-size:13px; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:99px; background:#2a1d22; font-size:12px; color:var(--gold); }
+  .addr { background:#120d10; border:1px dashed var(--line); border-radius:8px; padding:10px; margin:10px 0; white-space:pre-line; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .msg { padding:10px 12px; border-radius:8px; margin-bottom:12px; background:#2a1d22; }
+  .msg.err { background:#3a141c; color:#ffb3c0; }
+  .msg.ok { background:#12301f; color:#9be6bb; }
+  .events { margin-top:8px; font-size:13px; color:var(--muted); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+  @media (max-width:560px) { .grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Gift orders</h1>
+  <input id="key" type="password" placeholder="Ops key" autocomplete="off" style="max-width:240px">
+  <button id="save" class="primary">Open</button>
+</header>
+<main>
+  <div id="msg"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="list"></div>
+</main>
+<script>
+(function () {
+  var TABS = [
+    ["merchant_preparing", "To deliver"],
+    ["courier_assigned", "Courier assigned"],
+    ["picked_up", "On the way"],
+    ["recipient_accepted", "Waiting for payment"],
+    ["recipient_pending", "Waiting for recipient"],
+    ["delivered", "Delivered"],
+    ["failed", "Failed"],
+    ["cancelled", "Cancelled"],
+    ["refunded", "Refunded"],
+    ["expired", "Expired"]
+  ];
+  // What ops can do from each status (matches the server rules).
+  var NEXT = {
+    merchant_preparing: ["courier_assigned", "picked_up", "delivered"],
+    courier_assigned: ["picked_up", "delivered"],
+    picked_up: ["delivered"]
+  };
+  var CAN_CANCEL = { merchant_preparing: "cancelled", courier_assigned: "cancelled", picked_up: "failed" };
+  var LABEL = { courier_assigned: "Courier assigned", picked_up: "Picked up", delivered: "Delivered" };
+
+  var current = "merchant_preparing";
+  var timer = null;
+  var KEY_STORE = "gift_ops_key";
+
+  function el(id) { return document.getElementById(id); }
+  function esc(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function getKey() { try { return sessionStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } }
+  function setKey(v) { try { sessionStorage.setItem(KEY_STORE, v); } catch (e) {} }
+  function say(text, kind) { el("msg").innerHTML = text ? '<div class="msg ' + (kind || "") + '">' + esc(text) + "</div>" : ""; }
+  function money(cents, cur) {
+    try { return new Intl.NumberFormat("en-US", { style: "currency", currency: (cur || "usd").toUpperCase() }).format((cents || 0) / 100); }
+    catch (e) { return ((cents || 0) / 100).toFixed(2); }
+  }
+  function when(v) { if (!v) return ""; var d = new Date(v); return isNaN(d) ? "" : d.toLocaleString(); }
+
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ "X-Ops-Key": getKey(), "Content-Type": "application/json" }, opts.headers || {});
+    return fetch("/ops/gifts" + path, opts).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        if (!r.ok) throw new Error(data.error || ("Request failed (" + r.status + ")"));
+        return data;
+      });
+    });
+  }
+
+  function renderTabs() {
+    el("tabs").innerHTML = TABS.map(function (t) {
+      return '<button data-tab="' + t[0] + '" class="' + (t[0] === current ? "on" : "") + '">' + esc(t[1]) + "</button>";
+    }).join("");
+  }
+
+  function addressText(a) {
+    if (!a) return "Address not available (already deleted, or not provided).";
+    var order = ["name", "phone", "line1", "line2", "city", "state", "region", "postalCode", "zip", "country", "instructions"];
+    var seen = {};
+    var lines = [];
+    order.forEach(function (k) { if (a[k]) { lines.push(String(a[k])); seen[k] = 1; } });
+    Object.keys(a).forEach(function (k) { if (!seen[k] && typeof a[k] === "string" && a[k]) lines.push(a[k]); });
+    return lines.join("\n");
+  }
+
+  function cardHtml(o) {
+    var acts = "";
+    var nexts = NEXT[o.status] || [];
+    var needsTrack = o.status === "merchant_preparing" || o.status === "courier_assigned";
+    var form = "";
+    if (nexts.length) {
+      form += '<div class="grid2">' +
+        '<input data-f="provider" placeholder="Courier / provider (e.g. DoorDash)" value="' + esc(o.provider || "") + '">' +
+        '<input data-f="trackingUrl" placeholder="Tracking link (optional)" value="' + esc(o.trackingUrl || "") + '">' +
+        "</div>";
+      acts += nexts.map(function (s) {
+        return '<button class="' + (s === "delivered" ? "primary" : "") + '" data-act="' + s + '">Mark: ' + LABEL[s] + "</button>";
+      }).join("");
+    }
+    if (CAN_CANCEL[o.status]) {
+      acts += '<button class="danger" data-act="' + CAN_CANCEL[o.status] + '">Cancel and refund</button>';
+    }
+    return '<div class="card" data-id="' + esc(o.orderId) + '">' +
+      '<div class="row"><strong>' + esc(o.productName || "Gift") + "</strong>" +
+      '<span class="pill">' + esc(o.status) + "</span>" +
+      '<span style="margin-left:auto">' + esc(money(o.totalCents, o.currency)) + "</span></div>" +
+      '<div class="muted">Order ' + esc(o.orderId) + " · paid " + esc(when(o.paidAt) || "-") + " · updated " + esc(when(o.updatedAt)) + "</div>" +
+      (o.note ? '<div style="margin-top:8px">Note: ' + esc(o.note) + "</div>" : "") +
+      '<div class="addr" data-addr>' + esc(addressText(o.deliveryAddress)) + "</div>" +
+      '<div class="row"><button data-copy>Copy address</button>' +
+      '<button data-events>Timeline</button></div>' +
+      form +
+      (o.cancelledReason ? '<div class="muted" style="margin-top:8px">Reason: ' + esc(o.cancelledReason) + "</div>" : "") +
+      '<div class="actions">' + acts + "</div>" +
+      '<div class="events" data-ev></div>' +
+      "</div>";
+  }
+
+  function load() {
+    if (!getKey()) { say("Enter the ops key and press Open.", ""); el("list").innerHTML = ""; return; }
+    api("/orders?status=" + encodeURIComponent(current)).then(function (data) {
+      say("", "");
+      var orders = data.orders || [];
+      el("list").innerHTML = orders.length
+        ? orders.map(cardHtml).join("")
+        : '<div class="muted">No orders in this list.</div>';
+    }).catch(function (e) { say(e.message, "err"); });
+  }
+
+  el("save").onclick = function () { setKey(el("key").value.trim()); el("key").value = ""; load(); };
+  el("key").addEventListener("keydown", function (e) { if (e.key === "Enter") el("save").click(); });
+  el("tabs").onclick = function (e) {
+    var t = e.target.getAttribute && e.target.getAttribute("data-tab");
+    if (!t) return;
+    current = t; renderTabs(); load();
+  };
+
+  el("list").onclick = function (e) {
+    var card = e.target.closest && e.target.closest(".card");
+    if (!card) return;
+    var id = card.getAttribute("data-id");
+    var btn = e.target.closest("button");
+    if (!btn) return;
+
+    if (btn.hasAttribute("data-copy")) {
+      var text = card.querySelector("[data-addr]").textContent;
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { say("Address copied.", "ok"); });
+      return;
+    }
+    if (btn.hasAttribute("data-events")) {
+      api("/orders/" + encodeURIComponent(id)).then(function (data) {
+        var ev = (data.order.events || []).map(function (x) {
+          return esc(when(x.created_at)) + " - " + esc(x.status) + " (" + esc(x.actor || "") + ")";
+        }).join("<br>");
+        card.querySelector("[data-ev]").innerHTML = ev || "No events.";
+      }).catch(function (err) { say(err.message, "err"); });
+      return;
+    }
+    var act = btn.getAttribute("data-act");
+    if (!act) return;
+    var body = { status: act };
+    var provider = card.querySelector('[data-f="provider"]');
+    var tracking = card.querySelector('[data-f="trackingUrl"]');
+    if (provider && provider.value.trim()) body.provider = provider.value.trim();
+    if (tracking && tracking.value.trim()) body.trackingUrl = tracking.value.trim();
+    if (act === "cancelled" || act === "failed") {
+      var reason = window.prompt("Reason (the customer is refunded automatically):", "Could not deliver");
+      if (reason === null) return;
+      body.reason = reason;
+    } else if (act === "delivered" && !window.confirm("Mark this gift as delivered?")) {
+      return;
+    }
+    btn.disabled = true;
+    api("/orders/" + encodeURIComponent(id) + "/status", { method: "POST", body: JSON.stringify(body) })
+      .then(function () { say("Order updated.", "ok"); load(); })
+      .catch(function (err) { say(err.message, "err"); btn.disabled = false; });
+  };
+
+  renderTabs();
+  load();
+  timer = setInterval(function () { if (!document.hidden) load(); }, 30000);
+})();
+</script>
+</body>
+</html>

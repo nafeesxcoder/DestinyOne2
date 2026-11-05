@@ -32,6 +32,11 @@ gunzip -c ~/backups/destinyone/<file>.sql.gz | mysql -u <user> -p <database>
 
 ## Gift delivery (manual fulfilment)
 
+Easiest way: open **https://api.destinyone.co/ops/gifts/console** in a browser, enter the ops key (`GIFT_OPS_KEY`) and press Open.
+It lists paid gifts with the delivery address (copy button), lets you mark Courier assigned / Picked up / Delivered
+(optionally with a courier name and tracking link) and cancel with a reason (the customer is refunded automatically).
+The key is kept only in that browser tab and is cleared when the tab is closed. The curl commands below do the same thing.
+
 Env on the server (`backend/.env`): `STRIPE_WEBHOOK_SECRET`, `GIFT_ADDRESS_KEY` (`openssl rand -hex 32`), `GIFT_OPS_KEY` (`openssl rand -hex 24`).
 Stripe webhook endpoint: `https://api.destinyone.co/webhooks/stripe` (events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`).
 

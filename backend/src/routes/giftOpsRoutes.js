@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const asyncHandler = require("../utils/asyncHandler");
@@ -7,6 +8,14 @@ const giftService = require("../services/giftService");
 
 const router = express.Router();
 router.use(rateLimit({ windowMs: 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false }));
+
+// The console page itself holds no data and no secrets: it asks for the ops key in
+// the browser and sends it with every request, so it is served before the key check.
+router.get("/console", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "..", "ops", "giftConsole.html"));
+});
+
 router.use(requireOpsKey);
 
 const wrap = (fn) =>
