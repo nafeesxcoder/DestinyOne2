@@ -76,25 +76,18 @@ export async function createPhysicalGiftOrderLive(
   input: GiftOrderRequest,
 ): Promise<GiftOrderResponse> {
   const quote = estimateGiftOrderQuote(input);
+  // SECURITY: the sender must never send a delivery address. The order is always
+  // created as recipient_pending and the address is added by the recipient in
+  // respondToPhysicalGiftOrderLive(). Any input.deliveryAddress is ignored.
   const created = await giftApi.createOrder(accessToken, conversationId, {
     productId: input.productId,
     productName: input.productName || quote.productName,
     note: input.note,
     currency: quote.currency,
     totalCents: quote.totalCents,
-    deliveryAddress: input.deliveryAddress,
   });
-  if (created.status === "recipient_accepted") {
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "https://destinyone.co";
-    const { checkoutUrl } = await giftApi.checkout(
-      accessToken,
-      created.orderId,
-      `${origin}/?giftOrderId=${created.orderId}`,
-      `${origin}/?giftOrderCancelled=${created.orderId}`,
-    );
-    if (typeof window !== "undefined") window.location.href = checkoutUrl;
-  }
+  // A new order never starts at recipient_accepted; checkout happens after the
+  // recipient responds (see the gift card / payment step), not here.
   return buildResponse(quote, created.orderId, toUiStatus(created.status));
 }
 

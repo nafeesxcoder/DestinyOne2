@@ -5,6 +5,10 @@ const giftService = require("../services/giftService");
 const createOrder = asyncHandler(async (req, res) => {
   const { conversationId, ...input } = req.body;
   if (!conversationId) throw new ApiError(400, "conversationId is required");
+  // SECURITY: the sender must never supply a delivery address. The address can
+  // only be added by the recipient via POST /gifts/orders/:id/respond. Strip it
+  // here as well as in the service (defence in depth).
+  delete input.deliveryAddress;
   try {
     const order = await giftService.createOrder(
       conversationId,
@@ -44,6 +48,9 @@ const checkout = asyncHandler(async (req, res) => {
   const { successUrl, cancelUrl } = req.body;
   if (!successUrl || !cancelUrl)
     throw new ApiError(400, "successUrl and cancelUrl are required");
+  // SECURITY: shape check only; the allow-list check happens in giftService.
+  if (typeof successUrl !== "string" || typeof cancelUrl !== "string")
+    throw new ApiError(400, "successUrl and cancelUrl must be strings");
   try {
     const result = await giftService.createCheckoutSession(
       req.params.orderId,

@@ -4,8 +4,10 @@ const { query } = require("../config/db");
 const env = require("../config/env");
 const chatService = require("./chatService");
 const pushService = require("./pushService");
+const { isAllowedOrigin } = require("../config/security");
 const { encryptAddress, decryptAddress } = require("./giftCrypto");
-const { computeGiftOrderTotal, productRules } = require("./giftPricing");
+const { validateDeliveryAddress } = require("./giftAddressValidator");
+const { computeGiftOrderTotal, productRules, GIFT_LIMITS } = require("./giftPricing");
 
 let stripe = env.stripe.secretKey ? new Stripe(env.stripe.secretKey) : null;
 
@@ -44,6 +46,25 @@ function httpError(status, message) {
   const err = new Error(message);
   err.status = status;
   return err;
+}
+
+// SECURITY: Stripe redirect URLs must point at our own app, never at a
+// caller-supplied domain (phishing / open-redirect). The origin allow-list
+// lives in config/security.js so it stays in sync with CORS.
+function assertAllowedRedirect(url, label) {
+  let parsed;
+  try {
+    parsed = new URL(String(url));
+  } catch {
+    throw httpError(400, `${label} must be a valid absolute URL.`);
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw httpError(400, `${label} must be an http(s) URL.`);
+  }
+  if (!isAllowedOrigin(parsed.origin)) {
+    throw httpError(400, `${label} is not an allowed redirect origin.`);
+  }
+  return parsed;
 }
 
 async function getRawOrder(orderId) {
@@ -220,13 +241,51 @@ async function refundOrder(order, actor = "system") {
 
 async function markPaid(orderId, paymentIntentId, actor) {
   const intent = paymentIntentId ? String(paymentIntentId) : null;
+  const order = await getRawOrder(orderId);
+  if (!order) throw httpError(404, "Gift order not found");
+
+  // SECURITY: verify the charged amount/currency with Stripe before treating this
+  // order as paid. A tampered or mismatched session must never mark an order paid.
+  if (stripe && intent) {
+    let pi;
+    try {
+      pi = await stripe.paymentIntents.retrieve(intent);
+    } catch (error) {
+      await addEvent(orderId, "payment_verify_failed", actor, {
+        paymentIntent: intent,
+        message: error.message,
+      });
+      throw httpError(502, "Could not verify the payment with Stripe.");
+    }
+    const expectedAmount = Number(order.total_cents);
+    const expectedCurrency = String(order.currency || "").toLowerCase();
+    const actualAmount = Number(pi.amount_received || pi.amount || 0);
+    const actualCurrency = String(pi.currency || "").toLowerCase();
+    const metaOrderId = pi.metadata && pi.metadata.orderId;
+    if (
+      actualAmount !== expectedAmount ||
+      actualCurrency !== expectedCurrency ||
+      (metaOrderId && metaOrderId !== orderId)
+    ) {
+      await addEvent(orderId, "payment_mismatch", actor, {
+        expectedAmount,
+        expectedCurrency,
+        actualAmount,
+        actualCurrency,
+        paymentIntent: intent,
+        metaOrderId: metaOrderId || null,
+      });
+      throw httpError(400, "Payment amount or currency does not match this gift order.");
+    }
+  }
+
   const result = await transition(orderId, "merchant_preparing", {
     actor,
     detail: { paymentIntent: intent },
     set: { paid_at: true, stripe_payment_intent_id: intent },
   });
-  const order = result.order;
-  if (!result.changed && order && !order.paid_at && ["cancelled", "expired", "failed"].includes(order.status) && stripe && intent) {
+  const paidOrder = result.order;
+  if (!result.changed && paidOrder && !paidOrder.paid_at && ["cancelled", "expired", "failed"].includes(paidOrder.status) && stripe && intent) {
     // Customer paid after the gift was already cancelled or expired: return the money.
     const refund = await stripe.refunds.create(
       { payment_intent: intent, metadata: { orderId } },
@@ -236,6 +295,48 @@ async function markPaid(orderId, paymentIntentId, actor) {
     await addEvent(orderId, "refunded", actor, { lateRefund: true, refundId: refund.id });
   }
   return result;
+}
+
+// Runs every anti-abuse check before an order is inserted. Throws httpError(400/429).
+async function assertGiftLimits(senderId, recipientId, priced) {
+  if (priced.totalCents > GIFT_LIMITS.maxGiftTotalCents) {
+    throw httpError(400, "This gift exceeds the maximum allowed amount.");
+  }
+
+  const openRows = await query(
+    "SELECT COUNT(*) AS c FROM gift_orders WHERE sender_id = ? AND status IN ('recipient_pending','recipient_accepted')",
+    [senderId],
+  );
+  if (Number(openRows[0]?.c || 0) >= GIFT_LIMITS.maxOpenUnpaidOrders) {
+    throw httpError(429, "Too many open gift orders. Finish or cancel one before sending another.");
+  }
+
+  // New accounts get a smaller daily cap.
+  const ageRows = await query(
+    "SELECT TIMESTAMPDIFF(HOUR, created_at, NOW()) AS age_hours FROM users WHERE id = ?",
+    [senderId],
+  );
+  const ageHours = ageRows[0]?.age_hours;
+  const dailyLimit =
+    ageHours !== null && ageHours !== undefined && Number(ageHours) < GIFT_LIMITS.newAccountHours
+      ? GIFT_LIMITS.newAccountMaxOrdersPerDay
+      : GIFT_LIMITS.maxOrdersPerDay;
+
+  const dayRows = await query(
+    "SELECT COUNT(*) AS c FROM gift_orders WHERE sender_id = ? AND created_at > DATE_SUB(NOW(6), INTERVAL 24 HOUR)",
+    [senderId],
+  );
+  if (Number(dayRows[0]?.c || 0) >= dailyLimit) {
+    throw httpError(429, "Daily gift limit reached. Please try again tomorrow.");
+  }
+
+  const recipientRows = await query(
+    "SELECT COUNT(*) AS c FROM gift_orders WHERE sender_id = ? AND recipient_id = ? AND created_at > DATE_SUB(NOW(6), INTERVAL 24 HOUR)",
+    [senderId, recipientId],
+  );
+  if (Number(recipientRows[0]?.c || 0) >= GIFT_LIMITS.maxOrdersPerRecipientPerDay) {
+    throw httpError(429, "You have sent too many gifts to this person today.");
+  }
 }
 
 async function createOrder(conversationId, senderId, input) {
@@ -252,10 +353,14 @@ async function createOrder(conversationId, senderId, input) {
     tipCents: input.tipCents,
     marketCountry: input.marketCountry,
   });
+  // SECURITY / anti-abuse: cap amount, open orders, daily volume and per-recipient
+  // volume before anything is written.
+  await assertGiftLimits(senderId, recipientId, priced);
   const id = crypto.randomUUID();
-  const address = input.deliveryAddress;
-  const hasAddress = !!(address && address.line1 && address.city);
-  const status = hasAddress ? "recipient_accepted" : "recipient_pending";
+  // SECURITY: the sender must never supply a delivery address. The order always starts
+  // at recipient_pending and the address can only be added by the recipient in
+  // respondToOrder(). Any input.deliveryAddress from the sender is ignored.
+  const status = "recipient_pending";
   await query(
     `INSERT INTO gift_orders (id, conversation_id, sender_id, recipient_id, product_id, product_name, note, currency, total_cents, status, delivery_address)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -270,7 +375,7 @@ async function createOrder(conversationId, senderId, input) {
       priced.currency,
       priced.totalCents,
       status,
-      hasAddress ? encryptAddress(address) : null,
+      null,
     ],
   );
   await addEvent(id, status, "sender", null);
@@ -284,13 +389,14 @@ async function respondToOrder(orderId, userId, accept, deliveryAddress) {
   if (order.recipient_id !== userId) throw httpError(403, "Only the recipient can respond to this gift.");
   if (order.status !== "recipient_pending") return toClientOrder(order, userId);
   if (accept) {
-    if (!deliveryAddress || !deliveryAddress.line1 || !deliveryAddress.city) {
-      throw httpError(400, "A delivery address is required to accept this gift.");
-    }
+    // SECURITY: only a whitelisted, size-capped address is stored. The validator
+    // trims, rejects HTML/control characters, checks the country/postal format and
+    // drops any extra fields the client sent.
+    const cleanAddress = validateDeliveryAddress(deliveryAddress);
     await transition(orderId, "recipient_accepted", {
       actor: "recipient",
       actorUserId: userId,
-      set: { delivery_address: encryptAddress(deliveryAddress) },
+      set: { delivery_address: encryptAddress(cleanAddress) },
     });
   } else {
     await transition(orderId, "cancelled", {
@@ -308,6 +414,9 @@ async function createCheckoutSession(orderId, userId, successUrl, cancelUrl) {
   if (order.sender_id !== userId) throw httpError(403, "Only the sender can pay for this gift.");
   if (order.status !== "recipient_accepted") throw httpError(400, "This gift is not ready for payment yet.");
   if (!stripe) throw httpError(500, "Payments are not configured yet.");
+  // SECURITY: never trust the client's redirect domains.
+  const safeSuccess = assertAllowedRedirect(successUrl, "successUrl");
+  const safeCancel = assertAllowedRedirect(cancelUrl, "cancelUrl");
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
@@ -324,8 +433,8 @@ async function createCheckoutSession(orderId, userId, successUrl, cancelUrl) {
         quantity: 1,
       },
     ],
-    success_url: `${successUrl}?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${cancelUrl}?orderId=${orderId}`,
+    success_url: `${safeSuccess.origin}${safeSuccess.pathname}?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${safeCancel.origin}${safeCancel.pathname}?orderId=${orderId}`,
   });
   await query("UPDATE gift_orders SET stripe_checkout_session_id = ? WHERE id = ?", [session.id, orderId]);
   return { checkoutUrl: session.url };
@@ -377,6 +486,21 @@ async function handleStripeEvent(event) {
       if (session.payment_status !== "paid") return { handled: false };
       const order = await findOrderForSession(session);
       if (!order) return { handled: false };
+      // SECURITY: belt-and-braces check on the Checkout Session itself. markPaid
+      // re-checks the PaymentIntent, but a mismatch here should never be marked paid.
+      if (
+        Number(session.amount_total) !== Number(order.total_cents) ||
+        String(session.currency || "").toLowerCase() !== String(order.currency || "").toLowerCase()
+      ) {
+        await addEvent(order.id, "payment_mismatch", "stripe", {
+          eventId: event.id,
+          expectedAmount: Number(order.total_cents),
+          expectedCurrency: String(order.currency || "").toLowerCase(),
+          actualAmount: Number(session.amount_total),
+          actualCurrency: String(session.currency || "").toLowerCase(),
+        });
+        return { handled: false, reason: "amount_mismatch" };
+      }
       await markPaid(order.id, session.payment_intent, "stripe");
       return { handled: true };
     }

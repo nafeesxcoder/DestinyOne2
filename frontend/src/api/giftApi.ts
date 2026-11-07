@@ -51,7 +51,6 @@ export const giftApi = {
       note?: string;
       currency?: string;
       totalCents: number;
-      deliveryAddress?: unknown;
     },
   ): Promise<RealGiftOrder> {
     const data = await authFetch("/gifts/orders", accessToken, {

@@ -5,6 +5,34 @@ function required(name, fallback = undefined) {
   return value;
 }
 
+// Validates the gift address key format: 64 hex chars or base64 decoding to 32 bytes.
+function isValidAddressKey(raw) {
+  if (!raw) return false;
+  try {
+    const key = /^[0-9a-fA-F]{64}$/.test(raw)
+      ? Buffer.from(raw, "hex")
+      : Buffer.from(raw, "base64");
+    return key.length === 32;
+  } catch {
+    return false;
+  }
+}
+
+function assertAddressKey(raw) {
+  const envName = process.env.NODE_ENV || "development";
+  const valid = isValidAddressKey(raw);
+  if (valid) return;
+  const message =
+    "GIFT_ADDRESS_KEY must be 32 bytes (64 hex chars or base64). Generate it with: openssl rand -hex 32";
+  if (envName === "production") {
+    // Fail fast: a production server without a valid key must not start,
+    // otherwise gift addresses could be mishandled.
+    throw new Error(message);
+  }
+  // Development/test: warn only. encryptAddress() still refuses to write plain text.
+  console.warn(`[env] ${message} (development mode: addresses cannot be saved until this is set)`);
+}
+
 module.exports = {
   port: Number(process.env.PORT || 4000),
   nodeEnv: process.env.NODE_ENV || "development",
@@ -89,3 +117,5 @@ module.exports = {
     opsKey: required("GIFT_OPS_KEY", ""),
   },
 };
+
+assertAddressKey(module.exports.gifts.addressKey);

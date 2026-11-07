@@ -125,4 +125,22 @@ function computeGiftOrderTotal(input) {
   };
 }
 
-module.exports = { computeGiftOrderTotal, productRules };
+// ---- Anti-abuse limits (checked in giftService.createOrder) ------------------------
+// The gift flow touches real money and addresses, so a single account must not be
+// able to flood orders, spam the same recipient, or spend an unbounded amount.
+const GIFT_LIMITS = {
+  // Hard cap per single gift, in cents of the order currency (INR has its own floor
+  // in localizeGiftPrice, so this only matters for USD/CAD).
+  maxGiftTotalCents: 50000,
+  // Orders waiting for the recipient/sender (not yet paid and not finished).
+  maxOpenUnpaidOrders: 5,
+  // Orders created by one sender in the last 24 hours.
+  maxOrdersPerDay: 10,
+  // Orders one sender can send to the SAME recipient in the last 24 hours.
+  maxOrdersPerRecipientPerDay: 3,
+  // Accounts younger than this are treated as "new" and get a tighter daily cap.
+  newAccountHours: 24,
+  newAccountMaxOrdersPerDay: 2,
+};
+
+module.exports = { computeGiftOrderTotal, productRules, GIFT_LIMITS };

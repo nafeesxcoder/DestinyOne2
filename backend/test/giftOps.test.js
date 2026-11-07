@@ -2,6 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("http");
 
+process.env.NODE_ENV = "test";
+process.env.GIFT_ADDRESS_KEY = process.env.GIFT_ADDRESS_KEY || "00".repeat(32);
 process.env.JWT_ACCESS_SECRET = "a";
 process.env.JWT_REFRESH_SECRET = "b";
 process.env.GIFT_OPS_KEY = "ops-secret";

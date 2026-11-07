@@ -2,9 +2,10 @@ const crypto = require("crypto");
 const env = require("../config/env");
 
 // AES-256-GCM for delivery addresses. Stored in the JSON column as
-// {"enc":"v1","iv":...,"tag":...,"data":...}. Without GIFT_ADDRESS_KEY the address is
-// stored as-is (so nothing breaks before the key is set); anything already encrypted
-// still needs the key to be read.
+// {"enc":"v1","iv":...,"tag":...,"data":...}.
+// SECURITY: GIFT_ADDRESS_KEY is REQUIRED. We never fall back to storing an address in
+// plain text: encryptAddress() throws if the key is missing or invalid, so a
+// misconfigured server cannot silently leak home addresses into the database.
 function getKey() {
   const raw = env.gifts.addressKey;
   if (!raw) return null;
@@ -20,7 +21,11 @@ function getKey() {
 function encryptAddress(address) {
   if (address === null || address === undefined) return null;
   const key = getKey();
-  if (!key) return JSON.stringify(address);
+  if (!key) {
+    throw new Error(
+      "GIFT_ADDRESS_KEY is not configured; refusing to store a delivery address in plain text.",
+    );
+  }
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
   const data = Buffer.concat([
