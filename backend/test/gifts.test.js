@@ -82,6 +82,18 @@ const pushPath = require.resolve("../src/services/pushService");
 const pushed = [];
 require.cache[pushPath] = { id: pushPath, filename: pushPath, loaded: true, exports: { notifyUser: async (userId, payload) => pushed.push({ userId, title: payload.title }) } };
 
+// Controllable block state for tests. Default: nobody is blocked.
+let blockedPairs = new Set();
+const safetyPath = require.resolve("../src/services/safetyService");
+require.cache[safetyPath] = {
+  id: safetyPath,
+  filename: safetyPath,
+  loaded: true,
+  exports: {
+    isBlocked: async (a, b) => blockedPairs.has(`${a}:${b}`) || blockedPairs.has(`${b}:${a}`),
+  },
+};
+
 const gifts = require("../src/services/giftService");
 const { encryptAddress, decryptAddress } = require("../src/services/giftCrypto");
 const Stripe = require("stripe");
@@ -137,6 +149,7 @@ test.beforeEach(() => {
   orders.clear();
   events.length = 0;
   eventId = 0;
+  blockedPairs.clear();
 });
 
 test("address encryption round-trips and is not plaintext", () => {
@@ -246,6 +259,12 @@ test("encryptAddress refuses to store plain text without GIFT_ADDRESS_KEY", () =
     // from throwing at load time; the check we care about is in encryptAddress().
     process.env.NODE_ENV = "test";
     delete process.env.GIFT_ADDRESS_KEY;
+    
+    // Override dotenv so it doesn't reload the key from the local .env file
+    const dotenv = require("dotenv");
+    const originalConfig = dotenv.config;
+    dotenv.config = () => ({ parsed: {} });
+
     delete require.cache[require.resolve("../src/config/env")];
     delete require.cache[require.resolve("../src/services/giftCrypto")];
     const freshCrypto = require("../src/services/giftCrypto");
@@ -260,6 +279,11 @@ test("encryptAddress refuses to store plain text without GIFT_ADDRESS_KEY", () =
     else process.env.GIFT_ADDRESS_KEY = savedKey;
     if (savedNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = savedNodeEnv;
+    
+    // Restore dotenv
+    const dotenv = require("dotenv");
+    delete dotenv.config; // Let next require restore it naturally, or we can just restore it if we saved it
+
     delete require.cache[require.resolve("../src/config/env")];
     delete require.cache[require.resolve("../src/services/giftCrypto")];
   }
@@ -348,4 +372,13 @@ test("markPaid refuses a payment whose amount/currency does not match the order"
   gifts.__setStripeForTests(real);
   assert.equal(orders.get(id).status, "recipient_accepted"); // not moved
   assert.ok(events.find((e) => e.order_id === id && e.status === "payment_mismatch"));
+});
+
+
+test("cannot send a gift to a blocked user", async () => {
+  blockedPairs.add("alice:bob");
+  await assert.rejects(
+    () => gifts.createOrder("conv1", "alice", { productId }),
+    (err) => err.status === 403 && /cannot send a gift/.test(err.message),
+  );
 });

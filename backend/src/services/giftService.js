@@ -4,6 +4,7 @@ const { query } = require("../config/db");
 const env = require("../config/env");
 const chatService = require("./chatService");
 const pushService = require("./pushService");
+const safetyService = require("./safetyService");
 const { isAllowedOrigin } = require("../config/security");
 const { encryptAddress, decryptAddress } = require("./giftCrypto");
 const { validateDeliveryAddress } = require("./giftAddressValidator");
@@ -343,6 +344,10 @@ async function createOrder(conversationId, senderId, input) {
   const participants = await chatService.assertParticipant(conversationId, senderId);
   const recipientId = participants.find((id) => id !== senderId);
   if (!recipientId) throw httpError(400, "Could not determine the recipient.");
+  // SECURITY / ABUSE: no gifts between blocked users, in either direction.
+  if (await safetyService.isBlocked(senderId, recipientId)) {
+    throw httpError(403, "You cannot send a gift to this user.");
+  }
   if (!productRules[input.productId]) throw httpError(400, "Unknown gift product.");
   // SECURITY: totalCents is always computed server-side from the catalog. The client's
   // totalCents (if any) is ignored entirely so a tampered request cannot change the charge.

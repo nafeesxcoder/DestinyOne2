@@ -50,6 +50,17 @@ async function findOrCreateByOAuth({ provider, providerUserId, email, fullName, 
 // ---------- Soft delete (30-day grace period, Instagram-style) ----------
 async function softDeleteUser(userId) {
   await query('UPDATE users SET deleted_at = NOW() WHERE id = ?', [userId]);
+
+  // SECURITY / PRIVACY: purge any delivery addresses from gift orders
+  // involving this user immediately, rather than waiting for the 7-day
+  // automatic purge job, so a deleted account leaves no address behind.
+  await query(
+    `UPDATE gift_orders 
+     SET delivery_address = NULL, address_purged_at = NOW(6) 
+     WHERE (sender_id = ? OR recipient_id = ?) 
+       AND delivery_address IS NOT NULL`,
+    [userId, userId],
+  );
 }
 
 async function restoreUser(userId) {
