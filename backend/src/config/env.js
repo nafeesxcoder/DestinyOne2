@@ -115,6 +115,8 @@ module.exports = {
     addressKey: required("GIFT_ADDRESS_KEY", ""),
     // Shared secret for the /ops/gifts endpoints (sent as the X-Ops-Key header).
     opsKey: required("GIFT_OPS_KEY", ""),
+    // Where "new paid gift order" alerts are sent (support team inbox).
+    supportEmail: required("GIFTS_SUPPORT_EMAIL", ""),
   },
 };
 

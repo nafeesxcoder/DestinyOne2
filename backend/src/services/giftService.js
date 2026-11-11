@@ -5,6 +5,7 @@ const env = require("../config/env");
 const chatService = require("./chatService");
 const pushService = require("./pushService");
 const safetyService = require("./safetyService");
+const emailService = require("./emailService");
 const { isAllowedOrigin } = require("../config/security");
 const { encryptAddress, decryptAddress } = require("./giftCrypto");
 const { validateDeliveryAddress } = require("./giftAddressValidator");
@@ -286,6 +287,13 @@ async function markPaid(orderId, paymentIntentId, actor) {
     set: { paid_at: true, stripe_payment_intent_id: intent },
   });
   const paidOrder = result.order;
+  // Notify support about the new paid order (non-blocking: email failure must not
+  // fail or roll back a successfully paid order).
+  if (result.changed) {
+    emailService.sendGiftOrderAlertEmail(paidOrder).catch((err) =>
+      console.error(`[gifts] alert email failed for order ${paidOrder.id}: ${err.message}`),
+    );
+  }
   if (!result.changed && paidOrder && !paidOrder.paid_at && ["cancelled", "expired", "failed"].includes(paidOrder.status) && stripe && intent) {
     // Customer paid after the gift was already cancelled or expired: return the money.
     const refund = await stripe.refunds.create(
