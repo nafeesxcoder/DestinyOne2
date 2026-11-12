@@ -136,9 +136,12 @@
       '<span style="margin-left:auto">' + esc(money(o.totalCents, o.currency)) + "</span></div>" +
       '<div class="muted">Order ' + esc(o.orderId) + " · paid " + esc(when(o.paidAt) || "-") + " · updated " + esc(when(o.updatedAt)) + "</div>" +
       (o.note ? '<div style="margin-top:8px">Note: ' + esc(o.note) + "</div>" : "") +
-      '<div class="addr" data-addr>' + esc(addressText(o.deliveryAddress)) + "</div>" +
-      '<div class="row"><button data-copy>Copy address</button>' +
-      '<button data-events>Timeline</button></div>' +
+      '<div class="addr" data-addr style="display:none">' + esc(addressText(o.deliveryAddress)) + "</div>" +
+      '<div class="row">' +
+        '<button data-show-addr>Show address</button>' +
+        '<button data-copy hidden>Copy address</button>' +
+        '<button data-events>Timeline</button>' +
+      '</div>' +
       form +
       (o.cancelledReason ? '<div class="muted" style="margin-top:8px">Reason: ' + esc(o.cancelledReason) + "</div>" : "") +
       '<div class="actions">' + acts + "</div>" +
@@ -172,6 +175,19 @@
     var btn = e.target.closest("button");
     if (!btn) return;
 
+    if (btn.hasAttribute("data-show-addr")) {
+      // SECURITY: reveal + audit-log the view. Address remains visible until reload.
+      var addrDiv = card.querySelector("[data-addr]");
+      var copyBtn = card.querySelector("[data-copy]");
+      addrDiv.style.display = "block";
+      copyBtn.hidden = false;
+      btn.disabled = true;
+      btn.textContent = "Address shown";
+      api("/orders/" + encodeURIComponent(id) + "/view-address", { method: "POST" }).catch(function (err) {
+        say("Could not log address view: " + err.message, "err");
+      });
+      return;
+    }
     if (btn.hasAttribute("data-copy")) {
       var text = card.querySelector("[data-addr]").textContent;
       if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { say("Address copied.", "ok"); });

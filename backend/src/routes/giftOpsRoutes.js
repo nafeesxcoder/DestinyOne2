@@ -13,6 +13,13 @@ router.use(rateLimit({ windowMs: 60 * 1000, limit: 60, standardHeaders: true, le
 // the browser and sends it with every request, so it is served before the key check.
 router.get("/console", (req, res) => {
   res.set("Cache-Control", "no-store");
+  // SECURITY: CSP limits what the console page can load (no third-party scripts/styles).
+  res.set(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+  );
+  res.set("X-Frame-Options", "DENY");
+  res.set("Referrer-Policy", "no-referrer");
   res.sendFile(path.join(__dirname, "..", "ops", "giftConsole.html"));
 });
 
@@ -32,5 +39,10 @@ router.get("/orders", wrap(async (req) => ({ orders: await giftService.opsListOr
 router.get("/orders/:orderId", wrap(async (req) => ({ order: await giftService.opsGetOrder(req.params.orderId) })));
 // POST /ops/gifts/orders/:id/status {status, trackingUrl?, provider?, providerOrderId?, reason?, note?}
 router.post("/orders/:orderId/status", wrap(async (req) => ({ order: await giftService.opsAdvanceOrder(req.params.orderId, req.body) })));
+
+// SECURITY: called by the console when ops clicks "Show address". Records who viewed it.
+router.post("/orders/:orderId/view-address", wrap(async (req) => {
+  return giftService.opsLogAddressView(req.params.orderId, "ops");
+}));
 
 module.exports = router;

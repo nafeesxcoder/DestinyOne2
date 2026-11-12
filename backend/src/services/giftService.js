@@ -611,6 +611,14 @@ async function opsListOrders(status) {
   return rows.map(toOpsOrder);
 }
 
+// Audit log: har baar jab support agent address dekhta hai, event record karo.
+async function opsLogAddressView(orderId, actor = "ops") {
+  const order = await getRawOrder(orderId);
+  if (!order) throw httpError(404, "Gift order not found");
+  await addEvent(orderId, "address_viewed", actor, null);
+  return { ok: true };
+}
+
 async function opsGetOrder(orderId) {
   const order = await getRawOrder(orderId);
   if (!order) throw httpError(404, "Gift order not found");
@@ -666,4 +674,5 @@ module.exports = {
   opsListOrders,
   opsGetOrder,
   opsAdvanceOrder,
+  opsLogAddressView,
 };
