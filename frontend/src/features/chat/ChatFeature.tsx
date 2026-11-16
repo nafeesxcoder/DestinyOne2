@@ -6351,6 +6351,14 @@ function GiftRecipientDecisionPanelV2({
               {error}
             </Text>
           )}
+          {!knownAddress && (
+            <Text style={giftFlowStyles.recipientFine}>
+              By saving your address you agree it will be shared with our
+              delivery partner only to deliver this gift. It is encrypted at
+              rest, hidden from the sender, and deleted within 7 days after
+              delivery.
+            </Text>
+          )}
           <View style={giftFlowStyles.recipientActions}>
             <Pressable
               disabled={submitting}
