@@ -191,14 +191,28 @@ export type GiftOrderIssueType='failed_delivery'|'damaged_item'|'wrong_item'|'mi
 export type GiftOrderIssueResponse={issueId:string;orderId:string;status:'open'|'investigating'|'awaiting_evidence'|'resolved'|'declined';priority:'normal'|'high'|'urgent';responseTarget:string};
 
 export function validateGiftDeliveryAddress(address:Partial<GiftDeliveryAddress>){
+  // Mirror backend giftAddressValidator.js so the two stay in sync.
   const required:[keyof GiftDeliveryAddress,string][]=[['recipientName','Full name'],['line1','Street address'],['city','City'],['region','State or province'],['postalCode','Postal code']];
   for(const [key,label] of required)if(!String(address[key]??'').trim())return `${label} is required.`;
   if(!['US','CA','IN'].includes(String(address.country)))return 'Choose United States, Canada, or India.';
+  
+  // No HTML / control characters anywhere (matches server FORBIDDEN regex)
+  const forbidden=/[\u0000-\u001f\u007f<>]/;
+  for (const key of ['recipientName','line1','line2','city','region','postalCode','instructions'] as const) {
+    const v = address[key];
+    if (v && forbidden.test(String(v))) return `Invalid characters in ${key}.`;
+  }
+
   const postal=String(address.postalCode).trim();
   if(address.country==='US'&&!/^\d{5}(?:-\d{4})?$/.test(postal))return 'Enter a valid US ZIP code.';
   if(address.country==='CA'&&!/^[A-Z]\d[A-Z][ -]?\d[A-Z]\d$/i.test(postal))return 'Enter a valid Canadian postal code.';
   if(address.country==='IN'&&!/^\d{6}$/.test(postal))return 'Enter a valid 6-digit Indian PIN code.';
-  if(address.phone&&String(address.phone).replace(/\D/g,'').length<10)return 'Enter a valid phone number or leave it blank.';
+  
+  // Phone: 7-15 digits (matches backend)
+  if (address.phone) {
+    const digits = String(address.phone).replace(/\D/g,'');
+    if (digits.length < 7 || digits.length > 15) return 'Enter a valid phone number (7-15 digits).';
+  }
   return '';
 }
 
