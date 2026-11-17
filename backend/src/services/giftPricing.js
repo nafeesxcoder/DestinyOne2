@@ -12,6 +12,16 @@ const giftMarkets = [
 ];
 const ALLOWED_CURRENCIES = new Set(["USD", "CAD", "INR"]);
 
+// Business rules ? keep these in sync with frontend/src/domain/giftCommerce.ts.
+// Platform margin: how much we keep per order, on top of item + delivery + fees.
+const PLATFORM_MARGIN_RATE = 0.08; // 8%
+// Stripe processing fee per currency (percent + fixed, in cents of that currency).
+const STRIPE_FEE = {
+  USD: { percent: 0.029, fixedCents: 30 },
+  CAD: { percent: 0.029, fixedCents: 30 },
+  INR: { percent: 0.02, fixedCents: 300 }, // ~?3 fixed (Stripe India)
+};
+
 const fallbackRule = {
   name: "Curated Gift",
   priceCents: 0,
@@ -91,14 +101,29 @@ function computeGiftOrderTotal(input) {
   const addOnSubtotalCents = 0;
   const tipCents = Math.max(0, Math.round(Number(input.tipCents) || 0));
 
-  const taxableCents =
+  // Platform margin on the item subtotal (not on tax, delivery or tips).
+  const platformMarginCents = Math.round(priceCents * PLATFORM_MARGIN_RATE);
+
+  const subtotalBeforeFees =
     priceCents +
     addOnSubtotalCents +
     deliveryFeeCents +
     rushFeeCents +
     smallOrderFeeCents +
-    serviceFeeCents -
+    serviceFeeCents +
+    platformMarginCents -
     discountCents;
+
+  // Stripe fee pass-through. Compute on the gross amount so that after Stripe
+  // takes its cut we still net exactly the subtotal. Solves:
+  //   net = total - (total * percent + fixed) = subtotal
+  //   total = (subtotal + fixed) / (1 - percent)
+  const stripeRule = STRIPE_FEE[currency] || STRIPE_FEE.USD;
+  const stripeFeeRecoveryCents = Math.round(
+    (subtotalBeforeFees + stripeRule.fixedCents) / (1 - stripeRule.percent) - subtotalBeforeFees,
+  );
+
+  const taxableCents = subtotalBeforeFees + stripeFeeRecoveryCents;
 
   const market = resolveGiftMarket(
     input.marketCountry ||
@@ -117,6 +142,8 @@ function computeGiftOrderTotal(input) {
     itemSubtotalCents: priceCents,
     deliveryFeeCents,
     serviceFeeCents,
+    platformMarginCents,
+    stripeFeeRecoveryCents,
     estimatedTaxCents,
     discountCents,
     rushFeeCents,
