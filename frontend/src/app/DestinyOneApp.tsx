@@ -1904,6 +1904,18 @@ function DestinyOneApp() {
       clearInterval(timer);
     };
   }, [accessToken, screen, conversationPartner.id, chatMessages]);
+  const [peopleSearchable, setPeopleSearchable] = useState(true);
+  useEffect(() => {
+    if (screen !== "search" || !accessToken) return;
+    let active = true;
+    coupleApi
+      .getSearchable(accessToken)
+      .then((value) => active && setPeopleSearchable(value))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [screen, accessToken]);
   if (!poppins || !satisfy)
     return <View style={{ flex: 1, backgroundColor: colors.black }} />;
   const chooseExperienceMode = (mode: ExperienceMode) => {
@@ -2196,18 +2208,6 @@ function DestinyOneApp() {
     name: string,
   ): Promise<CouplePartnerSummary[]> =>
     accessToken ? coupleApi.searchPeople(accessToken, name) : [];
-  const [peopleSearchable, setPeopleSearchable] = useState(true);
-  useEffect(() => {
-    if (screen !== "search" || !accessToken) return;
-    let active = true;
-    coupleApi
-      .getSearchable(accessToken)
-      .then((value) => active && setPeopleSearchable(value))
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [screen, accessToken]);
   const updatePeopleSearchable = async (value: boolean): Promise<boolean> => {
     if (!accessToken) return value;
     const saved = await coupleApi.setSearchable(accessToken, value);
