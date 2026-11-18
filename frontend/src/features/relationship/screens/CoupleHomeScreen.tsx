@@ -99,7 +99,7 @@ export function CoupleHomeScreen({
   ];
   return (
     <LinearGradient
-      colors={["#FFFDFC", "#0A0103", colors.black]}
+      colors={["#1B030B", "#0A0103", "#0A0103"]}
       style={{ flex: 1 }}
     >
       <SafeAreaView
@@ -110,7 +110,7 @@ export function CoupleHomeScreen({
             <Text style={coupleHomeStyles.brand}>
               DESTINY<Text style={{ color: colors.gold }}>ONE</Text>
             </Text>
-            <Text style={shared.h2}>Our space</Text>
+            <Text style={[shared.h2, { color: "#FFFDFC" }]}>Our space</Text>
           </View>
           <Pressable
             accessibilityRole="button"
@@ -250,7 +250,7 @@ export function CoupleHomeScreen({
                   <Ionicons
                     name="chevron-forward"
                     size={17}
-                    color={colors.muted}
+                    color="#D6C2C8"
                   />
                 )}
               </Pressable>
@@ -268,11 +268,11 @@ export function CoupleHomeScreen({
                 iconSize={21}
               />
               <View style={{ flex: 1 }}>
-                <Text style={styles.kicker}>NEXT SHARED PLAN</Text>
+                <Text style={[styles.kicker, { color: "#F1D788" }]}>NEXT SHARED PLAN</Text>
                 <Text style={coupleHomeStyles.planTitle}>
                   {latestDate.venue}
                 </Text>
-                <Text style={styles.helper}>
+                <Text style={[styles.helper, { color: "#D6C2C8" }]}>
                   {latestDate.time} · {latestDate.area}
                 </Text>
               </View>
@@ -290,11 +290,11 @@ export function CoupleHomeScreen({
                 iconSize={21}
               />
               <View style={{ flex: 1 }}>
-                <Text style={styles.kicker}>MAKE A MEMORY</Text>
+                <Text style={[styles.kicker, { color: "#F1D788" }]}>MAKE A MEMORY</Text>
                 <Text style={coupleHomeStyles.planTitle}>
                   Choose your next date.
                 </Text>
-                <Text style={styles.helper}>
+                <Text style={[styles.helper, { color: "#D6C2C8" }]}>
                   Explore nearby cafés, restaurants, activities and complete
                   date packages.
                 </Text>
@@ -307,9 +307,9 @@ export function CoupleHomeScreen({
               <Text style={coupleHomeStyles.connectionTitle}>
                 Your two-person connection
               </Text>
-              <Text style={styles.helper}>
-                No contacts are uploaded. Connection requires an exact phone
-                search and your partner's approval.
+              <Text style={[styles.helper, { color: "#D6C2C8" }]}>
+                Your contacts are never stored. Connecting needs your partner's
+                approval.
               </Text>
             </View>
             <Pressable
