@@ -63,12 +63,12 @@ export function BottomNav({ active, navigate, mode = 'seeking', onOpenTool: _onO
   useEffect(() => { Animated.spring(collapseProgress, { toValue: collapsed ? 1 : 0, friction: 9, tension: 105, useNativeDriver: false }).start(); }, [collapseProgress, collapsed]);
   const coupleNavigation = [
     { label: 'Together', target: 'home' as Screen, icon: 'heart' as const, tone: 'ruby' as PremiumIconTone },
-    { label: 'Dates', target: 'events' as Screen, icon: 'calendar' as const, tone: 'gold' as PremiumIconTone },
-    { label: 'Chat', target: 'chat' as Screen, icon: 'chatbubble' as const, tone: 'ruby' as PremiumIconTone },
     { label: 'Gifts', target: 'gifts' as Screen, icon: 'gift' as const, tone: 'gold' as PremiumIconTone },
+    { label: 'Search', target: 'search' as Screen, icon: 'search' as const, tone: 'ruby' as PremiumIconTone },
+    { label: 'Chat', target: 'chat' as Screen, icon: 'chatbubble' as const, tone: 'ruby' as PremiumIconTone },
     { label: 'Profile', target: 'profile' as Screen, icon: 'person' as const, tone: 'dark' as PremiumIconTone },
   ];
-  const navigationMeta: Record<typeof primaryNavigation[number]['target'], { icon: keyof typeof Ionicons.glyphMap; tone: PremiumIconTone }> = { home: { icon: 'heart', tone: 'ruby' }, explore: { icon: 'compass', tone: 'ruby' }, chat: { icon: 'chatbubble', tone: 'ruby' }, gifts: { icon: 'gift', tone: 'gold' }, events: { icon: 'calendar', tone: 'gold' }, profile: { icon: 'person', tone: 'ruby' } };
+  const navigationMeta: Record<typeof primaryNavigation[number]['target'], { icon: keyof typeof Ionicons.glyphMap; tone: PremiumIconTone }> = { home: { icon: 'heart', tone: 'ruby' }, explore: { icon: 'compass', tone: 'ruby' }, chat: { icon: 'chatbubble', tone: 'ruby' }, gifts: { icon: 'gift', tone: 'gold' }, search: { icon: 'search', tone: 'ruby' }, profile: { icon: 'person', tone: 'ruby' } };
   const items = mode === 'couple' ? coupleNavigation : primaryNavigation.map(item => ({ ...item, ...navigationMeta[item.target] }));
   const expandedWidth = Math.max(0, Math.min(hostWidth - 18, mode === 'couple' ? 700 : 820));
   const compactWidth = Math.max(0, Math.min(hostWidth - (smallViewport ? 22 : 38), mode === 'couple' ? 560 : 650));
@@ -79,7 +79,7 @@ export function BottomNav({ active, navigate, mode = 'seeking', onOpenTool: _onO
   const dockPaddingBottom = collapseProgress.interpolate({ inputRange: [0, 1], outputRange: [6, 4] });
   return <View pointerEvents="box-none" onLayout={event => setHostWidth(event.nativeEvent.layout.width)} style={bottomNavStyles.navHost}>
     <Animated.View accessibilityRole="tablist" accessibilityLabel="Primary navigation" style={[bottomNavStyles.nav, { width: dockWidth, height: dockHeight, borderRadius: dockRadius, paddingTop: dockPaddingTop, paddingBottom: dockPaddingBottom }]}>
-      <View style={bottomNavStyles.navScroller}>{items.map(item => { const selected = active === item.target || (item.target === 'events' && active === 'events'); const renderedIconName = (selected ? item.icon : `${item.icon}-outline`) as keyof typeof Ionicons.glyphMap; return <AnimatedBottomNavItem key={item.label} label={item.label} icon={renderedIconName} tone={item.tone} selected={selected} smallViewport={smallViewport} collapseProgress={collapseProgress} onPress={() => navigate(item.target as Screen)} />; })}</View>
+      <View style={bottomNavStyles.navScroller}>{items.map(item => { const selected = active === item.target; const renderedIconName = (selected ? item.icon : `${item.icon}-outline`) as keyof typeof Ionicons.glyphMap; return <AnimatedBottomNavItem key={item.label} label={item.label} icon={renderedIconName} tone={item.tone} selected={selected} smallViewport={smallViewport} collapseProgress={collapseProgress} onPress={() => navigate(item.target as Screen)} />; })}</View>
     </Animated.View>
   </View>;
 }

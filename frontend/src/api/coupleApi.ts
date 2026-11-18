@@ -2,6 +2,7 @@
   parseCoupleConnectionHub,
   parseCoupleConnectionRequest,
   parseCouplePartnerSummary,
+  parseCoupleSearchResults,
   isCoupleSearchMiss,
   parseCoupleContactMatches,
   parseCouplePartnerProfile,
@@ -57,6 +58,25 @@ export const coupleApi = {
       body: JSON.stringify({ phones }),
     });
     return parseCoupleContactMatches(data);
+  },
+
+  // Finds members by the start of a name (3+ letters; the server limits and filters results).
+  async searchPeople(accessToken: string, name: string): Promise<CouplePartnerSummary[]> {
+    const data = await authFetch(`/couple/people?q=${encodeURIComponent(name.trim())}`, accessToken);
+    return parseCoupleSearchResults(data);
+  },
+
+  async getSearchable(accessToken: string): Promise<boolean> {
+    const data = await authFetch("/couple/searchable", accessToken);
+    return data?.searchable !== false;
+  },
+
+  async setSearchable(accessToken: string, searchable: boolean): Promise<boolean> {
+    const data = await authFetch("/couple/searchable", accessToken, {
+      method: "PUT",
+      body: JSON.stringify({ searchable }),
+    });
+    return data?.searchable !== false;
   },
 
   async getPartnerProfile(accessToken: string, connectionId: string): Promise<CouplePartnerProfile> {

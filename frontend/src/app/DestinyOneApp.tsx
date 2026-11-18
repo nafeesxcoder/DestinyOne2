@@ -209,6 +209,7 @@ import {
   VibesScreen,
 } from "../features/onboarding/screens/PreferenceScreens";
 import { ProfileSetupScreen } from "../features/onboarding/screens/ProfileSetupScreen";
+import { BottomNav } from "../components/navigation/BottomNav";
 import { CoupleSetupScreen } from "../features/onboarding/screens/CoupleSetupScreen";
 import { RelationshipReadinessScreen } from "../features/relationship/screens/RelationshipReadinessScreen";
 import { RelationshipBlueprintScreen } from "../features/relationship/screens/RelationshipBlueprintScreen";
@@ -1402,7 +1403,7 @@ function DestinyOneApp() {
     window.history.replaceState({}, "", window.location.pathname);
   }, [accessToken]);
   useEffect(() => {
-    if (!hydrated || !["coupleSetup", "home", "profile"].includes(screen))
+    if (!hydrated || !["coupleSetup", "search", "home", "profile"].includes(screen))
       return;
     let active = true;
     const sync = () =>
@@ -2190,6 +2191,28 @@ function DestinyOneApp() {
       if (error instanceof CoupleSearchMissError) return null;
       throw error;
     }
+  };
+  const searchPeopleByName = async (
+    name: string,
+  ): Promise<CouplePartnerSummary[]> =>
+    accessToken ? coupleApi.searchPeople(accessToken, name) : [];
+  const [peopleSearchable, setPeopleSearchable] = useState(true);
+  useEffect(() => {
+    if (screen !== "search" || !accessToken) return;
+    let active = true;
+    coupleApi
+      .getSearchable(accessToken)
+      .then((value) => active && setPeopleSearchable(value))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [screen, accessToken]);
+  const updatePeopleSearchable = async (value: boolean): Promise<boolean> => {
+    if (!accessToken) return value;
+    const saved = await coupleApi.setSearchable(accessToken, value);
+    setPeopleSearchable(saved);
+    return saved;
   };
   const matchCoupleContacts = async (
     phones: string[],
@@ -3693,6 +3716,38 @@ function DestinyOneApp() {
             onReportPartner={reportCouplePartner}
             initialViewingId={coupleProfileTarget}
           />
+        )}
+        {screen === "search" && (
+          <>
+            <CoupleSetupScreen
+              searchOnly
+              profile={profileDraft}
+              hub={coupleHub}
+              onBack={() => setScreen("home")}
+              onSaveProfile={saveCoupleProfile}
+              onSearch={searchCouplePartner}
+              onMatchContacts={matchCoupleContacts}
+              onSearchByName={searchPeopleByName}
+              searchable={peopleSearchable}
+              onSetSearchable={updatePeopleSearchable}
+              onLoadPartnerProfile={loadCouplePartnerProfile}
+              onRequest={requestCoupleConnection}
+              onRespond={respondCoupleConnection}
+              onOpenSpace={(connectionId) => {
+                setActiveCoupleConnectionId(connectionId);
+                setScreen("home");
+              }}
+              onDisconnect={disconnectCoupleConnection}
+              onBlockPartner={blockCouplePartner}
+              onReportPartner={reportCouplePartner}
+              initialViewingId={null}
+            />
+            <BottomNav
+              active="search"
+              mode={coupleMode.experienceMode}
+              navigate={navigateTo}
+            />
+          </>
         )}
         {screen === "profileSetup" && (
           <ProfileSetupScreen

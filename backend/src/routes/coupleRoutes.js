@@ -16,7 +16,19 @@ const contactsLimiter = rateLimit({
 router.use(requireAuth);
 
 router.get('/hub', coupleController.getHub);
+const peopleLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user.id,
+  message: { error: 'Too many searches. Please try again in a few minutes.' },
+});
+
 router.get('/search', coupleController.searchPartner);
+router.get('/people', peopleLimiter, coupleController.searchPeople);
+router.get('/searchable', coupleController.getSearchable);
+router.put('/searchable', coupleController.setSearchable);
 router.post('/contacts/match', contactsLimiter, coupleController.matchContacts);
 router.get('/partner/:connectionId', coupleController.getPartnerProfile);
 router.post('/request', coupleController.sendRequest);

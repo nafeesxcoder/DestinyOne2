@@ -45,6 +45,13 @@ function normalizePhone(value) {
   return phone;
 }
 
+// Nobody who blocked the member (or whom the member blocked) shows up in any lookup.
+// Needs the member's id twice, after the lookup's own parameters.
+const NOT_BLOCKED_SQL = `NOT EXISTS (
+  SELECT 1 FROM blocks b
+  WHERE (b.blocker_id = u.id AND b.blocked_id = ?) OR (b.blocker_id = ? AND b.blocked_id = u.id)
+)`;
+
 const PHONE_RE = /^\+[1-9]\d{7,14}$/;
 const MAX_CONTACTS_PER_MATCH = 300;
 
@@ -53,8 +60,11 @@ async function searchByIdentifier(identifier, selfUserId) {
   const column = isEmail ? 'email' : 'phone';
   const value = isEmail ? identifier.trim().toLowerCase() : normalizePhone(identifier);
   const users = await query(
-    `SELECT id FROM users WHERE ${column} = ? AND id != ? LIMIT 1`,
-    [value, selfUserId],
+    `SELECT id FROM users u
+     WHERE u.${column} = ? AND u.id != ? AND u.deleted_at IS NULL AND u.deactivated_at IS NULL
+       AND ${NOT_BLOCKED_SQL}
+     LIMIT 1`,
+    [value, selfUserId, selfUserId, selfUserId],
   );
   if (!users.length) return null;
   const targetId = users[0].id;
@@ -310,8 +320,10 @@ async function matchContacts(userId, rawPhones) {
   if (!phones.length) return [];
   const placeholders = phones.map(() => '?').join(',');
   const users = await query(
-    `SELECT id, phone FROM users WHERE phone IN (${placeholders}) AND id != ?`,
-    [...phones, userId],
+    `SELECT u.id, u.phone FROM users u
+     WHERE u.phone IN (${placeholders}) AND u.id != ? AND u.deleted_at IS NULL AND u.deactivated_at IS NULL
+       AND ${NOT_BLOCKED_SQL}`,
+    [...phones, userId, userId, userId],
   );
   if (!users.length) return [];
 
@@ -341,6 +353,86 @@ async function matchContacts(userId, rawPhones) {
     results.push({ phone: user.phone, relation, member: toPartnerRow(profile, user.id) });
   }
   return results;
+}
+
+const MIN_NAME_QUERY = 3;
+const MAX_NAME_QUERY = 40;
+const MAX_NAME_RESULTS = 10;
+
+// Which members the caller is already connected to or has a pending request with.
+async function loadRelations(userId) {
+  const connected = new Set();
+  for (const row of await findActiveConnections(userId)) {
+    connected.add(row.requester_id === userId ? row.partner_id : row.requester_id);
+  }
+  const pendingOut = new Set();
+  const pendingIn = new Set();
+  const pending = await query(
+    `SELECT requester_id, target_id FROM couple_requests
+     WHERE status = 'pending' AND expires_at > NOW(6) AND (requester_id = ? OR target_id = ?)`,
+    [userId, userId],
+  );
+  for (const row of pending) {
+    if (row.requester_id === userId) pendingOut.add(row.target_id);
+    else pendingIn.add(row.requester_id);
+  }
+  return (id) => (connected.has(id) ? 'connected' : pendingOut.has(id) ? 'pending_out' : pendingIn.has(id) ? 'pending_in' : 'none');
+}
+
+// Find members by (the start of) a name. Deliberately narrow so it cannot be used to browse
+// or scrape: 3+ characters, at most 10 results, only members who finished their profile and
+// allow name search, never blocked members, and only public profile fields come back
+// (no phone, no email).
+async function searchByName(userId, rawQuery) {
+  const text = String(rawQuery || '').trim().replace(/\s+/g, ' ');
+  if (text.length < MIN_NAME_QUERY) {
+    const err = new Error(`Type at least ${MIN_NAME_QUERY} letters to search.`);
+    err.status = 400;
+    throw err;
+  }
+  if (text.length > MAX_NAME_QUERY) {
+    const err = new Error('That search is too long.');
+    err.status = 400;
+    throw err;
+  }
+  const [me] = await query('SELECT onboarding_complete FROM profiles WHERE user_id = ?', [userId]);
+  if (!me || !me.onboarding_complete) {
+    const err = new Error('Finish your profile to search for people.');
+    err.status = 403;
+    throw err;
+  }
+  // Escape LIKE wildcards so "%" or "_" in the text are plain characters.
+  const escaped = text.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+  const rows = await query(
+    `SELECT p.user_id, p.first_name, p.age, p.city, p.profession, p.verified,
+            (SELECT ph.photo_url FROM profile_photos ph WHERE ph.user_id = p.user_id ORDER BY ph.position ASC LIMIT 1) AS photo
+     FROM profiles p
+     JOIN users u ON u.id = p.user_id
+     WHERE p.user_id != ? AND p.searchable = 1 AND p.onboarding_complete = 1
+       AND u.deleted_at IS NULL AND u.deactivated_at IS NULL
+       AND (p.first_name LIKE ? OR p.first_name LIKE ?)
+       AND ${NOT_BLOCKED_SQL}
+     ORDER BY (p.first_name LIKE ?) DESC, p.verified DESC, p.first_name ASC
+     LIMIT ${MAX_NAME_RESULTS}`,
+    [userId, `${escaped}%`, `% ${escaped}%`, userId, userId, `${escaped}%`],
+  );
+  const relationOf = await loadRelations(userId);
+  return rows.map((row) => ({
+    ...toPartnerRow(row, row.user_id),
+    age: row.age ?? null,
+    photo: row.photo || null,
+    relation: relationOf(row.user_id),
+  }));
+}
+
+async function getSearchable(userId) {
+  const [row] = await query('SELECT searchable FROM profiles WHERE user_id = ?', [userId]);
+  return !row || !!row.searchable;
+}
+
+async function setSearchable(userId, searchable) {
+  await query('UPDATE profiles SET searchable = ? WHERE user_id = ?', [searchable ? 1 : 0, userId]);
+  return !!searchable;
 }
 
 // Full profile of someone the member is actively connected to, for the
@@ -390,5 +482,8 @@ module.exports = {
   setMode,
   disconnectConnection,
   matchContacts,
+  searchByName,
+  getSearchable,
+  setSearchable,
   getPartnerProfile,
 };

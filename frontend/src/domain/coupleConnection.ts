@@ -4,6 +4,9 @@ export type CouplePartnerSummary = {
   city: string;
   profession: string;
   verified: boolean;
+  // Only set on name-search results.
+  age?: number | null;
+  photoUri?: string | null;
 };
 
 export type CoupleConnectionRequest = {
@@ -105,6 +108,28 @@ export function parseCoupleConnectionHub(value: unknown): CoupleConnectionHub {
     incomingRequests: Array.isArray(value.incoming_requests) ? value.incoming_requests.map(parseRequest) : [],
     outgoingRequests: Array.isArray(value.outgoing_requests) ? value.outgoing_requests.map(parseRequest) : [],
   };
+}
+
+// Name-search results: lenient on purpose (a profile may not have a city or job yet),
+// and phone numbers / emails are never part of these.
+export function parseCoupleSearchResults(value: unknown): CouplePartnerSummary[] {
+  if (!isRecord(value) || !Array.isArray(value.people)) return [];
+  const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+  return value.people.flatMap((entry): CouplePartnerSummary[] => {
+    if (!isRecord(entry)) return [];
+    const memberId = text(entry.member_id);
+    const displayName = text(entry.display_name);
+    if (!memberId || !displayName) return [];
+    return [{
+      memberId,
+      displayName,
+      city: text(entry.city),
+      profession: text(entry.profession),
+      verified: entry.verified === true,
+      age: typeof entry.age === 'number' ? entry.age : null,
+      photoUri: text(entry.photo) || null,
+    }];
+  });
 }
 
 export function parseCouplePartnerSummary(value: unknown): CouplePartnerSummary {

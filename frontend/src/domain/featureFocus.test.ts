@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildFeatureFocusSnapshot, chatMoreAttachments, chatPrimaryAttachments, featureCatalog, featureSurfaceBudgets, primaryNavigation, relationshipJourneySteps } from './featureFocus';
 
 describe('feature focus',()=>{
-  it('keeps date planning visible in the stable primary navigation',()=>{
-    expect(primaryNavigation.map(item=>item.label)).toEqual(['Matches','Discover','Chat','Gifts','Dates','Profile']);
+  it('keeps search in the middle of the stable primary navigation and dates one tap away in chat',()=>{
+    expect(primaryNavigation.map(item=>item.label)).toEqual(['Matches','Discover','Search','Chat','Gifts','Profile']);
   });
 
   it('keeps every core feature on a primary destination',()=>{

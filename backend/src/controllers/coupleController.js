@@ -63,6 +63,26 @@ const matchContacts = asyncHandler(async (req, res) => {
   res.json({ ok: true, matches });
 });
 
+const searchPeople = asyncHandler(async (req, res) => {
+  const q = typeof req.query.q === 'string' ? req.query.q : '';
+  try {
+    const people = await coupleService.searchByName(req.user.id, q);
+    res.json({ ok: true, people });
+  } catch (error) {
+    throw new ApiError(error.status || 500, error.message || 'Could not search');
+  }
+});
+
+const getSearchable = asyncHandler(async (req, res) => {
+  res.json({ ok: true, searchable: await coupleService.getSearchable(req.user.id) });
+});
+
+const setSearchable = asyncHandler(async (req, res) => {
+  if (typeof req.body?.searchable !== 'boolean')
+    throw new ApiError(400, 'searchable (boolean) is required');
+  res.json({ ok: true, searchable: await coupleService.setSearchable(req.user.id, req.body.searchable) });
+});
+
 const getPartnerProfile = asyncHandler(async (req, res) => {
   try {
     const profile = await coupleService.getPartnerProfile(req.user.id, req.params.connectionId);
@@ -72,4 +92,4 @@ const getPartnerProfile = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { matchContacts, getPartnerProfile, searchPartner, sendRequest, respondRequest, getHub, setMode, disconnect };
+module.exports = { matchContacts, searchPeople, getSearchable, setSearchable, getPartnerProfile, searchPartner, sendRequest, respondRequest, getHub, setMode, disconnect };

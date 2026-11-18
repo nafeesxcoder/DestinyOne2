@@ -67,6 +67,12 @@ type Props = {
   // Resolves to null when nobody with that phone / email has an account.
   onSearch: (identifier: string) => Promise<CouplePartnerSummary | null>;
   onMatchContacts: (phones: string[]) => Promise<CoupleContactMatch[]>;
+  // Find members by name (3+ letters). Only used when provided.
+  onSearchByName?: (name: string) => Promise<CouplePartnerSummary[]>;
+  // Search tab mode: just the finder (no partner list), plus the privacy switch.
+  searchOnly?: boolean;
+  searchable?: boolean;
+  onSetSearchable?: (value: boolean) => Promise<boolean>;
   onLoadPartnerProfile: (connectionId: string) => Promise<CouplePartnerProfile>;
   onRequest: (member: CouplePartnerSummary) => Promise<unknown>;
   onRespond: (requestId: string, accept: boolean) => Promise<void>;
@@ -464,6 +470,10 @@ export function CoupleSetupScreen({
   onSaveProfile,
   onSearch,
   onMatchContacts,
+  onSearchByName,
+  searchOnly = false,
+  searchable = true,
+  onSetSearchable,
   onLoadPartnerProfile,
   onRequest,
   onRespond,
@@ -521,6 +531,9 @@ export function CoupleSetupScreen({
 
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<CouplePartnerSummary | null>(null);
+  const [people, setPeople] = useState<CouplePartnerSummary[] | null>(null);
+  const [allowSearch, setAllowSearch] = useState(searchable);
+  useEffect(() => setAllowSearch(searchable), [searchable]);
   const [miss, setMiss] = useState<Miss | null>(null);
   const [contacts, setContacts] = useState<{
     names: Record<string, string>;
@@ -567,9 +580,17 @@ export function CoupleSetupScreen({
       setFound(null);
       setMiss(null);
       setContacts(null);
+      setPeople(null);
       const value = query.trim();
       if (!value) return;
       const isEmail = value.includes("@");
+      const looksLikePhone = /^[+\d\s\-().]+$/.test(value);
+      if (!isEmail && !looksLikePhone) {
+        if (!onSearchByName) throw new Error("Enter a phone number or email address.");
+        if (value.length < 3) throw new Error("Type at least 3 letters of the name.");
+        setPeople(await onSearchByName(value));
+        return;
+      }
       const identifier = isEmail ? value.toLowerCase() : toE164(value);
       if (!identifier)
         throw new Error(
@@ -662,7 +683,14 @@ export function CoupleSetupScreen({
     subtitle?: string,
   ) => (
     <View key={key} style={local.row}>
-      <Avatar name={member.displayName} />
+      {member.photoUri ? (
+        <Image
+          source={{ uri: member.photoUri }}
+          style={{ width: 44, height: 44, borderRadius: 22 }}
+        />
+      ) : (
+        <Avatar name={member.displayName} />
+      )}
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
           <Text style={local.rowTitle} numberOfLines={1}>
@@ -674,7 +702,9 @@ export function CoupleSetupScreen({
         </View>
         <Text style={styles.helper} numberOfLines={1}>
           {subtitle ||
-            [member.profession, member.city].filter(Boolean).join(" · ") ||
+            [member.age ? `${member.age}` : "", member.profession, member.city]
+              .filter(Boolean)
+              .join(" · ") ||
             "On DestinyOne"}
         </Text>
       </View>
@@ -802,8 +832,8 @@ export function CoupleSetupScreen({
     <PremiumBackground>
       <FormPage back={onBack}>
         <View style={{ gap: 4 }}>
-          <Text style={styles.kicker}>WITH MY PARTNER</Text>
-          <Text style={shared.h1}>Your partners</Text>
+          <Text style={styles.kicker}>{searchOnly ? "FIND PEOPLE" : "WITH MY PARTNER"}</Text>
+          <Text style={shared.h1}>{searchOnly ? "Search" : "Your partners"}</Text>
         </View>
 
         {!detailsSaved && detailsBlock}
@@ -813,8 +843,8 @@ export function CoupleSetupScreen({
           <View style={local.searchBox}>
             <Ionicons name="search" size={18} color={colors.muted} />
             <TextInput
-              accessibilityLabel="Search by phone number or email"
-              placeholder="Phone number or email"
+              accessibilityLabel="Search by name, phone number or email"
+              placeholder={onSearchByName ? "Name, phone number or email" : "Phone number or email"}
               placeholderTextColor="#6F6875"
               selectionColor={colors.wine}
               autoCapitalize="none"
@@ -825,6 +855,7 @@ export function CoupleSetupScreen({
                 setQuery(value);
                 setFound(null);
                 setMiss(null);
+                setPeople(null);
                 setError("");
               }}
               onSubmitEditing={() => void search()}
@@ -837,6 +868,7 @@ export function CoupleSetupScreen({
                   setQuery("");
                   setFound(null);
                   setMiss(null);
+                  setPeople(null);
                 }}
               >
                 <Ionicons name="close-circle" size={18} color={colors.muted} />
@@ -846,11 +878,11 @@ export function CoupleSetupScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Search"
-            disabled={busy || query.trim().length < 5}
+            disabled={busy || query.trim().length < 3}
             onPress={() => void search()}
             style={[
               local.iconButton,
-              (busy || query.trim().length < 5) && { opacity: 0.5 },
+              (busy || query.trim().length < 3) && { opacity: 0.5 },
             ]}
           >
             <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
@@ -869,7 +901,8 @@ export function CoupleSetupScreen({
               <Text style={local.rowTitle}>Find from my contacts</Text>
               <Text style={styles.helper}>
                 See who in your phone is already on DestinyOne and invite the
-                rest.
+                rest. Your contacts are only used to find friends and are not
+                stored.
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.muted} />
@@ -905,6 +938,18 @@ export function CoupleSetupScreen({
           <View style={{ gap: 8 }}>
             <Text style={local.sectionLabel}>SEARCH RESULT</Text>
             {memberRow(found, found.memberId)}
+          </View>
+        )}
+        {people && (
+          <View style={{ gap: 8 }}>
+            <Text style={local.sectionLabel}>PEOPLE · {people.length}</Text>
+            {people.length === 0 && (
+              <Text style={styles.helper}>
+                No one found with that name. Try the full phone number or
+                email, or invite them from your contacts.
+              </Text>
+            )}
+            {people.map((person) => memberRow(person, person.memberId))}
           </View>
         )}
         {miss && (
@@ -1018,6 +1063,7 @@ export function CoupleSetupScreen({
         )}
 
         {/* Partner list: tap a row to chat, (i) for their profile */}
+        {!searchOnly && (
         <View style={{ gap: 8 }}>
           <Text style={local.sectionLabel}>
             {hub.connections.length > 0
@@ -1120,13 +1166,50 @@ export function CoupleSetupScreen({
             </View>
           ))}
         </View>
+        )}
 
-        {detailsSaved && detailsBlock}
+        {searchOnly && onSetSearchable && (
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: allowSearch }}
+            disabled={busy}
+            onPress={() =>
+              void run(async () => {
+                const next = await onSetSearchable(!allowSearch);
+                setAllowSearch(next);
+                setStatus(
+                  next
+                    ? "People can now find you by name."
+                    : "You are hidden from name search. Exact phone or email still works.",
+                );
+              }, "Could not update this setting.")
+            }
+            style={local.contactsButton}
+          >
+            <Ionicons
+              name={allowSearch ? "eye" : "eye-off"}
+              size={20}
+              color={colors.pink}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={local.rowTitle}>
+                {allowSearch ? "Others can find me by name" : "Hidden from name search"}
+              </Text>
+              <Text style={styles.helper}>
+                Only your first name, age, city and photo are shown. Tap to
+                change.
+              </Text>
+            </View>
+          </Pressable>
+        )}
+
+        {detailsSaved && !searchOnly && detailsBlock}
 
         <Text style={styles.legal}>
           Neither person's phone number or email is shown to the other. Your
           chat opens only after your partner accepts.
         </Text>
+        {searchOnly && <View style={{ height: 90 }} />}
       </FormPage>
     </PremiumBackground>
   );
