@@ -137,7 +137,7 @@ export const verificationStyles=StyleSheet.create({
 
 export const coupleHomeStyles=StyleSheet.create({
   header:{minHeight:70,paddingHorizontal:18,paddingVertical:8,flexDirection:'row',alignItems:'center',gap:10},
-  brand:{fontFamily:'Poppins_700Bold',fontSize:10,letterSpacing:1.6,color:'#FFFDFC'},
+  brand:{fontFamily:'Poppins_700Bold',fontSize:10,letterSpacing:1.6,color:colors.ivory},
   content:{gap:16,paddingHorizontal:16,paddingBottom:116},
   hero:{minHeight:330,padding:22,borderRadius:8,alignItems:'center',justifyContent:'center',gap:10,overflow:'hidden',borderWidth:1,borderColor:'rgba(245,201,89,.34)'},
   heroGlow:{position:'absolute',top:-120,width:280,height:280,borderRadius:140,backgroundColor:'rgba(255,255,255,.055)'},
@@ -163,11 +163,11 @@ export const coupleHomeStyles=StyleSheet.create({
   actionTitle:{fontFamily:'Poppins_700Bold',fontSize:13,color:'#FFFDFC'},
   actionBody:{fontFamily:'Poppins_400Regular',fontSize:9.5,lineHeight:14,color:'#D6C2C8',marginTop:3},
   nextPlan:{minHeight:94,padding:15,borderRadius:8,backgroundColor:'rgba(212,175,55,.07)',borderWidth:1,borderColor:'rgba(212,175,55,.24)',flexDirection:'row',alignItems:'center',gap:12},
-  planTitle:{fontFamily:'Poppins_700Bold',fontSize:14,color:'#FFFDFC',marginTop:2},
-  connectionRow:{padding:15,borderRadius:8,backgroundColor:'rgba(255,255,255,.035)',borderWidth:1,borderColor:'rgba(255,255,255,.08)',flexDirection:'row',alignItems:'center',gap:12},
-  connectionTitle:{fontFamily:'Poppins_700Bold',fontSize:12.5,color:'#FFFDFC',marginBottom:2},
+  planTitle:{fontFamily:'Poppins_700Bold',fontSize:14,color:colors.ivory,marginTop:2},
+  connectionRow:{padding:15,borderRadius:8,backgroundColor:'rgba(255,255,255,.62)',borderWidth:1,borderColor:'rgba(185,138,47,.28)',flexDirection:'row',alignItems:'center',gap:12},
+  connectionTitle:{fontFamily:'Poppins_700Bold',fontSize:12.5,color:colors.ivory,marginBottom:2},
   connectionButton:{minHeight:38,paddingHorizontal:12,borderRadius:19,backgroundColor:'rgba(212,175,55,.08)',borderWidth:1,borderColor:'rgba(212,175,55,.28)',flexDirection:'row',alignItems:'center',gap:6},
-  connectionButtonText:{fontFamily:'Poppins_700Bold',fontSize:10,color:colors.gold},
+  connectionButtonText:{fontFamily:'Poppins_700Bold',fontSize:10,color:'#8A6414'},
 });
 
 export const bottomNavStyles=StyleSheet.create({

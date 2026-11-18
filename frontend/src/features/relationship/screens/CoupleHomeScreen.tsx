@@ -2,6 +2,7 @@ import React from "react";
 import {
   Pressable,
   ScrollView,
+  Image,
   Text,
   useWindowDimensions,
   View,
@@ -98,10 +99,20 @@ export function CoupleHomeScreen({
     },
   ];
   return (
-    <LinearGradient
-      colors={["#1B030B", "#0A0103", "#0A0103"]}
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+      <Image
+        source={require("../../../../assets/background.png")}
+        resizeMode="cover"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
+        }}
+      />
       <SafeAreaView
         style={[shared.safe, { maxWidth: 920, paddingHorizontal: 0 }]}
       >
@@ -110,7 +121,7 @@ export function CoupleHomeScreen({
             <Text style={coupleHomeStyles.brand}>
               DESTINY<Text style={{ color: colors.gold }}>ONE</Text>
             </Text>
-            <Text style={[shared.h2, { color: "#FFFDFC" }]}>Our space</Text>
+            <Text style={shared.h2}>Our space</Text>
           </View>
           <Pressable
             accessibilityRole="button"
@@ -268,11 +279,11 @@ export function CoupleHomeScreen({
                 iconSize={21}
               />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.kicker, { color: "#F1D788" }]}>NEXT SHARED PLAN</Text>
+                <Text style={styles.kicker}>NEXT SHARED PLAN</Text>
                 <Text style={coupleHomeStyles.planTitle}>
                   {latestDate.venue}
                 </Text>
-                <Text style={[styles.helper, { color: "#D6C2C8" }]}>
+                <Text style={styles.helper}>
                   {latestDate.time} · {latestDate.area}
                 </Text>
               </View>
@@ -290,11 +301,11 @@ export function CoupleHomeScreen({
                 iconSize={21}
               />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.kicker, { color: "#F1D788" }]}>MAKE A MEMORY</Text>
+                <Text style={styles.kicker}>MAKE A MEMORY</Text>
                 <Text style={coupleHomeStyles.planTitle}>
                   Choose your next date.
                 </Text>
-                <Text style={[styles.helper, { color: "#D6C2C8" }]}>
+                <Text style={styles.helper}>
                   Explore nearby cafés, restaurants, activities and complete
                   date packages.
                 </Text>
@@ -307,7 +318,7 @@ export function CoupleHomeScreen({
               <Text style={coupleHomeStyles.connectionTitle}>
                 Your two-person connection
               </Text>
-              <Text style={[styles.helper, { color: "#D6C2C8" }]}>
+              <Text style={styles.helper}>
                 Your contacts are never stored. Connecting needs your partner's
                 approval.
               </Text>
@@ -344,6 +355,6 @@ export function CoupleHomeScreen({
           navigate={navigate}
         />
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
