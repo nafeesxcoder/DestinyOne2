@@ -58,9 +58,11 @@ function Avatar({ name, photo }: { name: string; photo: string }) {
 
 function ConversationRow({
   item,
+  active,
   onPress,
 }: {
   item: ChatConversationSummary;
+  active: boolean;
   onPress: () => void;
 }) {
   const last = item.lastMessage;
@@ -70,7 +72,12 @@ function ConversationRow({
       accessibilityRole="button"
       accessibilityLabel={`Chat with ${item.name}${unread ? `, ${item.unreadCount} unread` : ""}`}
       onPress={onPress}
-      style={({ pressed }) => [listStyles.row, pressed && listStyles.rowPressed]}
+      accessibilityState={{ selected: active }}
+      style={({ pressed }) => [
+        listStyles.row,
+        active && listStyles.rowActive,
+        pressed && listStyles.rowPressed,
+      ]}
     >
       <Avatar name={item.name} photo={item.photo} />
       <View style={listStyles.rowBody}>
@@ -121,8 +128,14 @@ export function ChatListScreen({
   emptyTitle = "No chats yet",
   emptyBody = "When you and someone both say yes, they appear here and you can start talking.",
   emptyActionLabel = "See my matches",
+  activeId = null,
+  onHome,
   footer,
 }: {
+  /** The chat open next to the list (desktop), highlighted in the list. */
+  activeId?: string | null;
+  /** Shows a Home button in the header (used when there is no bottom nav). */
+  onHome?: () => void;
   /** Returns the member's chats; throws when they cannot be loaded. */
   loadConversations: () => Promise<ChatConversationSummary[]>;
   onOpenConversation: (item: ChatConversationSummary) => void;
@@ -169,6 +182,13 @@ export function ChatListScreen({
     };
   }, [refresh]);
 
+  // Opening a chat marks its messages read: refresh so its badge clears.
+  useEffect(() => {
+    if (!activeId) return;
+    const timer = setTimeout(() => void refresh(), 1500);
+    return () => clearTimeout(timer);
+  }, [activeId, refresh]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!items) return [];
@@ -184,12 +204,25 @@ export function ChatListScreen({
     <View style={listStyles.root}>
       <Image source={backgroundImage} resizeMode="cover" style={StyleSheet.absoluteFillObject} />
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-        <View style={listStyles.header}>
-          <Text style={listStyles.title}>Chats</Text>
-          {totalUnread > 0 && (
-            <Text style={listStyles.subtitle}>
-              {totalUnread} unread {totalUnread === 1 ? "message" : "messages"}
-            </Text>
+        <View style={[listStyles.header, listStyles.headerRow]}>
+          <View style={{ flex: 1 }}>
+            <Text style={listStyles.title}>Chats</Text>
+            {totalUnread > 0 && (
+              <Text style={listStyles.subtitle}>
+                {totalUnread} unread {totalUnread === 1 ? "message" : "messages"}
+              </Text>
+            )}
+          </View>
+          {onHome && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go to home"
+              onPress={onHome}
+              hitSlop={8}
+              style={listStyles.homeButton}
+            >
+              <Ionicons name="home-outline" size={20} color={ruby} />
+            </Pressable>
           )}
         </View>
         <View style={listStyles.searchBox}>
@@ -221,7 +254,11 @@ export function ChatListScreen({
             data={filtered}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <ConversationRow item={item} onPress={() => onOpenConversation(item)} />
+              <ConversationRow
+                item={item}
+                active={item.id === activeId}
+                onPress={() => onOpenConversation(item)}
+              />
             )}
             ItemSeparatorComponent={() => <View style={listStyles.separator} />}
             refreshControl={
@@ -261,7 +298,8 @@ export function ChatListScreen({
             }
           />
         )}
-        <View style={{ height: 96 }} />
+        {/* Room for the floating bottom navigation. */}
+        <View style={{ height: footer ? 96 : 12 }} />
       </SafeAreaView>
       {footer}
     </View>
@@ -304,6 +342,18 @@ const listStyles = StyleSheet.create({
     paddingVertical: 12,
   },
   rowPressed: { backgroundColor: "rgba(124,0,21,.06)" },
+  rowActive: { backgroundColor: "rgba(124,0,21,.10)" },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  homeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,.92)",
+    borderWidth: 1,
+    borderColor: "rgba(124,0,21,.18)",
+  },
   avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#F3E3E6" },
   avatarFallback: { alignItems: "center", justifyContent: "center", backgroundColor: ruby },
   avatarInitial: { color: "#FFFFFF", fontSize: 22, fontWeight: "700" },

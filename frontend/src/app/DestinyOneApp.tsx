@@ -1,6 +1,12 @@
 ﻿import { useEffect, useRef, useState, type ReactNode } from "react";
 import { captureInviteFromUrl } from "../features/onboarding/inviteTracking";
-import { Image, Platform, Share, View } from "react-native";
+import {
+  Image,
+  Platform,
+  Share,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -131,6 +137,10 @@ import {
 } from "./adapters/previewPersistence";
 import { chatApi, type ChatConversationSummary } from "../api/chatApi";
 import { ChatListScreen } from "../features/chat/ChatListScreen";
+import {
+  CHAT_SPLIT_MIN_WIDTH,
+  ChatSplitLayout,
+} from "../features/chat/ChatSplitLayout";
 import {
   connectChatSocket,
   disconnectChatSocket,
@@ -609,6 +619,9 @@ function DestinyOneApp() {
     Poppins_700Bold,
   });
   const [satisfy] = useSatisfy({ Satisfy_400Regular });
+  // Desktop/tablet: chat list and the open chat side by side.
+  const { width: windowWidth } = useWindowDimensions();
+  const wideChatLayout = windowWidth >= CHAT_SPLIT_MIN_WIDTH;
   const [screen, setScreen] = useState<Screen>(
     () => showcasePreviewScreen ?? "splash",
   );
@@ -1258,12 +1271,16 @@ function DestinyOneApp() {
     // Phones pause timers while the app is in the background, so renew right
     // away when the app comes back or the connection returns.
     const onWake = () => {
-      if (typeof document === "undefined" || document.visibilityState === "visible")
+      if (
+        typeof document === "undefined" ||
+        document.visibilityState === "visible"
+      )
         void renew();
     };
     if (typeof document !== "undefined")
       document.addEventListener("visibilitychange", onWake);
-    if (typeof window !== "undefined") window.addEventListener("online", onWake);
+    if (typeof window !== "undefined")
+      window.addEventListener("online", onWake);
     return () => {
       clearInterval(interval);
       if (typeof document !== "undefined")
@@ -1325,8 +1342,7 @@ function DestinyOneApp() {
       return;
     const onWorkerMessage = (event: MessageEvent) => {
       const data = event.data as
-        | { type?: string; conversationId?: string }
-        | undefined;
+        { type?: string; conversationId?: string } | undefined;
       if (data?.type === "open-chat" && data.conversationId)
         setPendingNotificationChat(data.conversationId);
     };
@@ -1404,7 +1420,10 @@ function DestinyOneApp() {
     window.history.replaceState({}, "", window.location.pathname);
   }, [accessToken]);
   useEffect(() => {
-    if (!hydrated || !["coupleSetup", "search", "home", "profile"].includes(screen))
+    if (
+      !hydrated ||
+      !["coupleSetup", "search", "home", "profile"].includes(screen)
+    )
       return;
     let active = true;
     const sync = () =>
@@ -2149,7 +2168,11 @@ function DestinyOneApp() {
       profession: item.profession,
       gender: item.gender,
       photo: item.photo,
-      photos: item.photos?.length ? item.photos : item.photo ? [item.photo] : [],
+      photos: item.photos?.length
+        ? item.photos
+        : item.photo
+          ? [item.photo]
+          : [],
     };
     setSelected(match);
     setScreen("chat");
@@ -3847,28 +3870,6 @@ function DestinyOneApp() {
             />
           </>
         )}
-        {screen === "chats" && (
-          <ChatListScreen
-            loadConversations={loadChatConversations}
-            onOpenConversation={openChatFromList}
-            {...(coupleMode.experienceMode === "couple"
-              ? {
-                  onFindMatches: () => setScreen("coupleSetup"),
-                  emptyTitle: "No partner connected yet",
-                  emptyBody:
-                    "Connect with your partner and your private chat will appear here.",
-                  emptyActionLabel: "Connect my partner",
-                }
-              : { onFindMatches: () => setScreen("home") })}
-            footer={
-              <BottomNav
-                active="chats"
-                mode={coupleMode.experienceMode}
-                navigate={navigateTo}
-              />
-            }
-          />
-        )}
         {screen === "profileSetup" && (
           <ProfileSetupScreen
             accessToken={accessToken}
@@ -3879,9 +3880,7 @@ function DestinyOneApp() {
             voiceUri={voiceIntroUri}
             onVoiceChange={setVoiceIntroUri}
             allowPreviewContinue={isPreviewAccessMode}
-            onSkip={
-              onboardingComplete ? undefined : () => setScreen("vibes")
-            }
+            onSkip={onboardingComplete ? undefined : () => setScreen("vibes")}
             onNext={async () => {
               if (onboardingComplete && accessToken) {
                 try {
@@ -4246,197 +4245,250 @@ function DestinyOneApp() {
             onSubmit={answerIcebreaker}
           />
         )}
-        {screen === "chat" && (
-          <ChatScreen
-            runtimePorts={{
-              realtime: { connect: async () => null },
-              gifSearch: {
-                configured: true,
-                providerName: "Tenor (Live)",
-                search: async ({ query, offset = 0, limit = 36 }) => {
-                  try {
-                    // Note: 'LIVDSRZULELA' Tenor ka public beta API key hai testing ke liye
-                    const apiKey = "LIVDSRZULELA";
-                    const url = `https://g.tenor.com/v1/search?q=${encodeURIComponent(query || "trending")}&key=${apiKey}&limit=${limit}&pos=${offset}`;
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    const results = data.results || [];
+        {(screen === "chats" || screen === "chat") && (
+          <ChatSplitLayout
+            wide={wideChatLayout}
+            showingChat={screen === "chat"}
+            list={
+              <ChatListScreen
+                loadConversations={loadChatConversations}
+                onOpenConversation={openChatFromList}
+                activeId={
+                  wideChatLayout && screen === "chat"
+                    ? coupleMode.experienceMode === "couple"
+                      ? activeCoupleConnectionIdResolved
+                      : conversationPartner.id
+                    : null
+                }
+                {...(coupleMode.experienceMode === "couple"
+                  ? {
+                      onFindMatches: () => setScreen("coupleSetup"),
+                      emptyTitle: "No partner connected yet",
+                      emptyBody:
+                        "Connect with your partner and your private chat will appear here.",
+                      emptyActionLabel: "Connect my partner",
+                    }
+                  : { onFindMatches: () => setScreen("home") })}
+                // Side by side there is no room for the floating nav over
+                // the chat, so the list gets a Home button instead.
+                onHome={wideChatLayout ? () => navigateTo("home") : undefined}
+                footer={
+                  wideChatLayout ? undefined : (
+                    <BottomNav
+                      active="chats"
+                      mode={coupleMode.experienceMode}
+                      navigate={navigateTo}
+                    />
+                  )
+                }
+              />
+            }
+          >
+            {screen === "chat" && (
+              <ChatScreen
+                runtimePorts={{
+                  realtime: { connect: async () => null },
+                  gifSearch: {
+                    configured: true,
+                    providerName: "Tenor (Live)",
+                    search: async ({ query, offset = 0, limit = 36 }) => {
+                      try {
+                        // Note: 'LIVDSRZULELA' Tenor ka public beta API key hai testing ke liye
+                        const apiKey = "LIVDSRZULELA";
+                        const url = `https://g.tenor.com/v1/search?q=${encodeURIComponent(query || "trending")}&key=${apiKey}&limit=${limit}&pos=${offset}`;
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        const results = data.results || [];
 
-                    return {
-                      items: results.map((item: any) => ({
-                        id: item.id,
-                        title: item.content_description || "GIF",
-                        uri: item.media[0].gif.url,
-                        style: "GIF",
-                        previewEmoji: "✨",
-                        searchText: item.content_description || "",
-                      })),
-                      totalCount: 100,
-                      nextOffset: offset + limit < 100 ? offset + limit : null,
-                      provider: "tenor",
-                    };
-                  } catch (e) {
-                    // Agar API fail ho jaye toh built-in catalog use karo
-                    const all = searchChatGifCatalog(query);
-                    const items = all.slice(offset, offset + limit);
-                    return {
-                      items,
-                      totalCount: all.length,
-                      nextOffset:
-                        offset + items.length < all.length
-                          ? offset + items.length
-                          : null,
-                      provider: "preview",
-                    };
-                  }
-                },
-              },
-              gifts: {
-                physicalMode: physicalGiftOrderingMode,
-                digitalWalletMode: digitalGiftWalletMode,
-                createIdempotencyKey: createGiftIdempotencyKey,
-                formatMoney: formatGiftMoney,
-                estimateQuote: estimateGiftOrderQuote,
-                buildFulfillmentPlan: buildGiftFulfillmentPlan,
-                orderSummary: giftOrderSummary,
-                createOrder: (
-                  input: Parameters<typeof createPhysicalGiftOrder>[0],
-                ) =>
-                  accessToken
-                    ? createPhysicalGiftOrderLive(
-                        accessToken,
-                        conversationIdFor(conversationPartner),
-                        input,
-                      )
-                    : createPhysicalGiftOrder(input),
-                respondToOrder: (
-                  input: Parameters<typeof respondToPhysicalGiftOrder>[0],
-                ) =>
-                  accessToken
-                    ? respondToPhysicalGiftOrderLive(accessToken, input)
-                    : respondToPhysicalGiftOrder(input),
-                searchAddresses: searchGiftDeliveryAddresses,
-                validateAddress: validateGiftDeliveryAddress,
-                openIssue: openGiftOrderIssue,
-              },
-            }}
-            previewState={showcasePreviewState}
-            showcaseDateStatus={showcaseDateStatus}
-            isChatPreview={
-              memberDataRuntime.source === "preview" || isPreviewAccessMode
-            }
-            experienceMode={coupleMode.experienceMode}
-            initialTool={chatLaunchTool}
-            onToolConsumed={() => setChatLaunchTool(null)}
-            match={conversationPartner}
-            messages={chatMessages[conversationPartner.id] ?? []}
-            reflection={relationshipReflections[conversationPartner.id]}
-            reminder={relationshipReminders[conversationPartner.id]}
-            settings={{
-              ...defaultCoupleChatSettings,
-              ...chatSettings[conversationPartner.id],
-            }}
-            conversationSettings={chatSettings}
-            initialDraft={chatDrafts[conversationPartner.id] ?? ""}
-            onDraftConsumed={() =>
-              setChatDrafts((current) => {
-                const next = { ...current };
-                delete next[conversationPartner.id];
-                return next;
-              })
-            }
-            onSettingsChange={updateSelectedChatSettings}
-            onDateStatus={(messageId, status) =>
-              updateDatePlanStatus(conversationPartner.id, messageId, status)
-            }
-            onReflection={(messageId, choice) =>
-              saveReflection(conversationPartner.id, messageId, choice)
-            }
-            onLearningConsent={(enabled) =>
-              updateRelationshipLearningConsent(conversationPartner.id, enabled)
-            }
-            onReminder={(messageId, enabled) =>
-              updateRelationshipReminder(
-                conversationPartner.id,
-                messageId,
-                enabled,
-              )
-            }
-            onJourneyEvent={recordJourneyEvent}
-            coinBalance={coinBalance}
-            roseAvailability={roseAvailability}
-            onRose={() =>
-              coupleMode.experienceMode === "seeking" &&
-              openRose(conversationPartner)
-            }
-            onSend={(message) =>
-              appendChatMessage(conversationPartner, message)
-            }
-            onEdit={(messageId, text) =>
-              editChatMessage(conversationPartner, messageId, text)
-            }
-            onDelete={(messageId) =>
-              deleteChatMessage(conversationPartner, messageId)
-            }
-            onMessageState={(messageId, input) =>
-              updateChatMessageState(conversationPartner, messageId, input)
-            }
-            onGiftResponse={(messageId, input) =>
-              respondToGiftRequest(conversationPartner, messageId, input)
-            }
-            onForward={(target, forwarded) =>
-              forwardChatMessages(target, forwarded)
-            }
-            onOpenConversation={(target) => {
-              setSelected(target);
-              setScreen("chat");
-            }}
-            onSpendCoins={(coins) =>
-              setCoinBalance((balance) => spendCoins(balance, coins))
-            }
-            onReport={(reason, details) =>
-              void reportMatch(conversationPartner, reason, details)
-            }
-            onBlock={async () => {
-              if (await blockMatch(conversationPartner)) setScreen("home");
-            }}
-            isBlocked={blockedIds.includes(conversationPartner.id)}
-            onUnblock={async () => {
-              await unblockMatch(conversationPartner);
-            }}
-            onUnmatch={async () => {
-              if (await unmatchMatch(conversationPartner)) setScreen("home");
-            }}
-            onOpenPartnerProfile={
-              activeCoupleHubConnection
-                ? () => {
-                    setCoupleProfileTarget(
-                      activeCoupleHubConnection.connectionId,
-                    );
-                    setScreen("coupleSetup");
-                  }
-                : undefined
-            }
-            navigate={navigateTo}
-            accessToken={accessToken}
-            livePartnerOnline={partnerPresence?.online}
-            partnerLastActiveAt={partnerPresence?.lastActiveAt ?? null}
-            livePartnerTyping={partnerPresence?.typing}
-            onTypingChange={(typing) => {
-              if (!accessToken) return;
-              if (
-                emitChatTyping(conversationIdFor(conversationPartner), typing)
-              )
-                return;
-              void chatApi
-                .setTyping(
-                  accessToken,
-                  conversationIdFor(conversationPartner),
-                  typing,
-                )
-                .catch(() => undefined);
-            }}
-          />
+                        return {
+                          items: results.map((item: any) => ({
+                            id: item.id,
+                            title: item.content_description || "GIF",
+                            uri: item.media[0].gif.url,
+                            style: "GIF",
+                            previewEmoji: "✨",
+                            searchText: item.content_description || "",
+                          })),
+                          totalCount: 100,
+                          nextOffset:
+                            offset + limit < 100 ? offset + limit : null,
+                          provider: "tenor",
+                        };
+                      } catch (e) {
+                        // Agar API fail ho jaye toh built-in catalog use karo
+                        const all = searchChatGifCatalog(query);
+                        const items = all.slice(offset, offset + limit);
+                        return {
+                          items,
+                          totalCount: all.length,
+                          nextOffset:
+                            offset + items.length < all.length
+                              ? offset + items.length
+                              : null,
+                          provider: "preview",
+                        };
+                      }
+                    },
+                  },
+                  gifts: {
+                    physicalMode: physicalGiftOrderingMode,
+                    digitalWalletMode: digitalGiftWalletMode,
+                    createIdempotencyKey: createGiftIdempotencyKey,
+                    formatMoney: formatGiftMoney,
+                    estimateQuote: estimateGiftOrderQuote,
+                    buildFulfillmentPlan: buildGiftFulfillmentPlan,
+                    orderSummary: giftOrderSummary,
+                    createOrder: (
+                      input: Parameters<typeof createPhysicalGiftOrder>[0],
+                    ) =>
+                      accessToken
+                        ? createPhysicalGiftOrderLive(
+                            accessToken,
+                            conversationIdFor(conversationPartner),
+                            input,
+                          )
+                        : createPhysicalGiftOrder(input),
+                    respondToOrder: (
+                      input: Parameters<typeof respondToPhysicalGiftOrder>[0],
+                    ) =>
+                      accessToken
+                        ? respondToPhysicalGiftOrderLive(accessToken, input)
+                        : respondToPhysicalGiftOrder(input),
+                    searchAddresses: searchGiftDeliveryAddresses,
+                    validateAddress: validateGiftDeliveryAddress,
+                    openIssue: openGiftOrderIssue,
+                  },
+                }}
+                previewState={showcasePreviewState}
+                showcaseDateStatus={showcaseDateStatus}
+                isChatPreview={
+                  memberDataRuntime.source === "preview" || isPreviewAccessMode
+                }
+                experienceMode={coupleMode.experienceMode}
+                initialTool={chatLaunchTool}
+                onToolConsumed={() => setChatLaunchTool(null)}
+                match={conversationPartner}
+                messages={chatMessages[conversationPartner.id] ?? []}
+                reflection={relationshipReflections[conversationPartner.id]}
+                reminder={relationshipReminders[conversationPartner.id]}
+                settings={{
+                  ...defaultCoupleChatSettings,
+                  ...chatSettings[conversationPartner.id],
+                }}
+                conversationSettings={chatSettings}
+                initialDraft={chatDrafts[conversationPartner.id] ?? ""}
+                onDraftConsumed={() =>
+                  setChatDrafts((current) => {
+                    const next = { ...current };
+                    delete next[conversationPartner.id];
+                    return next;
+                  })
+                }
+                onSettingsChange={updateSelectedChatSettings}
+                onDateStatus={(messageId, status) =>
+                  updateDatePlanStatus(
+                    conversationPartner.id,
+                    messageId,
+                    status,
+                  )
+                }
+                onReflection={(messageId, choice) =>
+                  saveReflection(conversationPartner.id, messageId, choice)
+                }
+                onLearningConsent={(enabled) =>
+                  updateRelationshipLearningConsent(
+                    conversationPartner.id,
+                    enabled,
+                  )
+                }
+                onReminder={(messageId, enabled) =>
+                  updateRelationshipReminder(
+                    conversationPartner.id,
+                    messageId,
+                    enabled,
+                  )
+                }
+                onJourneyEvent={recordJourneyEvent}
+                coinBalance={coinBalance}
+                roseAvailability={roseAvailability}
+                onRose={() =>
+                  coupleMode.experienceMode === "seeking" &&
+                  openRose(conversationPartner)
+                }
+                onSend={(message) =>
+                  appendChatMessage(conversationPartner, message)
+                }
+                onEdit={(messageId, text) =>
+                  editChatMessage(conversationPartner, messageId, text)
+                }
+                onDelete={(messageId) =>
+                  deleteChatMessage(conversationPartner, messageId)
+                }
+                onMessageState={(messageId, input) =>
+                  updateChatMessageState(conversationPartner, messageId, input)
+                }
+                onGiftResponse={(messageId, input) =>
+                  respondToGiftRequest(conversationPartner, messageId, input)
+                }
+                onForward={(target, forwarded) =>
+                  forwardChatMessages(target, forwarded)
+                }
+                onOpenConversation={(target) => {
+                  setSelected(target);
+                  setScreen("chat");
+                }}
+                onSpendCoins={(coins) =>
+                  setCoinBalance((balance) => spendCoins(balance, coins))
+                }
+                onReport={(reason, details) =>
+                  void reportMatch(conversationPartner, reason, details)
+                }
+                onBlock={async () => {
+                  if (await blockMatch(conversationPartner)) setScreen("home");
+                }}
+                isBlocked={blockedIds.includes(conversationPartner.id)}
+                onUnblock={async () => {
+                  await unblockMatch(conversationPartner);
+                }}
+                onUnmatch={async () => {
+                  if (await unmatchMatch(conversationPartner))
+                    setScreen("home");
+                }}
+                onOpenPartnerProfile={
+                  activeCoupleHubConnection
+                    ? () => {
+                        setCoupleProfileTarget(
+                          activeCoupleHubConnection.connectionId,
+                        );
+                        setScreen("coupleSetup");
+                      }
+                    : undefined
+                }
+                navigate={navigateTo}
+                accessToken={accessToken}
+                livePartnerOnline={partnerPresence?.online}
+                partnerLastActiveAt={partnerPresence?.lastActiveAt ?? null}
+                livePartnerTyping={partnerPresence?.typing}
+                onTypingChange={(typing) => {
+                  if (!accessToken) return;
+                  if (
+                    emitChatTyping(
+                      conversationIdFor(conversationPartner),
+                      typing,
+                    )
+                  )
+                    return;
+                  void chatApi
+                    .setTyping(
+                      accessToken,
+                      conversationIdFor(conversationPartner),
+                      typing,
+                    )
+                    .catch(() => undefined);
+                }}
+              />
+            )}
+          </ChatSplitLayout>
         )}
         {screen === "datePlan" && (
           <DatePlannerScreen
