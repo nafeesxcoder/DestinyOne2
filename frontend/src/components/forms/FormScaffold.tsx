@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 import { StepBar, shared } from "../../components";
 import { ReferenceIconTile } from "../premium/PremiumIcon";
@@ -20,6 +21,9 @@ type FormPageProps = {
   back?: () => void;
   step?: number;
   scroll?: boolean;
+  /** Shows a "Skip" button top-right so the member can move on without filling this step. */
+  onSkip?: () => void;
+  skipLabel?: string;
 };
 
 export function FormPage({
@@ -27,29 +31,52 @@ export function FormPage({
   back,
   step,
   scroll: _scroll,
+  onSkip,
+  skipLabel = "Skip",
 }: FormPageProps) {
   void _scroll;
   const inner = (
     <View style={[shared.content, formPageStyles.content]}>
-      {(back || step) && (
+      {(back || step || onSkip) && (
         <View style={{ gap: 18 }}>
-          {back ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              onPress={back}
-              style={styles.backButton}
-            >
-              <ReferenceIconTile
-                name="arrow-back"
-                orbSize={30}
-                iconSize={14}
-                tilePadding={10}
-              />
-            </Pressable>
-          ) : (
-            <View style={{ height: 42 }} />
-          )}
+          <View style={formPageStyles.headerRow}>
+            {back ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                onPress={back}
+                style={styles.backButton}
+              >
+                <ReferenceIconTile
+                  name="arrow-back"
+                  orbSize={30}
+                  iconSize={14}
+                  tilePadding={10}
+                />
+              </Pressable>
+            ) : (
+              <View style={{ height: 42 }} />
+            )}
+            {onSkip && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${skipLabel} this step`}
+                hitSlop={10}
+                onPress={onSkip}
+                style={({ pressed }) => [
+                  formPageStyles.skipButton,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={formPageStyles.skipText}>{skipLabel}</Text>
+                <Ionicons
+                  name="play-skip-forward"
+                  size={13}
+                  color="#7C0015"
+                />
+              </Pressable>
+            )}
+          </View>
           {step && <StepBar step={step} total={6} />}
         </View>
       )}
@@ -123,6 +150,24 @@ export function Segment({
 
 const formPageStyles = StyleSheet.create({
   keyboard: { flex: 1 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 42,
+  },
+  skipButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,.88)",
+    borderWidth: 1,
+    borderColor: "rgba(124,0,21,.28)",
+  },
+  skipText: { color: "#7C0015", fontWeight: "700", fontSize: 14 },
   scrollContent: { flexGrow: 1, paddingBottom: 34 },
   content: {
     flexGrow: 1,

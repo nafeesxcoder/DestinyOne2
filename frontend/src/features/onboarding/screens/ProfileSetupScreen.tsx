@@ -825,6 +825,7 @@ export function ProfileSetupScreen({
   onVoiceChange,
   allowPreviewContinue = false,
   onNext,
+  onSkip,
   accessToken,
 }: {
   profile: ProfileDraft;
@@ -835,6 +836,7 @@ export function ProfileSetupScreen({
   onVoiceChange: (uri: string) => void;
   allowPreviewContinue?: boolean;
   onNext: () => void;
+  onSkip?: () => void;
   accessToken?: string;
 }) {
   const { width } = useWindowDimensions();
@@ -976,7 +978,7 @@ export function ProfileSetupScreen({
     onPhotosChange(photos.filter((_, photoIndex) => photoIndex !== index));
   return (
     <PremiumBackground>
-      <FormPage step={3} scroll>
+      <FormPage step={3} scroll onSkip={onSkip}>
         <SectionTitle
           emphasis
           eyebrow="MAKE A FIRST IMPRESSION"

@@ -134,10 +134,12 @@ export function VibesScreen({
   value,
   onChange,
   onNext,
+  onSkip,
 }: {
   value: string[];
   onChange: (value: string[]) => void;
   onNext: () => void;
+  onSkip?: () => void;
 }) {
   const toggle = (vibe: string) =>
     onChange(
@@ -149,7 +151,7 @@ export function VibesScreen({
     );
   return (
     <PremiumBackground>
-      <FormPage step={4} scroll>
+      <FormPage step={4} scroll onSkip={onSkip}>
         <View style={vibeStyles.hero}>
           <Text style={styles.kicker}>{value.length} OF 5 LOCKED IN</Text>
           <Text style={[shared.h1, { textAlign: "center" }]}>
@@ -292,10 +294,12 @@ export function IntentScreen({
   value,
   onChange,
   onNext,
+  onSkip,
 }: {
   value: string;
   onChange: (value: string) => void;
   onNext: () => void;
+  onSkip?: () => void;
 }) {
   const options = [
     {
@@ -319,7 +323,7 @@ export function IntentScreen({
   ];
   return (
     <PremiumBackground>
-      <FormPage step={5}>
+      <FormPage step={5} onSkip={onSkip}>
         <SectionTitle
           emphasis
           eyebrow="NO MIXED SIGNALS"
@@ -483,7 +487,7 @@ export function AlignmentScreen({
       : onNext();
   return (
     <PremiumBackground>
-      <FormPage step={6}>
+      <FormPage step={6} onSkip={advance}>
         <View style={alignmentStyles.hero}>
           <GlowIcon
             icon={

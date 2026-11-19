@@ -3677,6 +3677,7 @@ function DestinyOneApp() {
             onSelfie={setSelfieUri}
             onVerifiedChange={setVerified}
             onNext={() => setScreen("modeSelect")}
+            onSkip={() => setScreen("modeSelect")}
           />
         )}
         {screen === "modeSelect" && (
@@ -3759,6 +3760,9 @@ function DestinyOneApp() {
             voiceUri={voiceIntroUri}
             onVoiceChange={setVoiceIntroUri}
             allowPreviewContinue={isPreviewAccessMode}
+            onSkip={
+              onboardingComplete ? undefined : () => setScreen("vibes")
+            }
             onNext={async () => {
               if (onboardingComplete && accessToken) {
                 try {
@@ -3802,6 +3806,7 @@ function DestinyOneApp() {
             value={vibeList}
             onChange={setVibeList}
             onNext={() => setScreen("intent")}
+            onSkip={() => setScreen("intent")}
           />
         )}
         {screen === "intent" && (
@@ -3809,6 +3814,7 @@ function DestinyOneApp() {
             value={intent}
             onChange={setIntent}
             onNext={() => setScreen("alignment")}
+            onSkip={() => setScreen("alignment")}
           />
         )}
         {screen === "alignment" && (

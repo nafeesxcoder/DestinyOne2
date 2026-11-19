@@ -663,6 +663,7 @@ type VerificationScreenProps = {
   onSelfie: (uri: string) => void;
   onVerifiedChange: (verified: boolean) => void;
   onNext: () => void;
+  onSkip?: () => void;
 };
 
 export function VerificationScreen({
@@ -672,6 +673,7 @@ export function VerificationScreen({
   onSelfie,
   onVerifiedChange,
   onNext,
+  onSkip,
 }: VerificationScreenProps) {
   const [error, setError] = useState("");
   const [idUri, setIdUri] = useState("");
@@ -740,6 +742,7 @@ export function VerificationScreen({
       <FormPage
         {...({ style: { backgroundColor: "transparent" } } as any)}
         step={2}
+        onSkip={onSkip}
       >
         <SectionTitle
           emphasis
