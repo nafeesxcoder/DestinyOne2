@@ -42,7 +42,7 @@ export type ChatConversationSummary = {
     preview: string;
     at: number;
     mine: boolean;
-    status: "sent" | "delivered" | "read";
+    status?: "sent" | "delivered" | "read";
   } | null;
   unreadCount: number;
 };

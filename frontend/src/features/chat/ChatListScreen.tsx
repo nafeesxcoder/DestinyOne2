@@ -85,7 +85,7 @@ function ConversationRow({
           )}
         </View>
         <View style={listStyles.rowBottom}>
-          {last?.mine && (
+          {last?.mine && !!last.status && (
             <Ionicons
               name={last.status === "sent" ? "checkmark" : "checkmark-done"}
               size={16}
@@ -118,12 +118,18 @@ export function ChatListScreen({
   loadConversations,
   onOpenConversation,
   onFindMatches,
+  emptyTitle = "No chats yet",
+  emptyBody = "When you and someone both say yes, they appear here and you can start talking.",
+  emptyActionLabel = "See my matches",
   footer,
 }: {
   /** Returns the member's chats; throws when they cannot be loaded. */
   loadConversations: () => Promise<ChatConversationSummary[]>;
   onOpenConversation: (item: ChatConversationSummary) => void;
   onFindMatches: () => void;
+  emptyTitle?: string;
+  emptyBody?: string;
+  emptyActionLabel?: string;
   /** Rendered below the list (the bottom navigation). */
   footer?: React.ReactNode;
 }) {
@@ -245,13 +251,10 @@ export function ChatListScreen({
               ) : (
                 <View style={listStyles.center}>
                   <Ionicons name="chatbubbles-outline" size={46} color={ruby} />
-                  <Text style={listStyles.emptyTitle}>No chats yet</Text>
-                  <Text style={listStyles.emptyBody}>
-                    When you and someone both say yes, they appear here and you
-                    can start talking.
-                  </Text>
+                  <Text style={listStyles.emptyTitle}>{emptyTitle}</Text>
+                  <Text style={listStyles.emptyBody}>{emptyBody}</Text>
                   <Pressable onPress={onFindMatches} style={listStyles.emptyButton}>
-                    <Text style={listStyles.emptyButtonText}>See my matches</Text>
+                    <Text style={listStyles.emptyButtonText}>{emptyActionLabel}</Text>
                   </Pressable>
                 </View>
               )

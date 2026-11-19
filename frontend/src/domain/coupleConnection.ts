@@ -21,6 +21,8 @@ export type CouplePairingConnection = {
   connectionId: string;
   partnerMemberId: string;
   partnerDisplayName: string;
+  partnerPhotoUri?: string | null;
+  partnerCity?: string;
   lastMessage?: { preview: string; at: number; mine: boolean } | null;
   unreadCount?: number;
 };
@@ -71,6 +73,8 @@ function parseConnection(value: unknown): CouplePairingConnection | null {
     connectionId: requiredText(value, 'connection_id'),
     partnerMemberId: requiredText(value, 'partner_member_id'),
     partnerDisplayName: requiredText(value, 'partner_display_name'),
+    partnerPhotoUri: typeof value.partner_photo === 'string' ? value.partner_photo : null,
+    partnerCity: typeof value.partner_city === 'string' ? value.partner_city : '',
     lastMessage: parseLastMessage(value.last_message),
     unreadCount: typeof value.unread_count === 'number' ? value.unread_count : 0,
   };

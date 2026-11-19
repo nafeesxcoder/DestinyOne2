@@ -219,9 +219,15 @@ async function getHub(userId) {
     const partnerId = active.requester_id === userId ? active.partner_id : active.requester_id;
     const [partnerProfile] = await query('SELECT * FROM profiles WHERE user_id = ?', [partnerId]);
     const activity = await connectionActivity(active.id, userId);
+    const [partnerPhoto] = await query(
+      'SELECT photo_url FROM profile_photos WHERE user_id = ? ORDER BY position ASC LIMIT 1',
+      [partnerId],
+    );
     connections.push({
       connection_id: active.id,
       partner_member_id: partnerId,
+      partner_photo: partnerPhoto?.photo_url || null,
+      partner_city: partnerProfile?.city || '',
       partner_display_name: partnerProfile?.first_name || 'Your partner',
       last_message: activity.last_message,
       unread_count: activity.unread_count,

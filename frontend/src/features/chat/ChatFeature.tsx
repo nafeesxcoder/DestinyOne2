@@ -2530,7 +2530,7 @@ export function ChatScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
-                isCoupleMode ? "Back to our space" : "Back to chats"
+                "Back to chats"
               }
               hitSlop={accessibilityHitSlop}
               onPress={() => {
@@ -2541,7 +2541,7 @@ export function ChatScreen({
                   callSession.setMinimized(true);
                   return;
                 }
-                navigate(isCoupleMode ? "home" : "chats");
+                navigate("chats");
               }}
             >
               <PremiumIcon

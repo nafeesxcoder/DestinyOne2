@@ -2034,16 +2034,9 @@ function DestinyOneApp() {
   };
   const navigateTo = (requested: Screen) => {
     // Every generic "Chat" button (navbar, Home menu, Explore, Profile...)
-    // opens the chat list outside Couple Mode; opening one specific person
-    // uses setScreen("chat") after picking them. Couple Mode has a single
-    // chat (with the partner), so there it is the other way round.
-    const couple = coupleMode.experienceMode === "couple";
-    const target: Screen =
-      couple && requested === "chats"
-        ? "chat"
-        : !couple && requested === "chat"
-          ? "chats"
-          : requested;
+    // opens the chat list, in both modes; opening one specific person uses
+    // setScreen("chat") after picking them.
+    const target: Screen = requested === "chat" ? "chats" : requested;
     if (coupleMode.experienceMode === "couple" && isCoupleModeRoute(target)) {
       const decision = guardCoupleModeRoute(coupleMode, target);
       if (!decision.allowed) {
@@ -2074,6 +2067,25 @@ function DestinyOneApp() {
   const loadChatConversations = async (): Promise<
     ChatConversationSummary[]
   > => {
+    if (coupleMode.experienceMode === "couple") {
+      // Couple Mode: one row per connected partner (couple space).
+      const hub = accessToken ? await coupleApi.getHub(accessToken) : coupleHub;
+      if (accessToken) applyCoupleHub(hub);
+      return hub.connections.map((connection) => ({
+        id: connection.connectionId,
+        profileId: connection.partnerMemberId,
+        matchId: connection.connectionId,
+        name: connection.partnerDisplayName,
+        age: 0,
+        city: connection.partnerCity ?? "",
+        profession: "",
+        gender: "nonbinary" as const,
+        photo: connection.partnerPhotoUri ?? "",
+        photos: connection.partnerPhotoUri ? [connection.partnerPhotoUri] : [],
+        lastMessage: connection.lastMessage ?? null,
+        unreadCount: connection.unreadCount ?? 0,
+      }));
+    }
     if (accessToken) return chatApi.listConversations(accessToken);
     // Preview / demo: the sample members, with whatever was chatted locally.
     return matches.map((m) => {
@@ -2103,6 +2115,11 @@ function DestinyOneApp() {
     });
   };
   const openChatFromList = (item: ChatConversationSummary) => {
+    if (coupleMode.experienceMode === "couple") {
+      setActiveCoupleConnectionId(item.id);
+      setScreen("chat");
+      return;
+    }
     const known =
       [...(serverDiscoveredMatches ?? []), ...matches].find(
         (m) => m.id === item.id,
@@ -2151,7 +2168,8 @@ function DestinyOneApp() {
       return;
     }
     setChatLaunchTool(tool);
-    navigateTo("chat");
+    // A tool (game, etc.) opens inside the current partner's chat directly.
+    setScreen("chat");
   };
   const saveCoupleProfile = async (input: {
     firstName: string;
@@ -3833,7 +3851,15 @@ function DestinyOneApp() {
           <ChatListScreen
             loadConversations={loadChatConversations}
             onOpenConversation={openChatFromList}
-            onFindMatches={() => setScreen("home")}
+            {...(coupleMode.experienceMode === "couple"
+              ? {
+                  onFindMatches: () => setScreen("coupleSetup"),
+                  emptyTitle: "No partner connected yet",
+                  emptyBody:
+                    "Connect with your partner and your private chat will appear here.",
+                  emptyActionLabel: "Connect my partner",
+                }
+              : { onFindMatches: () => setScreen("home") })}
             footer={
               <BottomNav
                 active="chats"
