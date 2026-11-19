@@ -486,4 +486,5 @@ module.exports = {
   getSearchable,
   setSearchable,
   getPartnerProfile,
+  previewFor,
 };

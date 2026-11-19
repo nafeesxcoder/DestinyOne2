@@ -25,7 +25,38 @@ async function authFetch(path: string, accessToken: string, options: RequestInit
   return { saved: !!data.saved, reason: data.reason || "backend", data: data.data } as PersistenceResult;
 }
 
+/** One row of the chat list: a mutual match plus their latest activity. */
+export type ChatConversationSummary = {
+  id: string;
+  profileId: string;
+  matchId: string;
+  name: string;
+  age: number;
+  city: string;
+  profession: string;
+  gender: "woman" | "man" | "nonbinary";
+  photo: string;
+  photos: string[];
+  matchedAt?: string;
+  lastMessage: {
+    preview: string;
+    at: number;
+    mine: boolean;
+    status: "sent" | "delivered" | "read";
+  } | null;
+  unreadCount: number;
+};
+
 export const chatApi = {
+  async listConversations(accessToken: string): Promise<ChatConversationSummary[]> {
+    const response = await fetch(`${API_URL}/chat/conversations`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Chats could not be loaded");
+    return Array.isArray(data.conversations) ? data.conversations : [];
+  },
+
   async fetchMessages(accessToken: string, conversationId: string): Promise<ChatMessage[]> {
     const result = await authFetch(`/chat/${conversationId}/messages`, accessToken);
     return (result.data as ChatMessage[]) || [];

@@ -129,9 +129,9 @@ function init(httpServer) {
           conversationId,
           userId,
         );
-        await chat().setTyping(conversationId, userId, typing);
+        const result = await chat().setTyping(conversationId, userId, typing);
         // setTyping drops the flag when the user hides their typing status.
-        if (typing && !chat().isTypingFresh(conversationId, userId)) return;
+        if (typing && !result.typing) return;
         const partnerId = partnerOf(participants, userId);
         emitToUser(partnerId, "typing", {
           conversationId: chat().conversationIdForViewer(

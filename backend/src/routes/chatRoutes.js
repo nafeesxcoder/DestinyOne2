@@ -19,6 +19,7 @@ router.use(requireAuth);
 
 router.get('/gifs/status', chatController.gifStatus);
 router.get('/gifs', gifLimiter, chatController.searchGifs);
+router.get('/conversations', chatController.getConversations);
 router.get('/:conversationId/messages', chatController.getMessages);
 router.post('/:conversationId/messages', chatController.postMessage);
 router.post('/:conversationId/date-proposal', chatController.postDateProposal);

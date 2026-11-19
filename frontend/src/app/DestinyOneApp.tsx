@@ -129,7 +129,8 @@ import {
   persistUnmatch as persistUnmatchPreview,
   subscribePersistedChatMessages as subscribePersistedChatMessagesPreview,
 } from "./adapters/previewPersistence";
-import { chatApi } from "../api/chatApi";
+import { chatApi, type ChatConversationSummary } from "../api/chatApi";
+import { ChatListScreen } from "../features/chat/ChatListScreen";
 import {
   connectChatSocket,
   disconnectChatSocket,
@@ -2031,7 +2032,12 @@ function DestinyOneApp() {
       tone: "gold",
     });
   };
-  const navigateTo = (target: Screen) => {
+  const navigateTo = (requested: Screen) => {
+    // Couple Mode has one chat (with the partner), so there is no list.
+    const target: Screen =
+      requested === "chats" && coupleMode.experienceMode === "couple"
+        ? "chat"
+        : requested;
     if (coupleMode.experienceMode === "couple" && isCoupleModeRoute(target)) {
       const decision = guardCoupleModeRoute(coupleMode, target);
       if (!decision.allowed) {
@@ -2057,6 +2063,73 @@ function DestinyOneApp() {
       }
     }
     setScreen(target);
+  };
+  // Chat list (navbar Chat tab): every mutual match, newest activity first.
+  const loadChatConversations = async (): Promise<
+    ChatConversationSummary[]
+  > => {
+    if (accessToken) return chatApi.listConversations(accessToken);
+    // Preview / demo: the sample members, with whatever was chatted locally.
+    return matches.map((m) => {
+      const local = chatMessages[m.id] ?? [];
+      const last = local[local.length - 1];
+      return {
+        id: m.id,
+        profileId: m.profileId ?? m.id,
+        matchId: m.matchId ?? m.id,
+        name: m.name,
+        age: m.age,
+        city: m.city,
+        profession: m.profession,
+        gender: m.gender,
+        photo: m.photo,
+        photos: m.photos,
+        lastMessage: last
+          ? {
+              preview: last.text || "Message",
+              at: last.createdAt,
+              mine: true,
+              status: "read" as const,
+            }
+          : null,
+        unreadCount: 0,
+      };
+    });
+  };
+  const openChatFromList = (item: ChatConversationSummary) => {
+    const known =
+      [...(serverDiscoveredMatches ?? []), ...matches].find(
+        (m) => m.id === item.id,
+      ) ?? null;
+    const match: Match = {
+      intent: "",
+      match: "Great Match",
+      vibes: [],
+      about: "",
+      values: "",
+      goals: "",
+      timeline: "",
+      children: "",
+      family: "",
+      relocation: "",
+      languages: [],
+      interests: [],
+      familyPriority: "balanced",
+      vouches: { count: 0, qualities: [] },
+      ...known,
+      id: item.id,
+      profileId: item.profileId,
+      matchId: item.matchId,
+      name: item.name,
+      age: item.age,
+      city: item.city,
+      profession: item.profession,
+      gender: item.gender,
+      photo: item.photo,
+      photos: item.photos?.length ? item.photos : item.photo ? [item.photo] : [],
+    };
+    setSelected(match);
+    setScreen("chat");
   };
   const openCoupleTool = (tool: Exclude<CoupleLaunchTool, null>) => {
     const allowed =
@@ -3749,6 +3822,20 @@ function DestinyOneApp() {
               navigate={navigateTo}
             />
           </>
+        )}
+        {screen === "chats" && (
+          <ChatListScreen
+            loadConversations={loadChatConversations}
+            onOpenConversation={openChatFromList}
+            onFindMatches={() => setScreen("home")}
+            footer={
+              <BottomNav
+                active="chats"
+                mode={coupleMode.experienceMode}
+                navigate={navigateTo}
+              />
+            }
+          />
         )}
         {screen === "profileSetup" && (
           <ProfileSetupScreen

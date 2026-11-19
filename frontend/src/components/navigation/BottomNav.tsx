@@ -79,7 +79,13 @@ export function BottomNav({ active, navigate, mode = 'seeking', onOpenTool: _onO
   const dockPaddingBottom = collapseProgress.interpolate({ inputRange: [0, 1], outputRange: [6, 4] });
   return <View pointerEvents="box-none" onLayout={event => setHostWidth(event.nativeEvent.layout.width)} style={bottomNavStyles.navHost}>
     <Animated.View accessibilityRole="tablist" accessibilityLabel="Primary navigation" style={[bottomNavStyles.nav, { width: dockWidth, height: dockHeight, borderRadius: dockRadius, paddingTop: dockPaddingTop, paddingBottom: dockPaddingBottom }]}>
-      <View style={bottomNavStyles.navScroller}>{items.map(item => { const selected = active === item.target; const renderedIconName = (selected ? item.icon : `${item.icon}-outline`) as keyof typeof Ionicons.glyphMap; return <AnimatedBottomNavItem key={item.label} label={item.label} icon={renderedIconName} tone={item.tone} selected={selected} smallViewport={smallViewport} collapseProgress={collapseProgress} onPress={() => navigate(item.target as Screen)} />; })}</View>
+      <View style={bottomNavStyles.navScroller}>{items.map(item => {
+        // Outside Couple Mode the Chat tab opens the chat list (every match), not one chat.
+        const target = (mode !== 'couple' && item.target === 'chat' ? 'chats' : item.target) as Screen;
+        const selected = active === item.target || active === target;
+        const renderedIconName = (selected ? item.icon : `${item.icon}-outline`) as keyof typeof Ionicons.glyphMap;
+        return <AnimatedBottomNavItem key={item.label} label={item.label} icon={renderedIconName} tone={item.tone} selected={selected} smallViewport={smallViewport} collapseProgress={collapseProgress} onPress={() => navigate(target)} />;
+      })}</View>
     </Animated.View>
   </View>;
 }

@@ -6,7 +6,7 @@ export type Screen =
   | 'icebreaker' | 'chat' | 'gifts' | 'datePlan' | 'safety' | 'likes'
   | 'profile' | 'pricing' | 'support' | 'coach' | 'events' | 'executive'
   | 'verifyHub' | 'readiness' | 'community' | 'blueprint' | 'journey'
-  | 'dateSafety' | 'admin' | 'search';
+  | 'dateSafety' | 'admin' | 'search' | 'chats';
 
 /** Deep-linkable modal or state used by visual QA and product previews. */
 export type PreviewState =
@@ -25,7 +25,7 @@ export const previewScreens: readonly Screen[] = [
   'vibes','intent','alignment','home','explore','circle','discovery','detail','mutual',
   'icebreaker','chat','gifts','datePlan','safety','likes','profile','pricing','support',
   'coach','events','executive','verifyHub','readiness','community','blueprint','journey',
-  'dateSafety','admin','search',
+  'dateSafety','admin','search','chats',
 ];
 
 export const previewStates: readonly PreviewState[] = [

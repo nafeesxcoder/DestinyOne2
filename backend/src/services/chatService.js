@@ -42,10 +42,39 @@ async function assertParticipant(conversationId, userId) {
   return participants;
 }
 
-// A mutual-match conversation is addressed by the OTHER person's user id, so
-// the same chat has a different id for each participant. Couple chats use
-// the shared connection id for both. Translate for the viewer receiving an
-// event.
+// A mutual-match conversation is ADDRESSED by the other person's user id, so
+// in the API the same chat has a different id for each participant. Rows
+// must still live under ONE key shared by both people, otherwise each side
+// would only read back its own messages (and anyone could read what other
+// people sent to the same partner). That stored key is "dm:<idA>:<idB>"
+// with the two user ids sorted. Couple chats use their shared connection id.
+const DM_PREFIX = "dm:";
+function pairKey(a, b) {
+  return DM_PREFIX + [String(a), String(b)].sort().join(":");
+}
+async function resolveConversation(conversationId, userId) {
+  const participants = await assertParticipant(conversationId, userId);
+  const key = participants.includes(conversationId)
+    ? pairKey(participants[0], participants[1])
+    : conversationId;
+  return { participants, key };
+}
+// Access check for an id read back from the database (a stored key).
+async function assertStoredParticipant(storedId, userId) {
+  if (String(storedId).startsWith(DM_PREFIX)) {
+    const ids = String(storedId).slice(DM_PREFIX.length).split(":");
+    const other = ids.find((id) => id !== userId);
+    if (!ids.includes(userId) || !other) {
+      const err = new Error("You do not have access to this conversation.");
+      err.status = 403;
+      throw err;
+    }
+    return assertParticipant(other, userId);
+  }
+  return assertParticipant(storedId, userId);
+}
+
+// Translate the API id for the viewer receiving an event.
 function conversationIdForViewer(participants, conversationId, viewerId) {
   if (!participants.includes(conversationId)) return conversationId;
   return participants.find((pid) => pid !== viewerId) || conversationId;
@@ -106,21 +135,21 @@ async function emitMessageUpdate(conversationId, row, actingUserId) {
 }
 
 async function getOwnedMessage(conversationId, userId, messageId) {
-  await assertParticipant(conversationId, userId);
+  const { key } = await resolveConversation(conversationId, userId);
   const rows = await query(
     "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
-    [messageId, conversationId],
+    [messageId, key],
   );
   if (!rows.length) {
     const err = new Error("Message not found");
     err.status = 404;
     throw err;
   }
-  return rows[0];
+  return { row: rows[0], key };
 }
 
 async function editMessage(conversationId, userId, messageId, text) {
-  const row = await getOwnedMessage(conversationId, userId, messageId);
+  const { row, key } = await getOwnedMessage(conversationId, userId, messageId);
   if (row.sender_id !== userId) {
     const err = new Error("You can only edit your own messages.");
     err.status = 403;
@@ -135,11 +164,11 @@ async function editMessage(conversationId, userId, messageId, text) {
   payload.text = text;
   await query(
     "UPDATE chat_messages SET payload = ?, edited_at = NOW(6), updated_at_ms = ? WHERE id = ? AND conversation_id = ?",
-    [JSON.stringify(payload), Date.now(), messageId, conversationId],
+    [JSON.stringify(payload), Date.now(), messageId, key],
   );
   const [updated] = await query(
     "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
-    [messageId, conversationId],
+    [messageId, key],
   );
   emitMessageUpdate(conversationId, updated, userId);
   return rowToMessage(updated, userId);
@@ -158,33 +187,34 @@ const CLEARED_PAYLOAD = {
   linkPreview: undefined,
 };
 
-async function softDeleteMessages(conversationId, ids) {
+// `key` is the stored conversation key (see resolveConversation).
+async function softDeleteMessages(key, ids) {
   if (!ids.length) return;
   await query(
     `UPDATE chat_messages SET payload = ?, deleted_at = NOW(6), deleted_for_everyone = 1, updated_at_ms = ?
      WHERE conversation_id = ? AND id IN (${ids.map(() => "?").join(",")})`,
-    [JSON.stringify(CLEARED_PAYLOAD), Date.now(), conversationId, ...ids],
+    [JSON.stringify(CLEARED_PAYLOAD), Date.now(), key, ...ids],
   );
 }
 
 async function deleteMessage(conversationId, userId, messageId) {
-  const row = await getOwnedMessage(conversationId, userId, messageId);
+  const { row, key } = await getOwnedMessage(conversationId, userId, messageId);
   if (row.sender_id !== userId) {
     const err = new Error("You can only delete your own messages.");
     err.status = 403;
     throw err;
   }
-  await softDeleteMessages(conversationId, [messageId]);
+  await softDeleteMessages(key, [messageId]);
   const [updated] = await query(
     "SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?",
-    [messageId, conversationId],
+    [messageId, key],
   );
   emitMessageUpdate(conversationId, updated, userId);
   return rowToMessage(updated, userId);
 }
 
 async function setMessageState(conversationId, userId, messageId, input) {
-  const row = await getOwnedMessage(conversationId, userId, messageId);
+  const { row, key } = await getOwnedMessage(conversationId, userId, messageId);
   let starredBy = parseJsonColumn(row.starred_by, []);
   if (typeof input.starred === "boolean") {
     starredBy = input.starred
@@ -215,7 +245,7 @@ async function setMessageState(conversationId, userId, messageId, input) {
       JSON.stringify(reactionsMap),
       Date.now(),
       messageId,
-      conversationId,
+      key,
     ],
   );
   emitMessageUpdate(conversationId, { ...row, starred_by: JSON.stringify(starredBy), hidden_by: JSON.stringify(hiddenBy), pinned_at: pinnedAt, reactions: JSON.stringify(reactionsMap) }, userId);
@@ -233,26 +263,26 @@ async function getRetentionMode(conversationId, userId) {
 }
 
 async function listMessages(conversationId, userId, sinceMs) {
-  const participants = await assertParticipant(conversationId, userId);
+  const { participants, key } = await resolveConversation(conversationId, userId);
   const expired = await query(
     `SELECT id FROM chat_messages WHERE conversation_id = ? AND expires_at IS NOT NULL
      AND expires_at <= NOW(6) AND deleted_for_everyone = 0`,
-    [conversationId],
+    [key],
   );
   await softDeleteMessages(
-    conversationId,
+    key,
     expired.map((row) => row.id),
   );
   const rows = sinceMs
     ? await query(
         `SELECT * FROM chat_messages WHERE conversation_id = ? AND updated_at_ms > ?
          ORDER BY created_at_ms ASC`,
-        [conversationId, sinceMs],
+        [key, sinceMs],
       )
     : await query(
         `SELECT * FROM chat_messages WHERE conversation_id = ?
          ORDER BY created_at_ms ASC`,
-        [conversationId],
+        [key],
       );
   const toMarkRead = rows.filter(
     (row) =>
@@ -263,7 +293,7 @@ async function listMessages(conversationId, userId, sinceMs) {
     await query(
       `UPDATE chat_messages SET status = 'read', updated_at_ms = ?
        WHERE conversation_id = ? AND id IN (${readIds.map(() => "?").join(",")})`,
-      [Date.now(), conversationId, ...readIds],
+      [Date.now(), key, ...readIds],
     );
     toMarkRead.forEach((row) => {
       row.status = "read";
@@ -285,7 +315,7 @@ async function listMessages(conversationId, userId, sinceMs) {
       !row.deleted_for_everyone,
   );
   await softDeleteMessages(
-    conversationId,
+    key,
     seenNow.map((row) => row.id),
   );
   return messages;
@@ -294,18 +324,18 @@ async function listMessages(conversationId, userId, sinceMs) {
 // Called over the socket when the recipient has the chat open: marks every
 // unread message from the partner as read and tells the partner instantly.
 async function markConversationRead(conversationId, userId) {
-  const participants = await assertParticipant(conversationId, userId);
+  const { participants, key } = await resolveConversation(conversationId, userId);
   const rows = await query(
     `SELECT id FROM chat_messages
      WHERE conversation_id = ? AND sender_id <> ? AND status <> 'read' AND deleted_for_everyone = 0`,
-    [conversationId, userId],
+    [key, userId],
   );
   const ids = rows.map((row) => row.id);
   if (ids.length) {
     await query(
       `UPDATE chat_messages SET status = 'read', updated_at_ms = ?
        WHERE conversation_id = ? AND id IN (${ids.map(() => "?").join(",")})`,
-      [Date.now(), conversationId, ...ids],
+      [Date.now(), key, ...ids],
     );
     const partnerId = participants.find((pid) => pid !== userId);
     realtime.emitToUser(partnerId, "message:status", {
@@ -318,7 +348,7 @@ async function markConversationRead(conversationId, userId) {
 }
 
 async function sendMessage(conversationId, userId, message) {
-  const participants = await assertParticipant(conversationId, userId);
+  const { participants, key } = await resolveConversation(conversationId, userId);
   const id = String(message.id || crypto.randomUUID());
   const createdAtMs = Number(message.createdAt) || Date.now();
   const {
@@ -351,7 +381,7 @@ async function sendMessage(conversationId, userId, message) {
      ON DUPLICATE KEY UPDATE payload = VALUES(payload)`,
     [
       id,
-      conversationId,
+      key,
       userId,
       message.type || "text",
       JSON.stringify(payload),
@@ -363,7 +393,7 @@ async function sendMessage(conversationId, userId, message) {
   );
   const [row] = await query(
     `SELECT * FROM chat_messages WHERE id = ? AND conversation_id = ?`,
-    [id, conversationId],
+    [id, key],
   );
   const stored = rowToMessage(row, userId);
   const recipientId = participants.find((pid) => pid !== userId);
@@ -372,27 +402,33 @@ async function sendMessage(conversationId, userId, message) {
       conversationId: conversationIdForViewer(participants, conversationId, recipientId),
       message: rowToMessage(row, recipientId),
     });
-    notifyRecipient(conversationId, userId, recipientId, stored).catch(
+    notifyRecipient(conversationId, key, userId, recipientId, stored).catch(
       () => undefined,
     );
   }
   return stored;
 }
 
-async function notifyRecipient(conversationId, senderId, recipientId, message) {
+async function notifyRecipient(conversationId, key, senderId, recipientId, message) {
   await query(
     `UPDATE chat_messages SET status = 'delivered', updated_at_ms = ?
      WHERE id = ? AND conversation_id = ? AND status = 'sent'`,
-    [Date.now(), message.id, conversationId],
+    [Date.now(), message.id, key],
   );
   realtime.emitToUser(senderId, "message:status", {
     conversationId,
     ids: [message.id],
     status: "delivered",
   });
+  // Settings are saved per person under the id THEY use for this chat.
+  const recipientConversationId = conversationIdForViewer(
+    [senderId, recipientId],
+    conversationId,
+    recipientId,
+  );
   const settingsRows = await query(
     "SELECT settings FROM chat_conversation_settings WHERE conversation_id = ? AND user_id = ?",
-    [conversationId, recipientId],
+    [recipientConversationId, recipientId],
   );
   if (settingsRows.length) {
     const settings = parseJsonColumn(settingsRows[0].settings, {});
@@ -413,23 +449,19 @@ async function notifyRecipient(conversationId, senderId, recipientId, message) {
     // The id the RECIPIENT uses for this chat (for a mutual match that is
     // the sender's user id, not the id the sender sent from), so tapping the
     // notification can open the right conversation.
-    conversationId: conversationIdForViewer(
-      [senderId, recipientId],
-      conversationId,
-      recipientId,
-    ),
+    conversationId: recipientConversationId,
   });
 }
 
 async function createDateProposal(conversationId, userId, date) {
-  await assertParticipant(conversationId, userId);
+  const { key } = await resolveConversation(conversationId, userId);
   const id = crypto.randomUUID();
   await query(
     `INSERT INTO date_proposals (id, conversation_id, proposer_id, status, venue, category, area, time_label)
      VALUES (?, ?, ?, 'proposed', ?, ?, ?, ?)`,
     [
       id,
-      conversationId,
+      key,
       userId,
       date?.venue || null,
       date?.category || null,
@@ -454,7 +486,7 @@ async function updateDatePlanStatus(userId, proposalId, status) {
     err.status = 404;
     throw err;
   }
-  await assertParticipant(rows[0].conversation_id, userId);
+  await assertStoredParticipant(rows[0].conversation_id, userId);
   await query("UPDATE date_proposals SET status = ? WHERE id = ?", [
     status,
     proposalId,
@@ -468,7 +500,7 @@ async function shareLiveLocation(
   location,
   clientActionId,
 ) {
-  await assertParticipant(conversationId, userId);
+  const { key } = await resolveConversation(conversationId, userId);
   const id = crypto.randomUUID();
   await query(
     `INSERT INTO live_locations (id, conversation_id, sharer_id, client_action_id, latitude, longitude, label, expires_at)
@@ -476,7 +508,7 @@ async function shareLiveLocation(
      ON DUPLICATE KEY UPDATE latitude = VALUES(latitude), longitude = VALUES(longitude)`,
     [
       id,
-      conversationId,
+      key,
       userId,
       clientActionId,
       location?.latitude ?? null,
@@ -510,22 +542,24 @@ function typingKey(conversationId, userId) {
   return `${conversationId}:${userId}`;
 }
 
+// Typing flags are keyed by the shared stored key, so the partner (who
+// addresses the chat by a different id) finds them.
 async function setTyping(conversationId, userId, typing) {
-  await assertParticipant(conversationId, userId);
-  const key = typingKey(conversationId, userId);
+  const { key: storedKey } = await resolveConversation(conversationId, userId);
+  const key = typingKey(storedKey, userId);
   if (!typing) {
     typingByKey.delete(key);
-    return { ok: true };
+    return { ok: true, typing: false };
   }
   // Someone who has turned off sharing their own typing status shouldn't
   // have it recorded at all, in case anything else ever reads this map.
   const settings = await getSettings(conversationId, userId);
   if (settings && settings.shareTypingStatus === false) {
     typingByKey.delete(key);
-    return { ok: true };
+    return { ok: true, typing: false };
   }
   typingByKey.set(key, Date.now());
-  return { ok: true };
+  return { ok: true, typing: true };
 }
 
 function isTypingFresh(conversationId, userId) {
@@ -534,7 +568,7 @@ function isTypingFresh(conversationId, userId) {
 }
 
 async function getPartnerPresence(conversationId, userId) {
-  const participants = await assertParticipant(conversationId, userId);
+  const { participants, key } = await resolveConversation(conversationId, userId);
   const partnerId = participants.find((id) => id !== userId);
   if (!partnerId) return { online: false, lastActiveAt: null, typing: false };
   const [row] = await query('SELECT last_active_at FROM users WHERE id = ?', [
@@ -545,7 +579,7 @@ async function getPartnerPresence(conversationId, userId) {
     : null;
   const online =
     !!lastActiveAt && Date.now() - new Date(lastActiveAt).getTime() < ONLINE_WINDOW_MS;
-  const typing = isTypingFresh(conversationId, partnerId);
+  const typing = isTypingFresh(key, partnerId);
   return { online, lastActiveAt, typing };
 }
 
@@ -570,7 +604,54 @@ async function saveSettings(conversationId, userId, settings) {
   return { ok: true };
 }
 
+// The chat list: every mutual match with their last visible message and
+// how many of their messages this member hasn't read yet. Newest first.
+async function listConversations(userId) {
+  // Lazy requires: keep module load order independent.
+  const matchService = require("./matchService");
+  const { previewFor } = require("./coupleService");
+  const matches = await matchService.getMutualMatches(userId); // blocks already removed
+  const conversations = [];
+  for (const match of matches) {
+    const key = pairKey(userId, match.id);
+    const rows = await query(
+      `SELECT sender_id, payload, status, created_at_ms, hidden_by FROM chat_messages
+       WHERE conversation_id = ? AND deleted_for_everyone = 0
+         AND (expires_at IS NULL OR expires_at > NOW(6))
+       ORDER BY created_at_ms DESC LIMIT 20`,
+      [key],
+    );
+    const visible = rows.find((row) => {
+      const hidden = parseJsonColumn(row.hidden_by, []);
+      return !(Array.isArray(hidden) && hidden.includes(userId));
+    });
+    const [unread] = await query(
+      `SELECT COUNT(*) AS n FROM chat_messages
+       WHERE conversation_id = ? AND sender_id <> ? AND status <> 'read' AND deleted_for_everyone = 0
+         AND (expires_at IS NULL OR expires_at > NOW(6))`,
+      [key, userId],
+    );
+    conversations.push({
+      ...match,
+      lastMessage: visible
+        ? {
+            preview: previewFor(visible.payload),
+            at: Number(visible.created_at_ms),
+            mine: visible.sender_id === userId,
+            status: visible.status,
+          }
+        : null,
+      unreadCount: Number(unread?.n || 0),
+    });
+  }
+  const sortTime = (item) =>
+    item.lastMessage?.at || new Date(item.matchedAt || 0).getTime() || 0;
+  conversations.sort((a, b) => sortTime(b) - sortTime(a));
+  return conversations;
+}
+
 module.exports = {
+  listConversations,
   assertParticipant,
   listMessages,
   sendMessage,

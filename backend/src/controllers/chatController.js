@@ -38,6 +38,12 @@ function wrap(fn) {
   });
 }
 
+const getConversations = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  const conversations = await chatService.listConversations(req.user.id);
+  res.json({ ok: true, conversations });
+});
+
 const getMessages = wrap(async (req) => {
   const since = req.query.since ? Number(req.query.since) : undefined;
   const messages = await chatService.listMessages(req.params.conversationId, req.user.id, since);
@@ -99,6 +105,7 @@ const putSettingsHandler = wrap(async (req) => {
 });
 
 module.exports = {
+  getConversations,
   getMessages,
   postMessage,
   postDateProposal,
