@@ -2033,11 +2033,17 @@ function DestinyOneApp() {
     });
   };
   const navigateTo = (requested: Screen) => {
-    // Couple Mode has one chat (with the partner), so there is no list.
+    // Every generic "Chat" button (navbar, Home menu, Explore, Profile...)
+    // opens the chat list outside Couple Mode; opening one specific person
+    // uses setScreen("chat") after picking them. Couple Mode has a single
+    // chat (with the partner), so there it is the other way round.
+    const couple = coupleMode.experienceMode === "couple";
     const target: Screen =
-      requested === "chats" && coupleMode.experienceMode === "couple"
+      couple && requested === "chats"
         ? "chat"
-        : requested;
+        : !couple && requested === "chat"
+          ? "chats"
+          : requested;
     if (coupleMode.experienceMode === "couple" && isCoupleModeRoute(target)) {
       const decision = guardCoupleModeRoute(coupleMode, target);
       if (!decision.allowed) {
