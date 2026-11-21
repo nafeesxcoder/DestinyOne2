@@ -19,7 +19,7 @@ describe("screen entrance rules", () => {
   });
   it("caps the stagger", () => {
     expect(staggerDelay(0)).toBe(0);
-    expect(staggerDelay(2)).toBe(90);
-    expect(staggerDelay(50)).toBe(225);
+    expect(staggerDelay(2)).toBe(240);
+    expect(staggerDelay(50)).toBe(600);
   });
 });

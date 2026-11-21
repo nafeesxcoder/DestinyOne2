@@ -21,14 +21,38 @@
       /* Press feedback for every tappable element. The short delay keeps cards
          still while the finger is only scrolling past them. */
       * { -webkit-tap-highlight-color: transparent; }
+      @property --d1-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
       @media (prefers-reduced-motion: no-preference) {
         div[tabindex="0"]:not([role="dialog"]), button, a {
-          transition: transform 180ms cubic-bezier(.22,1,.36,1);
+          transition: transform 520ms cubic-bezier(.22,.8,.2,1), box-shadow 520ms cubic-bezier(.22,.8,.2,1);
         }
-        div[tabindex="0"]:not([role="dialog"]):active:not(:has(div[tabindex="0"]:active)),
-        button:active, a:active {
-          transform: scale(.97);
-          transition: transform 110ms ease-out 50ms;
+        div[tabindex="0"]:not([role="dialog"]):active:not(:has(div[tabindex="0"]:active, button:active)),
+        button:active:not(:has(div[tabindex="0"]:active, button:active)), a:active {
+          transform: scale(.965);
+          transition: transform 280ms cubic-bezier(.22,.8,.2,1) 40ms;
+        }
+        /* Card hover: tilts toward the cursor and lifts, with a gold sheen. */
+        [data-d1-tilt] {
+          transform: perspective(1000px) rotateX(var(--d1-rx, 0deg)) rotateY(var(--d1-ry, 0deg)) translateY(-8px) scale(1.02) !important;
+          box-shadow: 0 28px 54px -20px rgba(124,0,21,.46), 0 0 0 1px rgba(185,138,47,.42) !important;
+          transition: transform 300ms ease-out, box-shadow 520ms ease-out !important;
+          z-index: 5;
+        }
+        [data-d1-tilt]::after {
+          content: ""; position: absolute; inset: 0; z-index: 9;
+          border-radius: inherit; pointer-events: none;
+          background: radial-gradient(280px circle at var(--d1-mx, 50%) var(--d1-my, 50%), rgba(244,209,112,.28), rgba(229,9,47,.08) 45%, transparent 72%);
+        }
+        /* Tap: a wine and gold glow spreads from the finger. */
+        [data-d1-ripple]::before {
+          content: ""; position: absolute; inset: 0; z-index: 9;
+          border-radius: inherit; pointer-events: none;
+          background: radial-gradient(circle var(--d1-r) at var(--d1-px, 50%) var(--d1-py, 50%), rgba(244,209,112,.36), rgba(179,12,61,.18) 62%, transparent 74%);
+          animation: d1-ripple 950ms cubic-bezier(.22,.8,.2,1) forwards;
+        }
+        @keyframes d1-ripple {
+          from { --d1-r: 0px; opacity: 1; }
+          to { --d1-r: var(--d1-rmax, 420px); opacity: 0; }
         }
       }
     </style>
