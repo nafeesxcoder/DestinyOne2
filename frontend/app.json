@@ -40,8 +40,8 @@
       "favicon": "./assets/favicon-red-velvet.png",
       "name": "DestinyOne",
       "shortName": "DestinyOne",
-      "themeColor": "#090002",
-      "backgroundColor": "#090002"
+      "themeColor": "#FBF7F2",
+      "backgroundColor": "#FBF7F2"
     },
     "plugins": [
       ["expo-image-picker", {

@@ -3663,7 +3663,7 @@ function DestinyOneApp() {
   };
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       {/* 🚀 Static background.png removed, entire app wrapped in Premium Gradient */}
       <PremiumBackground>
         {screen === "splash" && <SplashScreen />}
