@@ -278,6 +278,7 @@ import {
   type AppNotice,
 } from "../components/feedback/AppNoticeSheet";
 import { ReferralWelcomeOffer } from "../features/referrals/ReferralWelcomeOffer";
+import { useScreenEntrance } from "./motion/useScreenEntrance";
 
 /* =========================================================
    PREMIUM BACKGROUND (MATCHES SPLASH SCREEN EXACTLY)
@@ -625,6 +626,7 @@ function DestinyOneApp() {
   const [screen, setScreen] = useState<Screen>(
     () => showcasePreviewScreen ?? "splash",
   );
+  useScreenEntrance(screen, wideChatLayout);
   // App-wide back-button guard: give every in-app screen its own browser
   // history entry, so the hardware/gesture back button steps back through
   // screens instead of exiting the whole app/webview. Without this, the
