@@ -56,35 +56,35 @@ export function RelationshipReadinessScreen({
   const score = 48 + completed * 13;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FFF9F6]" edges={['top']}>
-      <View className="h-[72px] px-5 flex-row items-center gap-3 border-b border-[#F0DDD6]">
-        <Pressable accessibilityRole="button" accessibilityLabel="Back to Explore" onPress={onBack} className="w-[42px] h-[42px] rounded-[21px] items-center justify-center bg-white border border-[#EAD7D0]">
+    <SafeAreaView className="flex-1 bg-[#FFFDFC]" edges={['top']}>
+      <View className="h-[72px] px-5 flex-row items-center gap-3 border-b border-[#E9D9D0]">
+        <Pressable accessibilityRole="button" accessibilityLabel="Back to Explore" onPress={onBack} className="w-[42px] h-[42px] rounded-[21px] items-center justify-center bg-white border border-[#E9D9D0]">
           <Ionicons name="arrow-back" size={21} color={colors.plum} />
         </Pressable>
         <View className="flex-1">
-          <Text className="font-poppins-bold text-[10px] tracking-[1.3px] text-[#B88624]">PRIVATE READINESS</Text>
+          <Text className="font-poppins-bold text-[10px] tracking-[1.3px] text-[#B98A2F]">PRIVATE READINESS</Text>
           <Text className="font-poppins-bold text-[18px] text-plum mt-0.5">Your relationship rhythm</Text>
         </View>
       </View>
       <ScrollView contentContainerClassName="p-5 gap-4 pb-[42px] max-w-[760px] self-center w-full" showsVerticalScrollIndicator={false}>
         <ReadinessHero score={score} completed={completed} total={signals.length} />
 
-        <View className="flex-row gap-2.5 items-center p-3.5 rounded-[17px] bg-[#FFF2D9] border border-[#EDD49A]">
+        <View className="flex-row gap-2.5 items-center p-3.5 rounded-[17px] bg-[#FFF8E9] border border-[#F4D170]">
           <MiniPremiumIcon name="eye-off-outline" tone="gold" size={34} iconSize={16} />
-          <Text className="flex-1 font-poppins-regular text-[10.5px] leading-[15px] text-[#6A4C1B]">
+          <Text className="flex-1 font-poppins-regular text-[10.5px] leading-[15px] text-[#2B1A1E]">
             This is not a compatibility score. Only you can see it, and it never changes how you are ranked.
           </Text>
         </View>
 
-        <Text className="font-poppins-bold text-[10px] tracking-[1.35px] text-[#C44369] mt-0.5">YOUR PRIVATE CHECK-IN</Text>
+        <Text className="font-poppins-bold text-[10px] tracking-[1.35px] text-[#D45B7A] mt-0.5">YOUR PRIVATE CHECK-IN</Text>
 
         <ReadinessSignalList signals={signals} />
 
-        <View className="flex-row gap-3 p-[15px] rounded-[20px] bg-[#F9E9EF] border border-[#F1C7D5]">
+        <View className="flex-row gap-3 p-[15px] rounded-[20px] bg-[#F7E4E8] border border-[#E9D9D0]">
           <MiniPremiumIcon name="sparkles-outline" tone="ruby" size={42} iconSize={19} />
           <View className="flex-1">
             <Text className="font-poppins-bold text-[14px] text-plum">Want a little clarity?</Text>
-            <Text className="font-poppins-regular text-[10.5px] leading-[15px] text-[#73545C] mt-0.5">
+            <Text className="font-poppins-regular text-[10.5px] leading-[15px] text-[#76686C] mt-0.5">
               Use the Relationship Coach for a thoughtful profile review, a first-message draft, or a private post-date reflection.
             </Text>
           </View>
@@ -95,7 +95,7 @@ export function RelationshipReadinessScreen({
             <Ionicons name="sparkles-outline" size={18} color={colors.ivory} />
             <Text className="font-poppins-bold text-[12.5px] text-ivory">Open Relationship Coach</Text>
           </Pressable>
-          <Pressable onPress={onOpenProfile} className="h-12 rounded-[17px] bg-white border border-[#E5D4CE] items-center justify-center flex-row gap-1.5">
+          <Pressable onPress={onOpenProfile} className="h-12 rounded-[17px] bg-white border border-[#E9D9D0] items-center justify-center flex-row gap-1.5">
             <Text className="font-poppins-bold text-[12px] text-plum">Review my profile</Text>
             <Ionicons name="arrow-forward" size={17} color={colors.plum} />
           </Pressable>

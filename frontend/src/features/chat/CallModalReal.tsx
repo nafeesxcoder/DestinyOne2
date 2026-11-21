@@ -170,7 +170,7 @@ function CircleButton({
       <Ionicons
         name={icon}
         size={danger ? 28 : 24}
-        color={danger ? "#FFFDFC" : active ? "#F6DFA3" : "#FFFDFC"}
+        color={danger ? "#FFFDFC" : active ? "#F4D170" : "#FFFDFC"}
       />
     </Pressable>
   );
@@ -524,7 +524,7 @@ export function CallModal({
           </View>
         ) : (
           <LinearGradient
-            colors={["#3A0714", "#150309", "#080103"]}
+            colors={["#390006", "#150309", "#080103"]}
             style={StyleSheet.absoluteFill}
           />
         )}
@@ -636,7 +636,7 @@ export function CallModal({
                   <Ionicons
                     name="lock-closed-outline"
                     size={18}
-                    color="#F4C5CD"
+                    color="#E9D9D0"
                   />
                   <Text style={callStyles.permissionText}>
                     {engine.error || "Calling is unavailable right now."}

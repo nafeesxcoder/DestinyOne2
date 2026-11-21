@@ -17,8 +17,8 @@ export function RewardAndDemoSection({
 }) {
   return (
     <>
-      <View className="p-[15px] rounded-[20px] bg-[#FFF8E8] border border-[#67531A] flex-row items-center gap-3">
-        <View className="w-[43px] h-[43px] rounded-[22px] bg-[#F8ECD0] items-center justify-center">
+      <View className="p-[15px] rounded-[20px] bg-[#FBF7F2] border border-[#2B1A1E] flex-row items-center gap-3">
+        <View className="w-[43px] h-[43px] rounded-[22px] bg-[#FFF8E9] items-center justify-center">
           <Ionicons name="gift" size={23} color={colors.gold} />
         </View>
         <View className="flex-1">
@@ -34,7 +34,7 @@ export function RewardAndDemoSection({
       </View>
 
       {rewardMode === 'demo' ? (
-        <View className="p-4 rounded-[20px] bg-[#FFF7F7] border border-line gap-2.5">
+        <View className="p-4 rounded-[20px] bg-[#FFFDFC] border border-line gap-2.5">
           <Text className="font-poppins-bold text-[10px] tracking-[1.2px] text-gold">MVP PREVIEW</Text>
           <Text className="font-poppins-regular text-[12.5px] text-muted">
             Simulate a friend response to preview how trust qualities appear.
@@ -57,7 +57,7 @@ export function RewardAndDemoSection({
           </View>
         </View>
       ) : (
-        <View className="p-4 rounded-[20px] bg-[#FFF7F7] border border-line gap-2.5">
+        <View className="p-4 rounded-[20px] bg-[#FFFDFC] border border-line gap-2.5">
           <Text className="font-poppins-bold text-[10px] tracking-[1.2px] text-gold">SECURE VERIFICATION REQUIRED</Text>
           <Text className="font-poppins-regular text-[12.5px] text-muted">
             Friend responses and rewards stay unavailable until the verified invite backend is active.

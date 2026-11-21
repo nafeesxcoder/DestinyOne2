@@ -5,7 +5,7 @@ export const colors = {
   plum: '#2B1A1E',
   plumLight: '#F4DDE1',
   surface: '#FFFDFC',
-  surface2: '#FFF8F4',
+  surface2: '#FFFDFC',
   purple: '#5B2384',
   purpleDeep: '#35104F',
   purpleLight: '#8B58B0',
@@ -17,7 +17,7 @@ export const colors = {
   ivory: '#2B1A1E',
   muted: '#76686C',
   line: '#E9D9D0',
-  danger: '#B42343',
+  danger: '#D45B7A',
   // Explicit semantic tokens prevent light-card and velvet-panel text from sharing a color.
   canvas: '#FBF7F2',
   text: '#2B1A1E',
@@ -25,9 +25,9 @@ export const colors = {
   blush: '#F9EDEF',
   blushSoft: '#F4DDE1',
   selectedSurface: '#F7E4E8',
-  selectedBorder: '#C97D8D',
+  selectedBorder: '#D45B7A',
   wine: '#B30C3D',
-  wineDeep: '#6E1028',
+  wineDeep: '#7C0015',
 };
 
 export const radius = { sm: 12, md: 18, lg: 28, pill: 999 };

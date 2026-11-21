@@ -41,21 +41,21 @@ export function DateSafetyConciergeScreen({
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FFF9F6]" edges={['top']}>
-      <View className="h-[72px] px-5 flex-row items-center gap-3 border-b border-[#F0DDD6]">
-        <Pressable onPress={onBack} className="w-[42px] h-[42px] rounded-[21px] items-center justify-center bg-white border border-[#EAD7D0]">
+    <SafeAreaView className="flex-1 bg-[#FFFDFC]" edges={['top']}>
+      <View className="h-[72px] px-5 flex-row items-center gap-3 border-b border-[#E9D9D0]">
+        <Pressable onPress={onBack} className="w-[42px] h-[42px] rounded-[21px] items-center justify-center bg-white border border-[#E9D9D0]">
           <Ionicons name="arrow-back" size={21} color={colors.plum} />
         </Pressable>
         <View className="flex-1">
-          <Text className="font-poppins-bold text-[10px] tracking-[1.2px] text-[#B88624]">DATE SAFETY CONCIERGE</Text>
+          <Text className="font-poppins-bold text-[10px] tracking-[1.2px] text-[#B98A2F]">DATE SAFETY CONCIERGE</Text>
           <Text className="font-poppins-bold text-[18px] text-plum">Plan for a calm night out</Text>
         </View>
       </View>
       <ScrollView contentContainerClassName="w-full max-w-[760px] self-center p-5 gap-[15px] pb-10" showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#321018', '#6B1427']} className="p-[21px] rounded-[24px] items-center gap-2.5">
+        <LinearGradient colors={['#2B1A1E', '#7C0015']} className="p-[21px] rounded-[24px] items-center gap-2.5">
           <PremiumIcon name="shield-checkmark" tone="gold" size={56} iconSize={26} />
           <Text className="font-poppins-bold text-[20px] text-ivory">Safety can stay simple.</Text>
-          <Text className="font-poppins-regular text-[10.8px] leading-[16px] text-[#ECD0D5] text-center">
+          <Text className="font-poppins-regular text-[10.8px] leading-[16px] text-[#E9D9D0] text-center">
             Create a private check-in plan for your date with {partner.name}. Your exact live location is never shared by default.
           </Text>
         </LinearGradient>
@@ -77,12 +77,12 @@ export function DateSafetyConciergeScreen({
         </Pressable>
 
         {saved && (
-          <Text className="font-poppins-semibold text-[10px] leading-[15px] text-center text-[#7A5E26]">
+          <Text className="font-poppins-semibold text-[10px] leading-[15px] text-center text-[#B98A2F]">
             {saveStatus || `Your check-in is set for ${arrival}${contact ? ` and ${contact} is listed as your trusted contact.` : '.'}`}
           </Text>
         )}
 
-        <Pressable onPress={onOpenDatePlan} className="h-[49px] rounded-[17px] bg-white border border-[#E2D3CE] px-3.5 flex-row items-center gap-2">
+        <Pressable onPress={onOpenDatePlan} className="h-[49px] rounded-[17px] bg-white border border-[#E9D9D0] px-3.5 flex-row items-center gap-2">
           <Ionicons name="calendar-outline" size={18} color={colors.plum} />
           <Text className="flex-1 font-poppins-bold text-[11px] text-plum">Choose a public date place</Text>
           <Ionicons name="arrow-forward" size={17} color={colors.plum} />

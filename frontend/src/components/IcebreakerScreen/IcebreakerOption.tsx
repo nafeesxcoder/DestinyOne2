@@ -19,7 +19,7 @@ export function IcebreakerOption({
       disabled={disabled}
       onPress={onPress}
       className={`p-[18px] rounded-[18px] border flex-row items-center ${
-        selected ? 'border-[#C97D8D] bg-[#F7E4E8] shadow-[0_4px_10px_rgba(179,12,61,.08)]' : 'border-line bg-surface'
+        selected ? 'border-[#D45B7A] bg-[#F7E4E8] shadow-[0_4px_10px_rgba(179,12,61,.08)]' : 'border-line bg-surface'
       } ${disabled ? 'opacity-70' : ''}`}
     >
       <Text className={`flex-1 font-poppins-semibold text-[14px] ${selected ? 'text-[#2B1A1E]' : 'text-ivory'}`}>{label}</Text>

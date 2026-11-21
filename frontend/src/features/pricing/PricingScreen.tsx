@@ -95,9 +95,9 @@ export function Pricing({
   const [sparksOpen, setSparksOpen] = useState(false);
   const [checkout, setCheckout] = useState<CheckoutPlan | null>(null);
   const planAccent: Record<string, string> = {
-    Base: "#B43A4B",
+    Base: "#D45B7A",
     Plus: colors.gold,
-    Elite: "#FF6E80",
+    Elite: "#D45B7A",
   };
   const restorePurchases = async () => {
     setRestoring(true);
@@ -267,10 +267,10 @@ export function Pricing({
               <Text style={[styles.kicker, { color: colors.wine }]}>
                 DESTINY PASS
               </Text>
-              <Text style={[styles.cardTitle, { color: "#2B171D" }]}>
+              <Text style={[styles.cardTitle, { color: "#2B1A1E" }]}>
                 Invite a verified friend. Get Base free for 7 days.
               </Text>
-              <Text style={[styles.helper, { color: "#5A5557" }]}>
+              <Text style={[styles.helper, { color: "#76686C" }]}>
                 Tap to share your private link. The pass begins after profile
                 verification and referral checks.
               </Text>
@@ -316,7 +316,7 @@ export function Pricing({
                     <Text style={[styles.kicker, { color: colors.gold }]}>
                       DESTINYONE {plan.name.toUpperCase()}
                     </Text>
-                    <Text style={[pricingStyles.planFor, { color: "#5A5557" }]}>
+                    <Text style={[pricingStyles.planFor, { color: "#76686C" }]}>
                       {plan.forLabel}
                     </Text>
                   </View>
@@ -324,7 +324,7 @@ export function Pricing({
                     <Text
                       style={[
                         styles.popularText,
-                        plan.recommended && { color: "#2A1205" },
+                        plan.recommended && { color: "#2B1A1E" },
                       ]}
                     >
                       {plan.tag.toUpperCase()}
@@ -335,7 +335,7 @@ export function Pricing({
                   <Text style={[styles.price, { color: colors.wine }]}>
                     {price}
                   </Text>
-                  <Text style={[styles.per, { color: "#5A5557" }]}>
+                  <Text style={[styles.per, { color: "#76686C" }]}>
                     {period}
                   </Text>
                   {billing === "annual" && (
@@ -393,7 +393,7 @@ export function Pricing({
                     size={24}
                     iconSize={11}
                   />
-                  <Text style={[launchStyles.secureText, { color: "#C9B8BD" }]}>
+                  <Text style={[launchStyles.secureText, { color: "#CDB5BB" }]}>
                     Restore anytime · Cancel in store settings
                   </Text>
                 </View>
@@ -433,7 +433,7 @@ export function Pricing({
                 >
                   {executivePlan.name}
                 </Text>
-                <Text style={[pricingStyles.planFor, { color: "#C9B8BD" }]}>
+                <Text style={[pricingStyles.planFor, { color: "#CDB5BB" }]}>
                   {executivePlan.forLabel}
                 </Text>
               </View>
@@ -442,7 +442,7 @@ export function Pricing({
               <Text style={[styles.price, { color: colors.gold }]}>
                 {formatMoney(executivePlan.priceCents)}
               </Text>
-              <Text style={[styles.per, { color: "#C9B8BD" }]}>
+              <Text style={[styles.per, { color: "#CDB5BB" }]}>
                 {executivePlan.period}
               </Text>
             </View>
@@ -485,7 +485,7 @@ export function Pricing({
                 });
               }}
             />
-            <Text style={[styles.helper, { color: "#C9B8BD" }]}>
+            <Text style={[styles.helper, { color: "#CDB5BB" }]}>
               Application approval is required before annual billing. Sensitive
               verification is private.
             </Text>
@@ -505,10 +505,10 @@ export function Pricing({
           >
             <PremiumIcon name="sparkles" tone="gold" size={42} iconSize={19} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: "#2B171D" }]}>
+              <Text style={[styles.cardTitle, { color: "#2B1A1E" }]}>
                 Golden Spark packs
               </Text>
-              <Text style={[styles.helper, { color: "#5A5557" }]}>
+              <Text style={[styles.helper, { color: "#76686C" }]}>
                 Optional extras after your daily free Spark
               </Text>
             </View>
@@ -539,7 +539,7 @@ export function Pricing({
                 />
               </View>
               <View style={{ flex: 1, gap: 7 }}>
-                <Text style={[aiStyles.roseTitle, { color: "#2B171D" }]}>
+                <Text style={[aiStyles.roseTitle, { color: "#2B1A1E" }]}>
                   Choose a Spark pack
                 </Text>
                 <View style={pricingStyles.sparkGrid}>
@@ -581,7 +581,7 @@ export function Pricing({
                         {pack.sparks}
                       </Text>
                       <Text
-                        style={[pricingStyles.sparkLabel, { color: "#5A5557" }]}
+                        style={[pricingStyles.sparkLabel, { color: "#76686C" }]}
                       >
                         Sparks
                       </Text>
@@ -619,10 +619,10 @@ export function Pricing({
               iconSize={21}
             />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: "#2B171D" }]}>
+              <Text style={[styles.cardTitle, { color: "#2B1A1E" }]}>
                 Restore purchases
               </Text>
-              <Text style={[styles.helper, { color: "#5A5557" }]}>
+              <Text style={[styles.helper, { color: "#76686C" }]}>
                 {restoreStatus}
               </Text>
             </View>
@@ -631,7 +631,7 @@ export function Pricing({
               onPress={() => void restorePurchases()}
               style={pricingStyles.restoreButton}
             >
-              <Text style={[pricingStyles.restoreText, { color: "#2B171D" }]}>
+              <Text style={[pricingStyles.restoreText, { color: "#2B1A1E" }]}>
                 {restoring ? "Checking…" : "Restore"}
               </Text>
             </Pressable>
@@ -654,10 +654,10 @@ export function Pricing({
                 iconSize={21}
               />
               <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={[styles.cardTitle, { color: "#2B171D" }]}>
+                <Text style={[styles.cardTitle, { color: "#2B1A1E" }]}>
                   Membership & billing help
                 </Text>
-                <Text style={[styles.helper, { color: "#5A5557" }]}>
+                <Text style={[styles.helper, { color: "#76686C" }]}>
                   Manage renewal in your app-store account. Refunds, duplicate
                   charges and chargebacks open a traceable support case.
                 </Text>
@@ -724,17 +724,17 @@ export function Pricing({
               iconSize={21}
             />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: "#2B171D" }]}>
+              <Text style={[styles.cardTitle, { color: "#2B1A1E" }]}>
                 Clear payments, no surprises
               </Text>
-              <Text style={[styles.helper, { color: "#5A5557" }]}>
+              <Text style={[styles.helper, { color: "#76686C" }]}>
                 Subscriptions, coins and Spark packs use official in-app
                 billing. Apple Pay is reserved for optional real-world date
                 venue holds.
               </Text>
             </View>
           </View>
-          <Text style={[styles.legal, { paddingBottom: 10, color: "#5A5557" }]}>
+          <Text style={[styles.legal, { paddingBottom: 10, color: "#76686C" }]}>
             Cancel anytime. Your subscription renews through your app store
             account.
           </Text>
@@ -901,10 +901,10 @@ function MembershipCheckoutSheet({
             <LinearGradient
               colors={
                 plan.executive
-                  ? ["#3B2D09", "#FFFDFC"]
+                  ? ["#2B1A1E", "#FFFDFC"]
                   : plan.kind === "spark_pack"
-                    ? ["#3B2208", "#FFFDFC"]
-                    : ["#3A0710", "#FFFDFC"]
+                    ? ["#2B1A1E", "#FFFDFC"]
+                    : ["#390006", "#FFFDFC"]
               }
               style={pricingStyles.checkoutHero}
             >

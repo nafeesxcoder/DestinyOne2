@@ -66,14 +66,14 @@ export function ReferralWelcomeOffer({
 
             <View className="flex-row items-center justify-between p-3 rounded-lg bg-[rgba(212,175,55,.08)] border border-[rgba(212,175,55,.24)]">
               <View>
-                <Text className="font-poppins-bold text-[7.8px] tracking-[1.1px] text-[#C8AD63]">YOUR INVITE CODE</Text>
+                <Text className="font-poppins-bold text-[7.8px] tracking-[1.1px] text-[#F4D170]">YOUR INVITE CODE</Text>
                 <Text className="font-poppins-bold text-[15px] text-espresso mt-0.5">{referralCode}</Text>
               </View>
               <MiniPremiumIcon name="link" tone="dark" size={34} iconSize={16} />
             </View>
 
             {!!shareStatus && (
-              <Text className="font-poppins-bold text-[10px] leading-[15px] text-[#7C5B16] text-center">{shareStatus}</Text>
+              <Text className="font-poppins-bold text-[10px] leading-[15px] text-[#B98A2F] text-center">{shareStatus}</Text>
             )}
 
             <View className={`gap-2 ${wide ? 'flex-row' : ''}`}>
@@ -89,7 +89,7 @@ export function ReferralWelcomeOffer({
               <Text className="font-poppins-semibold text-[11px] text-muted">Maybe later</Text>
             </Pressable>
 
-            <Text className="font-poppins-regular text-[10.5px] leading-4 text-center text-[#806D7D]">
+            <Text className="font-poppins-regular text-[10.5px] leading-4 text-center text-[#76686C]">
               One reward per verified friend. Self-referrals and duplicate accounts are not eligible. Safety and privacy tools remain
               free for everyone.
             </Text>

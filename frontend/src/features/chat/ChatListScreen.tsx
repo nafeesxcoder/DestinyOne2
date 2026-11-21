@@ -18,8 +18,8 @@ import { getChatSocket } from "../../api/chatSocket";
 
 const backgroundImage = require("../../../assets/background.png");
 
-const ink = "#2A0A10";
-const muted = "#6E5A5E";
+const ink = "#2B1A1E";
+const muted = "#76686C";
 const ruby = "#7C0015";
 const unreadRed = "#E5092F";
 
@@ -307,7 +307,7 @@ export function ChatListScreen({
 }
 
 const listStyles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFF7F7", overflow: "hidden" },
+  root: { flex: 1, backgroundColor: "#FFFDFC", overflow: "hidden" },
   header: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 10 },
   title: { fontSize: 30, fontWeight: "800", color: ink },
   subtitle: { marginTop: 2, fontSize: 13, color: ruby, fontWeight: "600" },
@@ -354,7 +354,7 @@ const listStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(124,0,21,.18)",
   },
-  avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#F3E3E6" },
+  avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#F7E4E8" },
   avatarFallback: { alignItems: "center", justifyContent: "center", backgroundColor: ruby },
   avatarInitial: { color: "#FFFFFF", fontSize: 22, fontWeight: "700" },
   rowBody: { flex: 1, minWidth: 0, gap: 4 },

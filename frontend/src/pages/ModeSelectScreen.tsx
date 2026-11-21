@@ -48,7 +48,7 @@ export function ModeSelectScreen({
           <ModeOptionCard key={option.mode} option={option} selected={mode === option.mode} onPress={() => onChange(option.mode)} />
         ))}
       </View>
-      <View className="p-4 gap-4 rounded-2xl bg-[#FFF8F4] border border-line flex-row items-center">
+      <View className="p-4 gap-4 rounded-2xl bg-[#FFFDFC] border border-line flex-row items-center">
         <ReferenceIconTile name="lock-closed" orbSize={30} iconSize={13} tilePadding={10} />
         <View className="flex-1">
           <Text className="font-poppins-bold text-[13.5px] leading-[18px] text-espresso">Your choice stays private.</Text>

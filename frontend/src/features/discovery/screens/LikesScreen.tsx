@@ -17,7 +17,7 @@ const backgroundImage = require("../../../../assets/background.png");
 
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={backgroundImage}
         resizeMode="cover"
@@ -105,7 +105,7 @@ export function LikesScreen({
               </Text>
             </View>
           )}
-          <View style={[shared.card, { gap: 14, borderColor: "#6C5520" }]}>
+          <View style={[shared.card, { gap: 14, borderColor: "#2B1A1E" }]}>
             <PremiumIcon name="sparkles" tone="gold" size={48} iconSize={22} />
             <Text style={styles.cardTitle}>See who chose you</Text>
             <Text style={shared.body}>

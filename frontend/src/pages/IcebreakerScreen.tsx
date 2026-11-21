@@ -37,7 +37,7 @@ export function IcebreakerScreen({
         <Text className="font-poppins-bold text-[9.5px] tracking-[1.7px] text-pinkSoft">YOUR FIRST MOMENT</Text>
         <View className="flex-row">
           <Image source={{ uri: match.photo }} className="w-[58px] h-[58px] rounded-[29px] border-2 border-black" />
-          <View className="w-[58px] h-[58px] rounded-[29px] border-2 border-black bg-[#3A1820] items-center justify-center -ml-[9px]">
+          <View className="w-[58px] h-[58px] rounded-[29px] border-2 border-black bg-[#2B1A1E] items-center justify-center -ml-[9px]">
             <Text className="font-poppins-bold text-[20px] text-ivory">A</Text>
           </View>
         </View>

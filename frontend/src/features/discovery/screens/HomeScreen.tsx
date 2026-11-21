@@ -240,7 +240,7 @@ export function HomeScreen({
                   {item.screen === "home" && (
                     <LinearGradient
                       pointerEvents="none"
-                      colors={["#250008", "#650016", "#9F0A2D"]}
+                      colors={["#2B1A1E", "#7C0015", "#B30C3D"]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={homeCleanStyles.railItemFill}
@@ -269,7 +269,7 @@ export function HomeScreen({
               onPress={() => navigate("pricing")}
               style={homeCleanStyles.premiumRailCard}
             >
-              <GlowIcon icon="diamond" size={54} glowColor="#D4AF37" />
+              <GlowIcon icon="diamond" size={54} glowColor="#B98A2F" />
               <Text style={homeCleanStyles.premiumRailTitle}>
                 DESTINYONE PREMIUM
               </Text>
@@ -279,7 +279,7 @@ export function HomeScreen({
               <View style={homeCleanStyles.upgradePill}>
                 <LinearGradient
                   pointerEvents="none"
-                  colors={["#240006", "#650016", "#980126"]}
+                  colors={["#2B1A1E", "#7C0015", "#B30C3D"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={homeCleanStyles.upgradeFill}
@@ -473,14 +473,14 @@ export function HomeScreen({
                 onPress={() => navigate("discovery")}
                 style={homeCleanStyles.crossedMini}
               >
-                <GlowIcon icon="location" size={32} glowColor="#D4AF37" />
+                <GlowIcon icon="location" size={32} glowColor="#B98A2F" />
                 <Text style={homeCleanStyles.crossedText}>
                   Crossed paths is on — nearby profiles are included privately.
                 </Text>
                 <GlowIcon
                   icon="chevron-forward"
                   size={28}
-                  glowColor="#D4AF37"
+                  glowColor="#B98A2F"
                 />
               </Pressable>
             )}
@@ -573,7 +573,7 @@ export function HomeScreen({
               style={giftMarketplaceStyles.homeEntry}
             >
               <LinearGradient
-                colors={["#4A0010", "#9D0A2E", "#D02B51"]}
+                colors={["#390006", "#B30C3D", "#D45B7A"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}

@@ -11,7 +11,7 @@ import { MatchFaces } from '../components/MutualMatchScreen/MatchFaces';
 
 export function MutualMatchScreen({ match, next, back }: { match: Match; next: () => void; back: () => void }) {
   return (
-    <LinearGradient colors={['#2E0710', colors.black, colors.black]} className="flex-1 items-center justify-center">
+    <LinearGradient colors={['#390006', colors.black, colors.black]} className="flex-1 items-center justify-center">
       <SafeAreaView className="items-center justify-center gap-[26px]" style={shared.safe}>
         <Text className="font-poppins-bold text-[9.5px] tracking-[1.7px] text-pinkSoft">A NEW BEGINNING</Text>
 

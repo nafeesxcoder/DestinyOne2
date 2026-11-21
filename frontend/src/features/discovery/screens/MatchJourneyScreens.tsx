@@ -15,7 +15,7 @@ const backgroundImage = require("../../../../assets/background.png");
 
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={backgroundImage}
         resizeMode="cover"
@@ -66,7 +66,7 @@ export function MutualMatchScreen({
                 styles.face,
                 {
                   right: 0,
-                  backgroundColor: "#3A1820",
+                  backgroundColor: "#2B1A1E",
                   alignItems: "center",
                   justifyContent: "center",
                 },
@@ -138,7 +138,7 @@ export function IcebreakerScreen({
               style={[
                 styles.miniFace,
                 {
-                  backgroundColor: "#3A1820",
+                  backgroundColor: "#2B1A1E",
                   alignItems: "center",
                   justifyContent: "center",
                   marginLeft: -9,

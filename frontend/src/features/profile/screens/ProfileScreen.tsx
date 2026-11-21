@@ -293,7 +293,7 @@ export function ProfileScreen({
             </Pressable>
           </View>
           <LinearGradient
-            colors={["#FBE8EC", "#FFF9F7", "#FFF7E6"]}
+            colors={["#F7E4E8", "#FFFDFC", "#FBF7F2"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={profilePremiumStyles.hero}
@@ -602,7 +602,7 @@ export function ProfileScreen({
             onPress={() => navigate("pricing")}
           >
             <LinearGradient
-              colors={["#FCE9ED", "#FFF8EF"]}
+              colors={["#F9EDEF", "#FBF7F2"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={profilePremiumStyles.membershipCard}

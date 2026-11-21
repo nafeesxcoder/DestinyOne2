@@ -22,7 +22,7 @@ export function VouchProgressCard({ vouches }: { vouches: string[] }) {
           {vouches.map((value) => (
             <View key={value} className="flex-row items-center gap-1 px-2.5 py-1.5 rounded-[14px] bg-[rgba(229,9,47,.1)] border border-[rgba(229,9,47,.28)]">
               <Ionicons name="checkmark" size={12} color={colors.pinkSoft} />
-              <Text className="font-poppins-semibold text-[10px] text-[#F5D6DA]">{value}</Text>
+              <Text className="font-poppins-semibold text-[10px] text-[#F7E4E8]">{value}</Text>
             </View>
           ))}
         </View>

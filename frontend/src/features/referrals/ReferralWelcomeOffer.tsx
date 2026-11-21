@@ -36,7 +36,7 @@ export function ReferralWelcomeOffer({ visible, referralCode, onClose, onViewPla
     <View style={referralStyles.modalRoot}><Pressable style={chatStyles.modalBackdrop} onPress={onClose}/><SafeAreaView style={[chatStyles.sheet, referralStyles.sheet, wide && referralStyles.sheetWide, wide && { left: (width - wideSheetWidth) / 2, right: undefined, width: wideSheetWidth }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={referralStyles.scroll}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close referral offer" onPress={onClose} style={referralStyles.close}><Ionicons name="close" size={20} color="#FFFDFC"/></Pressable>
-        <LinearGradient colors={['#49100F', '#18070B']} style={referralStyles.hero}>
+        <LinearGradient colors={['#390006', '#2B1A1E']} style={referralStyles.hero}>
           <View style={referralStyles.giftHalo}><PremiumIcon name="gift" tone="gold" size={58} iconSize={27}/></View>
           <Text style={styles.kicker}>BETTER PEOPLE, BETTER MATCHES</Text>
           <Text style={referralStyles.title}>Invite a friend. Unlock a week.</Text>

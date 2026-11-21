@@ -45,7 +45,7 @@ const backgroundImage = require("../../../../assets/background.png");
    ========================================================= */
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={backgroundImage}
         resizeMode="cover"
@@ -312,7 +312,7 @@ export function AuthScreen({
                     placeholder={
                       country.dial === "+1" ? "(555) 000-0000" : "Phone number"
                     }
-                    placeholderTextColor="#6F6875"
+                    placeholderTextColor="#76686C"
                     selectionColor={colors.wine}
                     keyboardType="phone-pad"
                     value={phone}
@@ -450,7 +450,7 @@ export function AuthScreen({
           }}
         >
           <LinearGradient
-            colors={["#390006", "#7C0015", "#430009", "#210003"]}
+            colors={["#390006", "#7C0015", "#390006", "#210003"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -570,7 +570,7 @@ export function OtpScreen({
             keyboardType="number-pad"
             maxLength={6}
             placeholder="000000"
-            placeholderTextColor="#554E5B"
+            placeholderTextColor="#76686C"
             style={[styles.otpInput, error && { borderColor: colors.danger }]}
           />
           {error ? (
@@ -629,7 +629,7 @@ export function OtpScreen({
           }}
         >
           <LinearGradient
-            colors={["#390006", "#7C0015", "#430009", "#210003"]}
+            colors={["#390006", "#7C0015", "#390006", "#210003"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -791,7 +791,7 @@ export function VerificationScreen({
               verificationStyles.statusPill,
               {
                 backgroundColor: "#FFF8E9",
-                borderColor: "#E9CC83",
+                borderColor: "#F4D170",
                 borderWidth: 1,
               },
             ]}
@@ -799,9 +799,9 @@ export function VerificationScreen({
             <Ionicons
               name={verified ? "checkmark-circle" : "lock-closed"}
               size={13}
-              color="#6B4B1A"
+              color="#2B1A1E"
             />
-            <Text style={[verificationStyles.statusText, { color: "#6B4B1A" }]}>
+            <Text style={[verificationStyles.statusText, { color: "#2B1A1E" }]}>
               {verified ? "TRUST BADGE ACTIVE" : "PRIVATE CHECK"}
             </Text>
           </View>
@@ -814,7 +814,7 @@ export function VerificationScreen({
                 : "Let’s make it official."}
           </Text>
 
-          <Text style={[verificationStyles.body, { color: "#F5E6E8" }]}>
+          <Text style={[verificationStyles.body, { color: "#FBF7F2" }]}>
             {verified
               ? "Your trust badge is live. Your selfie stays private."
               : selfieUri && !preview
@@ -885,7 +885,7 @@ export function VerificationScreen({
           }}
         >
           <LinearGradient
-            colors={["#390006", "#7C0015", "#430009", "#210003"]}
+            colors={["#390006", "#7C0015", "#390006", "#210003"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{

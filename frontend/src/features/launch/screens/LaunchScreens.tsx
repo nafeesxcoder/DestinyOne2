@@ -30,7 +30,7 @@ function PremiumBackground({ children }: { children: ReactNode }) {
       style={{
         flex: 1,
         overflow: "hidden",
-        backgroundColor: "#FFF7F7",
+        backgroundColor: "#FFFDFC",
       }}
     >
       <Image
@@ -137,7 +137,7 @@ export function SplashScreen() {
           style={{ transform: [{ translateY }, { scale }] }}
         >
           <LinearGradient
-            colors={["#FFFFFF", "#D4AF37", "#9E001E"]}
+            colors={["#FFFFFF", "#B98A2F", "#B30C3D"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -168,16 +168,16 @@ export function SplashScreen() {
           </LinearGradient>
         </Animated.View>
 
-        <Text className="font-poppins-bold text-[30px] tracking-[.4px] text-[#2B171D] mt-[22px]">
-          Destiny<Text className="text-[#D4AF37]">One</Text>
+        <Text className="font-poppins-bold text-[30px] tracking-[.4px] text-[#2B1A1E] mt-[22px]">
+          Destiny<Text className="text-[#B98A2F]">One</Text>
         </Text>
 
         <View className="items-center w-[88%] max-w-[420px] mt-[18px] px-[18px] py-3.5 rounded-[22px] bg-white/[.62] border border-[rgba(184,132,98,.30)]">
-          <Text className="font-satisfy text-[26px] text-[#8F2449]">
+          <Text className="font-satisfy text-[26px] text-[#B30C3D]">
             For something real.
           </Text>
           <Animated.Text
-            className="font-poppins-bold text-[15px] leading-[22px] text-[#4A1F2C] mt-2 text-center tracking-[.15px]"
+            className="font-poppins-bold text-[15px] leading-[22px] text-[#7C0015] mt-2 text-center tracking-[.15px]"
             style={{
               opacity: wordsOpacity,
               transform: [{ translateY: wordsY }],
@@ -185,45 +185,45 @@ export function SplashScreen() {
           >
             Slow down. Choose better. Meet with intention.
           </Animated.Text>
-          <Text className="font-poppins-regular text-[13.5px] text-[#5D4750] mt-[7px] text-center">
+          <Text className="font-poppins-regular text-[13.5px] text-[#76686C] mt-[7px] text-center">
             Thoughtful dating, made personal.
           </Text>
 
-          <View className="flex-row items-center gap-2 mt-[18px] px-[13px] py-2 rounded-[20px] bg-white/[.82] border border-[#D7B887] flex-nowrap">
-            <View className="w-1 h-1 rounded-[2px] bg-[#D4AF37]" />
+          <View className="flex-row items-center gap-2 mt-[18px] px-[13px] py-2 rounded-[20px] bg-white/[.82] border border-[#F4D170] flex-nowrap">
+            <View className="w-1 h-1 rounded-[2px] bg-[#B98A2F]" />
             <Text
               numberOfLines={1}
-              className="font-poppins-semibold text-[8px] tracking-[1.25px] text-[#4A2732]"
+              className="font-poppins-semibold text-[8px] tracking-[1.25px] text-[#2B1A1E]"
             >
               VERIFIED
             </Text>
-            <View className="w-1 h-1 rounded-[2px] bg-[#D4AF37]" />
+            <View className="w-1 h-1 rounded-[2px] bg-[#B98A2F]" />
             <Text
               numberOfLines={1}
-              className="font-poppins-semibold text-[8px] tracking-[1.25px] text-[#4A2732]"
+              className="font-poppins-semibold text-[8px] tracking-[1.25px] text-[#2B1A1E]"
             >
               PRIVATE
             </Text>
-            <View className="w-1 h-1 rounded-[2px] bg-[#D4AF37]" />
+            <View className="w-1 h-1 rounded-[2px] bg-[#B98A2F]" />
             <Text
               numberOfLines={1}
-              className="font-poppins-semibold text-[8px] tracking-[1.25px] text-[#4A2732]"
+              className="font-poppins-semibold text-[8px] tracking-[1.25px] text-[#2B1A1E]"
             >
               INTENTIONAL
             </Text>
           </View>
         </View>
 
-        <View className="absolute bottom-[105px] w-[172px] h-1 rounded overflow-hidden bg-[#E1CFC5]">
+        <View className="absolute bottom-[105px] w-[172px] h-1 rounded overflow-hidden bg-[#E9D9D0]">
           <Animated.View
-            className="w-full h-full rounded bg-[#A30E38]"
+            className="w-full h-full rounded bg-[#B30C3D]"
             style={{
               transform: [{ scaleX: progress }],
               transformOrigin: "left",
             }}
           />
         </View>
-        <Text className="font-poppins-bold text-[10px] tracking-[2px] text-[#593246] absolute bottom-[94px]">
+        <Text className="font-poppins-bold text-[10px] tracking-[2px] text-[#7C0015] absolute bottom-[94px]">
           OPENING DESTINYONE
         </Text>
       </View>
@@ -242,8 +242,8 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
         <View className="pt-2 flex-row items-center">
           <Brand small />
           <View className="ml-auto flex-row items-center gap-1.5 px-2.5 py-[7px] rounded-[20px] bg-white/[.55] border border-[rgba(229,9,47,.28)]">
-            <View className="w-1.5 h-1.5 rounded-[3px] bg-[#A90024]" />
-            <Text className="font-poppins-semibold text-[9px] text-[#4A2732]">
+            <View className="w-1.5 h-1.5 rounded-[3px] bg-[#B30C3D]" />
+            <Text className="font-poppins-semibold text-[9px] text-[#2B1A1E]">
               For something real
             </Text>
           </View>
@@ -257,7 +257,7 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
             <Text
               style={{
                 fontSize: 25,
-                color: "#D83C62",
+                color: "#D45B7A",
                 textShadowColor: "rgba(229,9,47,.28)",
                 textShadowRadius: 8,
               }}
@@ -331,7 +331,7 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
             <View className="flex-row items-center mb-2">
               <Text
                 className="font-poppins-bold text-[13px] tracking-[2.5px]"
-                style={{ color: "#A36B1F" }}
+                style={{ color: "#B98A2F" }}
               >
                 SERIOUS STARTS HERE
               </Text>
@@ -340,22 +340,22 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
                   width: 85,
                   height: 2,
                   marginLeft: 12,
-                  backgroundColor: "#8D172C",
+                  backgroundColor: "#B30C3D",
                 }}
               />
             </View>
             <Text
               className="font-poppins-bold text-[38px] leading-[43px]"
-              style={{ color: "#171015" }}
+              style={{ color: "#2B1A1E" }}
             >
-              Meet <Text style={{ color: "#241017" }}>someone</Text>{" "}
-              <Text style={{ color: "#32121B" }}>who</Text>{" "}
-              <Text style={{ color: "#40131D" }}>means</Text>{" "}
-              <Text style={{ color: "#4B0A15" }}>it.</Text>
+              Meet <Text style={{ color: "#2B1A1E" }}>someone</Text>{" "}
+              <Text style={{ color: "#2B1A1E" }}>who</Text>{" "}
+              <Text style={{ color: "#390006" }}>means</Text>{" "}
+              <Text style={{ color: "#390006" }}>it.</Text>
             </Text>
             <Text
               className="font-poppins-regular text-[15px] leading-[22px] mt-2"
-              style={{ color: "#5A5557" }}
+              style={{ color: "#76686C" }}
             >
               Intentional South Asian dating across the USA and Canada.
             </Text>
@@ -366,7 +366,7 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
               icon="shield-checkmark"
               label="Verified"
               description="Real people. Real profiles."
-              iconColor="#FFD84D"
+              iconColor="#F4D170"
               glowColor="#E5092F"
             />
             <TrustPoint
@@ -388,7 +388,7 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
           <View className="gap-2.5 mt-1">
             <Pressable onPress={onNext} style={{ borderRadius: 32 }}>
               <LinearGradient
-                colors={["#390006", "#7C0015", "#430009", "#210003"]}
+                colors={["#390006", "#7C0015", "#390006", "#210003"]}
                 locations={[0, 0.45, 0.72, 1]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -417,7 +417,7 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
                     alignItems: "center",
                     justifyContent: "center",
                     backgroundColor: "transparent",
-                    shadowColor: "#FF3357",
+                    shadowColor: "#E5092F",
                     shadowOpacity: 0.65,
                     shadowRadius: 8,
                   }}
@@ -462,7 +462,7 @@ function TrustPoint({
     <View
       className="flex-1 rounded-[18px] bg-white/[.46] border border-[rgba(255,255,255,.70)] px-2.5 py-2.5"
       style={{
-        shadowColor: "#A50022",
+        shadowColor: "#B30C3D",
         shadowOpacity: 0.08,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 5 },
@@ -476,11 +476,11 @@ function TrustPoint({
           {/* 🚀 FIXED: numberOfLines={1} se label kabhi nahi tootega */}
           <Text
             numberOfLines={1}
-            className="font-poppins-bold text-[10px] text-[#170B0F]"
+            className="font-poppins-bold text-[10px] text-[#2B1A1E]"
           >
             {label}
           </Text>
-          <Text className="font-poppins-regular text-[7.5px] leading-[11px] text-[#5C4A50] mt-[2px]">
+          <Text className="font-poppins-regular text-[7.5px] leading-[11px] text-[#76686C] mt-[2px]">
             {description}
           </Text>
         </View>

@@ -22,7 +22,7 @@ const backgroundImage = require("../../../../assets/background.png");
 
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={backgroundImage}
         resizeMode="cover"
@@ -259,7 +259,7 @@ export function VibesScreen({
           }}
         >
           <LinearGradient
-            colors={["#390006", "#7C0015", "#430009", "#210003"]}
+            colors={["#390006", "#7C0015", "#390006", "#210003"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -395,7 +395,7 @@ export function IntentScreen({
           }}
         >
           <LinearGradient
-            colors={["#390006", "#7C0015", "#430009", "#210003"]}
+            colors={["#390006", "#7C0015", "#390006", "#210003"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -600,7 +600,7 @@ export function AlignmentScreen({
           }}
         >
           <LinearGradient
-            colors={["#390006", "#7C0015", "#430009", "#210003"]}
+            colors={["#390006", "#7C0015", "#390006", "#210003"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{

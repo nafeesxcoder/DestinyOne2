@@ -40,7 +40,7 @@ const backgroundImage = require("../../../../assets/background.png");
 
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={backgroundImage}
         resizeMode="cover"
@@ -218,7 +218,7 @@ export function ExploreHubScreen({
           showsVerticalScrollIndicator={false}
         >
           <LinearGradient
-            colors={["#FFF9F6", "#FCE9EB"]}
+            colors={["#FFFDFC", "#F9EDEF"]}
             style={[
               focusStyles.welcomeCard,
               wide && focusStyles.welcomeCardWide,
@@ -329,7 +329,7 @@ export function ExploreHubScreen({
                 colors={["rgba(212,175,55,.18)", "rgba(229,9,47,.08)"]}
                 style={StyleSheet.absoluteFill}
               />
-              <GlowIcon icon="briefcase" size={50} glowColor="#D4AF37" />
+              <GlowIcon icon="briefcase" size={50} glowColor="#B98A2F" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.kicker}>EXECUTIVE CIRCLE</Text>
                 <Text style={focusStyles.featureTitle}>
@@ -365,7 +365,7 @@ export function ExploreHubScreen({
             style={giftMarketplaceStyles.discoverEntry}
           >
             <LinearGradient
-              colors={["#500010", "#A50A31", "#D52E55"]}
+              colors={["#390006", "#B30C3D", "#D45B7A"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -398,7 +398,7 @@ export function ExploreHubScreen({
             style={conciergeStyles.entryCard}
           >
             <LinearGradient
-              colors={["#FFF5E6", "#FBE2E2"]}
+              colors={["#FBF7F2", "#F7E4E8"]}
               style={StyleSheet.absoluteFill}
             />
             <GlowIcon icon="calendar-outline" size={54} />

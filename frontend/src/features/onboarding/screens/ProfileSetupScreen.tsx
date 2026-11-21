@@ -74,7 +74,7 @@ async function uploadPhotoAsset(
 
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={backgroundImage}
         resizeMode="cover"
@@ -413,7 +413,7 @@ function ProfileOptionSheet({
               value={query}
               onChangeText={setQuery}
               placeholder={`Search ${title.toLowerCase()}`}
-              placeholderTextColor="#746A73"
+              placeholderTextColor="#76686C"
               style={selectorStyles.sheetSearchInput}
             />
             {!!query && (
@@ -462,7 +462,7 @@ function ProfileOptionSheet({
                 <Text
                   style={[
                     selectorStyles.optionTitle,
-                    selected && { color: "#F5DFA9" },
+                    selected && { color: "#F4D170" },
                   ]}
                 >
                   {option}
@@ -475,7 +475,7 @@ function ProfileOptionSheet({
                     iconSize={12}
                   />
                 ) : (
-                  <Ionicons name="chevron-forward" size={16} color="#786A74" />
+                  <Ionicons name="chevron-forward" size={16} color="#76686C" />
                 )}
               </Pressable>
             );
@@ -656,7 +656,7 @@ function CityPickerSheet({
                 placeholder={
                   country === "US" ? "Search state" : "Search province"
                 }
-                placeholderTextColor="#746A73"
+                placeholderTextColor="#76686C"
                 style={selectorStyles.sheetSearchInput}
               />
             </View>
@@ -681,7 +681,7 @@ function CityPickerSheet({
                     </Text>
                     <Text style={selectorStyles.optionBody}>{region.code}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color="#786A74" />
+                  <Ionicons name="chevron-forward" size={16} color="#76686C" />
                 </Pressable>
               ))}
             </ScrollView>
@@ -714,7 +714,7 @@ function CityPickerSheet({
                 value={cityQuery}
                 onChangeText={setCityQuery}
                 placeholder="Start typing your city"
-                placeholderTextColor="#746A73"
+                placeholderTextColor="#76686C"
                 style={selectorStyles.sheetSearchInput}
               />
               {!!cityQuery && (
@@ -789,7 +789,7 @@ function CityPickerSheet({
                     <Ionicons
                       name="chevron-forward"
                       size={16}
-                      color="#786A74"
+                      color="#76686C"
                     />
                   </Pressable>
                 ))}
@@ -1218,7 +1218,7 @@ export function ProfileSetupScreen({
           }}
         >
           <LinearGradient
-            colors={["#390006", "#7C0015", "#430009", "#210003"]}
+            colors={["#390006", "#7C0015", "#390006", "#210003"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{

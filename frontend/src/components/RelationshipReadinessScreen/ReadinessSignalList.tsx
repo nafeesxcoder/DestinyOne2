@@ -19,15 +19,15 @@ export function ReadinessSignalList({ signals }: { signals: ReadinessSignal[] })
         <View
           key={signal.label}
           className={`flex-row gap-2.5 items-center p-3.5 rounded-[18px] border ${
-            signal.done ? 'bg-[#FFFDF8] border-[#E7CC83]' : 'bg-white border-[#EBDCD7]'
+            signal.done ? 'bg-[#FFFDFC] border-[#F4D170]' : 'bg-white border-[#E9D9D0]'
           }`}
         >
           <MiniPremiumIcon name={signal.done ? 'checkmark' : 'ellipse-outline'} tone={signal.done ? 'gold' : 'dark'} size={34} iconSize={15} />
           <View className="flex-1">
             <Text className="font-poppins-bold text-[12.5px] text-plum">{signal.label}</Text>
-            <Text className="font-poppins-regular text-[10.5px] leading-[15px] text-[#75666B] mt-0.5">{signal.body}</Text>
+            <Text className="font-poppins-regular text-[10.5px] leading-[15px] text-[#76686C] mt-0.5">{signal.body}</Text>
           </View>
-          <Ionicons name={signal.icon} size={18} color={signal.done ? colors.gold : '#88747A'} />
+          <Ionicons name={signal.icon} size={18} color={signal.done ? colors.gold : '#76686C'} />
         </View>
       ))}
     </View>

@@ -12,12 +12,12 @@ const RULES = [
 
 export function SafetyRules() {
   return (
-    <View className="p-[15px] rounded-[21px] bg-[#FFF5E3] border border-[#ECD59D] gap-2.5">
+    <View className="p-[15px] rounded-[21px] bg-[#FFF8E9] border border-[#F4D170] gap-2.5">
       <Text className="font-poppins-bold text-[13px] text-plum">A good first-date standard</Text>
       {RULES.map((rule) => (
         <View key={rule} className="flex-row gap-2 items-start">
           <Ionicons name="checkmark-circle" size={16} color={colors.gold} />
-          <Text className="flex-1 font-poppins-regular text-[10px] leading-[14px] text-[#675344]">{rule}</Text>
+          <Text className="flex-1 font-poppins-regular text-[10px] leading-[14px] text-[#76686C]">{rule}</Text>
         </View>
       ))}
     </View>

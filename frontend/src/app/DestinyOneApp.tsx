@@ -287,13 +287,13 @@ function PremiumBackground({ children }: { children: ReactNode }) {
   return (
     <LinearGradient
       colors={[
-        "#FFF8F7",
-        "#FFECEF",
-        "#FFDDE4",
-        "#FBC8D1",
-        "#F8B9C4",
-        "#FFE8EB",
-        "#FFF7F5",
+        "#FFFDFC",
+        "#F9EDEF",
+        "#F7E4E8",
+        "#E9D9D0",
+        "#E9D9D0",
+        "#F9EDEF",
+        "#FFFDFC",
       ]}
       locations={[0, 0.15, 0.32, 0.52, 0.68, 0.84, 1]}
       start={{ x: 0, y: 0 }}

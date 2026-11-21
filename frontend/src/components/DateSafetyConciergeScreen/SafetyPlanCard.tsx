@@ -19,13 +19,13 @@ export function SafetyPlanCard({
   onChangeContact: (value: string) => void;
 }) {
   return (
-    <View className="p-4 rounded-[21px] bg-white border border-[#EADDD8] gap-3">
-      <Text className="font-poppins-bold text-[9px] tracking-[1.15px] text-[#C74A71]">YOUR PRIVATE PLAN</Text>
+    <View className="p-4 rounded-[21px] bg-white border border-[#E9D9D0] gap-3">
+      <Text className="font-poppins-bold text-[9px] tracking-[1.15px] text-[#D45B7A]">YOUR PRIVATE PLAN</Text>
 
       <View className="flex-row items-center gap-2.5">
         <View className="flex-1">
           <Text className="font-poppins-bold text-[13px] text-plum">Arrival check-in</Text>
-          <Text className="font-poppins-regular text-[10px] leading-[14px] text-[#77666B] mt-0.5">
+          <Text className="font-poppins-regular text-[10px] leading-[14px] text-[#76686C] mt-0.5">
             We will remind you to confirm that you got home safely.
           </Text>
         </View>
@@ -33,13 +33,13 @@ export function SafetyPlanCard({
           accessibilityRole="switch"
           accessibilityState={{ checked: checkIn }}
           onPress={onToggleCheckIn}
-          className={`w-[46px] h-[27px] rounded-[15px] p-[3px] ${checkIn ? 'bg-pink' : 'bg-[#D6C5C4]'}`}
+          className={`w-[46px] h-[27px] rounded-[15px] p-[3px] ${checkIn ? 'bg-pink' : 'bg-[#E9D9D0]'}`}
         >
           <View className={`w-[21px] h-[21px] rounded-[11px] bg-white ${checkIn ? 'ml-[19px]' : ''}`} />
         </Pressable>
       </View>
 
-      <Text className="font-poppins-bold text-[9px] tracking-[1.05px] text-[#A57319]">CHECK-IN TIME</Text>
+      <Text className="font-poppins-bold text-[9px] tracking-[1.05px] text-[#B98A2F]">CHECK-IN TIME</Text>
       <View className="flex-row gap-1.5">
         {TIME_OPTIONS.map((time) => {
           const active = arrival === time;
@@ -48,24 +48,24 @@ export function SafetyPlanCard({
               key={time}
               onPress={() => onChangeArrival(time)}
               className={`flex-1 min-h-9 rounded-xl items-center justify-center border ${
-                active ? 'bg-[#FFF0D0] border-[#D9B34B]' : 'border-[#E5D6D1]'
+                active ? 'bg-[#FFF8E9] border-[#F4D170]' : 'border-[#E9D9D0]'
               }`}
             >
-              <Text className={`font-poppins-semibold text-[9.5px] ${active ? 'text-plum' : 'text-[#77656A]'}`}>{time}</Text>
+              <Text className={`font-poppins-semibold text-[9.5px] ${active ? 'text-plum' : 'text-[#76686C]'}`}>{time}</Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Text className="font-poppins-bold text-[9px] tracking-[1.05px] text-[#A57319]">TRUSTED CONTACT (OPTIONAL)</Text>
+      <Text className="font-poppins-bold text-[9px] tracking-[1.05px] text-[#B98A2F]">TRUSTED CONTACT (OPTIONAL)</Text>
       <TextInput
         value={contact}
         onChangeText={onChangeContact}
         placeholder="Name or phone number"
-        placeholderTextColor="#9B8187"
-        className="h-11 rounded-[13px] px-3 border border-[#E4D5D1] font-poppins-regular text-[11px] text-plum"
+        placeholderTextColor="#76686C"
+        className="h-11 rounded-[13px] px-3 border border-[#E9D9D0] font-poppins-regular text-[11px] text-plum"
       />
-      <Text className="font-poppins-regular text-[9px] leading-[13px] text-[#89757A]">
+      <Text className="font-poppins-regular text-[9px] leading-[13px] text-[#76686C]">
         This stays private. A real alert is sent only after you choose to enable it in production.
       </Text>
     </View>

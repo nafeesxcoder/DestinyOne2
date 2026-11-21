@@ -99,7 +99,7 @@ export function CoupleHomeScreen({
     },
   ];
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={require("../../../../assets/background.png")}
         resizeMode="cover"
@@ -168,7 +168,7 @@ export function CoupleHomeScreen({
                 </Text>
               </View>
               <View style={coupleHomeStyles.heartSeal}>
-                <Ionicons name="heart" size={18} color="#2A1005" />
+                <Ionicons name="heart" size={18} color="#2B1A1E" />
               </View>
             </View>
             <Text style={coupleHomeStyles.heroEyebrow}>
@@ -261,7 +261,7 @@ export function CoupleHomeScreen({
                   <Ionicons
                     name="chevron-forward"
                     size={17}
-                    color="#D6C2C8"
+                    color="#E9D9D0"
                   />
                 )}
               </Pressable>

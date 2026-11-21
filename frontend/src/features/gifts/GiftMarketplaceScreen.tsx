@@ -725,7 +725,7 @@ export function GiftMarketplace({
           showsVerticalScrollIndicator={false}
         >
           <LinearGradient
-            colors={["#41000D", "#8E0926", "#C61C45"]}
+            colors={["#390006", "#7C0015", "#D45B7A"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[
@@ -756,7 +756,7 @@ export function GiftMarketplace({
                     <Ionicons
                       name="checkmark-circle"
                       size={14}
-                      color="#F6D87C"
+                      color="#F4D170"
                     />
                     <Text style={giftMarketplaceStyles.heroTrustText}>
                       {label}
@@ -801,7 +801,7 @@ export function GiftMarketplace({
             </View>
             <View style={giftMarketplaceStyles.progressTrack}>
               <LinearGradient
-                colors={["#C20A3A", "#E94C6A", "#C99B32"]}
+                colors={["#B30C3D", "#D45B7A", "#B98A2F"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[
@@ -923,7 +923,7 @@ export function GiftMarketplace({
               </View>
               <View style={giftMarketplaceStyles.confirmationCard}>
                 <View style={giftMarketplaceStyles.confirmationHeading}>
-                  <Ionicons name="notifications" size={18} color="#9A7417" />
+                  <Ionicons name="notifications" size={18} color="#B98A2F" />
                   <View style={{ flex: 1 }}>
                     <Text style={giftMarketplaceStyles.confirmationTitle}>
                       Confirmation center
@@ -947,7 +947,7 @@ export function GiftMarketplace({
                           : "phone-portrait-outline"
                       }
                       size={16}
-                      color="#8E0A2C"
+                      color="#7C0015"
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={giftMarketplaceStyles.confirmationLabel}>
@@ -1111,7 +1111,7 @@ export function GiftMarketplace({
                               name={icon}
                               size={13}
                               color={
-                                deliveryWindow === value ? "#3B1C08" : "#FBECEF"
+                                deliveryWindow === value ? "#2B1A1E" : "#FBF7F2"
                               }
                             />
                             <Text
@@ -1231,11 +1231,11 @@ export function GiftMarketplace({
                     onPress={runGiftConcierge}
                     style={giftMarketplaceStyles.conciergeButton}
                   >
-                    <Ionicons name="sparkles" size={18} color="#3B1C08" />
+                    <Ionicons name="sparkles" size={18} color="#2B1A1E" />
                     <Text style={giftMarketplaceStyles.conciergeButtonText}>
                       Build my surprise
                     </Text>
-                    <Ionicons name="arrow-forward" size={17} color="#3B1C08" />
+                    <Ionicons name="arrow-forward" size={17} color="#2B1A1E" />
                   </Pressable>
                   {conciergePlan && (
                     <View
@@ -1280,7 +1280,7 @@ export function GiftMarketplace({
                         })}
                       </View>
                       <View style={giftMarketplaceStyles.conciergeNote}>
-                        <Ionicons name="heart" size={16} color="#F5D373" />
+                        <Ionicons name="heart" size={16} color="#F4D170" />
                         <Text style={giftMarketplaceStyles.conciergeNoteText}>
                           “{conciergePlan.suggestedNote}”
                         </Text>
@@ -1294,7 +1294,7 @@ export function GiftMarketplace({
                             <Ionicons
                               name="checkmark-circle"
                               size={16}
-                              color="#F5D373"
+                              color="#F4D170"
                             />
                             <View style={{ flex: 1 }}>
                               <Text
@@ -1326,7 +1326,7 @@ export function GiftMarketplace({
                           <Ionicons
                             name="arrow-forward"
                             size={17}
-                            color="#3B1C08"
+                            color="#2B1A1E"
                           />
                         </Pressable>
                       ) : (
@@ -1359,13 +1359,13 @@ export function GiftMarketplace({
                   </View>
                   <View style={giftMarketplaceStyles.marketToolbar}>
                     <View style={giftMarketplaceStyles.searchBox}>
-                      <Ionicons name="search" size={17} color="#8E0A2C" />
+                      <Ionicons name="search" size={17} color="#7C0015" />
                       <TextInput
                         accessibilityLabel="Search gifts"
                         value={giftSearch}
                         onChangeText={setGiftSearch}
                         placeholder="Search flowers, date night, chocolate…"
-                        placeholderTextColor="#947B82"
+                        placeholderTextColor="#76686C"
                         style={giftMarketplaceStyles.searchInput}
                       />
                       {!!giftSearch && (
@@ -1377,7 +1377,7 @@ export function GiftMarketplace({
                           <Ionicons
                             name="close-circle"
                             size={19}
-                            color="#957D83"
+                            color="#76686C"
                           />
                         </Pressable>
                       )}
@@ -1444,7 +1444,7 @@ export function GiftMarketplace({
                             name="location-outline"
                             size={13}
                             color={
-                              marketCity === city.label ? "#FFF" : "#8E0A2C"
+                              marketCity === city.label ? "#FFF" : "#7C0015"
                             }
                           />
                           <Text
@@ -1516,7 +1516,7 @@ export function GiftMarketplace({
                         <Ionicons
                           name="swap-vertical"
                           size={14}
-                          color="#8E0A2C"
+                          color="#7C0015"
                         />
                         <ScrollView
                           horizontal
@@ -1821,7 +1821,7 @@ export function GiftMarketplace({
                     multiline
                     maxLength={160}
                     placeholder="Write a short, thoughtful note…"
-                    placeholderTextColor="#9A7E85"
+                    placeholderTextColor="#76686C"
                     style={giftMarketplaceStyles.noteInput}
                   />
                   <View style={giftMarketplaceStyles.noteFooter}>
@@ -1854,7 +1854,7 @@ export function GiftMarketplace({
                     <Ionicons
                       name="checkmark-circle"
                       size={22}
-                      color="#8B6B16"
+                      color="#B98A2F"
                     />
                   </View>
                 </View>
@@ -1932,8 +1932,8 @@ export function GiftMarketplace({
                         size={21}
                         color={
                           addressMode === "recipient_supplied_private"
-                            ? "#A17916"
-                            : "#BDA7AC"
+                            ? "#B98A2F"
+                            : "#CDB5BB"
                         }
                       />
                     </Pressable>
@@ -1976,8 +1976,8 @@ export function GiftMarketplace({
                         size={21}
                         color={
                           addressMode === "sender_supplied_known_address"
-                            ? "#A17916"
-                            : "#BDA7AC"
+                            ? "#B98A2F"
+                            : "#CDB5BB"
                         }
                       />
                     </Pressable>
@@ -2151,7 +2151,7 @@ export function GiftMarketplace({
                           }
                           size={21}
                           color={
-                            deliveryWindow === value ? "#A17916" : "#BDA7AC"
+                            deliveryWindow === value ? "#B98A2F" : "#CDB5BB"
                           }
                         />
                       </Pressable>
@@ -2247,7 +2247,7 @@ export function GiftMarketplace({
                     style={giftMarketplaceStyles.providerReadiness}
                   >
                     <View style={giftMarketplaceStyles.providerReadinessItem}>
-                      <Ionicons name="cube-outline" size={19} color="#8E0A2C" />
+                      <Ionicons name="cube-outline" size={19} color="#7C0015" />
                       <View style={{ flex: 1 }}>
                         <Text
                           style={giftMarketplaceStyles.providerReadinessTitle}
@@ -2267,7 +2267,7 @@ export function GiftMarketplace({
                       />
                     </View>
                     <View style={giftMarketplaceStyles.providerReadinessItem}>
-                      <Ionicons name="car-outline" size={19} color="#8E0A2C" />
+                      <Ionicons name="car-outline" size={19} color="#7C0015" />
                       <View style={{ flex: 1 }}>
                         <Text
                           style={giftMarketplaceStyles.providerReadinessTitle}
@@ -2314,7 +2314,7 @@ export function GiftMarketplace({
                         <Ionicons
                           name="time-outline"
                           size={15}
-                          color="#8E0A2C"
+                          color="#7C0015"
                         />
                         <Text style={giftMarketplaceStyles.liveEtaText}>
                           {quote.etaLabel}
@@ -2452,7 +2452,7 @@ export function GiftMarketplace({
                       <Ionicons
                         name="create-outline"
                         size={16}
-                        color="#8E0A2C"
+                        color="#7C0015"
                       />
                     </Pressable>
                   </View>
@@ -2557,7 +2557,7 @@ export function GiftMarketplace({
                         <Ionicons
                           name={icon}
                           size={21}
-                          color={paymentMethod === id ? "#FFF" : "#8E0A2C"}
+                          color={paymentMethod === id ? "#FFF" : "#7C0015"}
                         />
                         <View style={{ flex: 1 }}>
                           <Text
@@ -2586,7 +2586,7 @@ export function GiftMarketplace({
                               : "ellipse-outline"
                           }
                           size={20}
-                          color={paymentMethod === id ? "#F5D77B" : "#BDA7AC"}
+                          color={paymentMethod === id ? "#F4D170" : "#CDB5BB"}
                         />
                       </Pressable>
                     ))}
@@ -2597,7 +2597,7 @@ export function GiftMarketplace({
                         <Ionicons
                           name="lock-closed"
                           size={16}
-                          color="#8D6C16"
+                          color="#B98A2F"
                         />
                         <Text style={giftMarketplaceStyles.cardFormTitle}>
                           Secure card details
@@ -2689,7 +2689,7 @@ export function GiftMarketplace({
                     placeholder="you@example.com"
                   />
                   <View style={giftMarketplaceStyles.reviewNoteCard}>
-                    <Ionicons name="heart-outline" size={18} color="#A20B35" />
+                    <Ionicons name="heart-outline" size={18} color="#B30C3D" />
                     <View style={{ flex: 1 }}>
                       <Text style={giftMarketplaceStyles.reviewNoteLabel}>
                         YOUR NOTE
@@ -2707,7 +2707,7 @@ export function GiftMarketplace({
                       <Ionicons
                         name="create-outline"
                         size={16}
-                        color="#8E0A2C"
+                        color="#7C0015"
                       />
                     </Pressable>
                   </View>
@@ -2722,7 +2722,7 @@ export function GiftMarketplace({
                         <Ionicons
                           name="checkmark-circle"
                           size={17}
-                          color="#9B7517"
+                          color="#B98A2F"
                         />
                         <Text style={giftMarketplaceStyles.promiseText}>
                           {item}
@@ -2748,7 +2748,7 @@ export function GiftMarketplace({
                   >
                     <LinearGradient
                       pointerEvents="none"
-                      colors={["#740017", "#C20A3A", "#9A062C"]}
+                      colors={["#7C0015", "#B30C3D", "#B30C3D"]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={StyleSheet.absoluteFill}
@@ -2771,7 +2771,7 @@ export function GiftMarketplace({
                   </Text>
                   {!!error && (
                     <View style={giftMarketplaceStyles.errorCard}>
-                      <Ionicons name="alert-circle" size={18} color="#A80028" />
+                      <Ionicons name="alert-circle" size={18} color="#B30C3D" />
                       <Text style={giftMarketplaceStyles.errorText}>
                         {error}
                       </Text>
@@ -2978,7 +2978,7 @@ function GiftConciergeV2Card({
         onChangeText={(value) => setPrompt(value.slice(0, 500))}
         multiline
         placeholder={`${recipientName} needs cheering up, complete budget…`}
-        placeholderTextColor="#9A7E85"
+        placeholderTextColor="#76686C"
         style={giftMarketplaceStyles.aiPrompt}
       />
       <View style={giftMarketplaceStyles.noteFooter}>
@@ -3169,7 +3169,7 @@ function GiftMomentBuilder({
             <Ionicons
               name={icon}
               size={18}
-              color={active ? "#FFF" : "#8E0A2C"}
+              color={active ? "#FFF" : "#7C0015"}
             />
             <View style={{ flex: 1 }}>
               <Text
@@ -3183,7 +3183,7 @@ function GiftMomentBuilder({
               <Text
                 style={[
                   giftMarketplaceStyles.addonPrice,
-                  active ? { color: "#F8D9DF" } : undefined,
+                  active ? { color: "#F7E4E8" } : undefined,
                 ]}
               >
                 + {formatGiftMarketMoney(price, currency)}
@@ -3192,7 +3192,7 @@ function GiftMomentBuilder({
             <Ionicons
               name={active ? "checkmark-circle" : "ellipse-outline"}
               size={19}
-              color={active ? "#F5D77B" : "#BDA7AC"}
+              color={active ? "#F4D170" : "#CDB5BB"}
             />
           </Pressable>
         ))}
@@ -3218,7 +3218,7 @@ function GiftMomentBuilder({
                 <Ionicons
                   name={option.icon as keyof typeof Ionicons.glyphMap}
                   size={19}
-                  color={selected.enabled ? "#FFF" : "#8E0A2C"}
+                  color={selected.enabled ? "#FFF" : "#7C0015"}
                 />
                 <View style={{ flex: 1 }}>
                   <Text
@@ -3232,7 +3232,7 @@ function GiftMomentBuilder({
                   <Text
                     style={[
                       giftMarketplaceStyles.momentBody,
-                      selected.enabled && { color: "#F5DDE2" },
+                      selected.enabled && { color: "#F7E4E8" },
                     ]}
                   >
                     {option.description}
@@ -3243,7 +3243,7 @@ function GiftMomentBuilder({
                     selected.enabled ? "checkmark-circle" : "add-circle-outline"
                   }
                   size={20}
-                  color={selected.enabled ? "#F5D77B" : "#9B6C76"}
+                  color={selected.enabled ? "#F4D170" : "#76686C"}
                 />
               </Pressable>
               {selected.enabled && (
@@ -3260,7 +3260,7 @@ function GiftMomentBuilder({
                         ? "Write the arrival message…"
                         : "Add optional details…"
                   }
-                  placeholderTextColor="#CFAFB7"
+                  placeholderTextColor="#CDB5BB"
                   style={giftMarketplaceStyles.momentInput}
                 />
               )}
@@ -3436,7 +3436,7 @@ function GiftFinalPreviewCard({
   return (
     <View style={giftMarketplaceStyles.previewCard}>
       <LinearGradient
-        colors={["#FFF9F5", "#FCE7EA"]}
+        colors={["#FFFDFC", "#F7E4E8"]}
         style={giftMarketplaceStyles.previewHero}
       >
         <Image
@@ -3469,7 +3469,7 @@ function GiftFinalPreviewCard({
           onPress={onEditGift}
           style={giftMarketplaceStyles.editSummary}
         >
-          <Ionicons name="create-outline" size={16} color="#8E0A2C" />
+          <Ionicons name="create-outline" size={16} color="#7C0015" />
         </Pressable>
       </LinearGradient>
       <View style={giftMarketplaceStyles.previewDetails}>
@@ -3499,7 +3499,7 @@ function GiftFinalPreviewCard({
         ))}
       </View>
       <View style={giftMarketplaceStyles.reviewNoteCard}>
-        <Ionicons name="heart-outline" size={18} color="#A20B35" />
+        <Ionicons name="heart-outline" size={18} color="#B30C3D" />
         <View style={{ flex: 1 }}>
           <Text style={giftMarketplaceStyles.reviewNoteLabel}>
             PERSONAL NOTE
@@ -3512,7 +3512,7 @@ function GiftFinalPreviewCard({
           onPress={onEditPersonalize}
           style={giftMarketplaceStyles.editSummary}
         >
-          <Ionicons name="create-outline" size={16} color="#8E0A2C" />
+          <Ionicons name="create-outline" size={16} color="#7C0015" />
         </Pressable>
       </View>
       {activeMoments.length > 0 && (
@@ -3526,7 +3526,7 @@ function GiftFinalPreviewCard({
                 key={item.kind}
                 style={giftMarketplaceStyles.previewMomentPill}
               >
-                <Ionicons name="checkmark-circle" size={14} color="#8B6B16" />
+                <Ionicons name="checkmark-circle" size={14} color="#B98A2F" />
                 <Text style={giftMarketplaceStyles.previewMomentText}>
                   {
                     giftMomentOptions.find(
@@ -3544,7 +3544,7 @@ function GiftFinalPreviewCard({
         onPress={onEditDelivery}
         style={giftMarketplaceStyles.previewEditDelivery}
       >
-        <Ionicons name="calendar-outline" size={16} color="#8E0A2C" />
+        <Ionicons name="calendar-outline" size={16} color="#7C0015" />
         <Text style={giftMarketplaceStyles.previewEditDeliveryText}>
           Edit delivery & privacy
         </Text>
@@ -3720,7 +3720,7 @@ function GiftRecipientReactionCard({
             <Ionicons
               name={icon}
               size={19}
-              color={reaction === value ? "#FFF" : "#8E0A2C"}
+              color={reaction === value ? "#FFF" : "#7C0015"}
             />
             <Text
               style={[
@@ -3742,7 +3742,7 @@ function GiftRecipientReactionCard({
         }}
         multiline
         placeholder="Send a private thank-you message…"
-        placeholderTextColor="#9A7E85"
+        placeholderTextColor="#76686C"
         style={giftMarketplaceStyles.aiPrompt}
       />
       <Pressable
@@ -3855,12 +3855,12 @@ function GiftProductDetailSheet({
               <Ionicons
                 name={unavailable ? "alert-circle" : "checkmark-circle"}
                 size={15}
-                color={unavailable ? "#A20B35" : "#36734C"}
+                color={unavailable ? "#B30C3D" : "#36734C"}
               />
               <Text
                 style={[
                   giftMarketplaceStyles.stockText,
-                  unavailable && { color: "#A20B35" },
+                  unavailable && { color: "#B30C3D" },
                 ]}
               >
                 {product.availability === "low_stock"
@@ -3889,7 +3889,7 @@ function GiftProductDetailSheet({
                 {product.pickupPartnerName} · inventory refreshed securely
               </Text>
             </View>
-            <Ionicons name="shield-checkmark" size={21} color="#9A7417" />
+            <Ionicons name="shield-checkmark" size={21} color="#B98A2F" />
           </View>
           {unavailable && (
             <View style={giftMarketplaceStyles.substitutionCard}>
@@ -3924,7 +3924,7 @@ function GiftProductDetailSheet({
                       · {item.eta}
                     </Text>
                   </View>
-                  <Ionicons name="arrow-forward" size={17} color="#8E0A2C" />
+                  <Ionicons name="arrow-forward" size={17} color="#7C0015" />
                 </Pressable>
               ))}
             </View>
@@ -3941,7 +3941,7 @@ function GiftProductDetailSheet({
           >
             <LinearGradient
               pointerEvents="none"
-              colors={["#740017", "#C20A3A", "#9A062C"]}
+              colors={["#7C0015", "#B30C3D", "#B30C3D"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -4016,7 +4016,7 @@ function GiftDeliveryTrackingCard({ order }: { order: GiftOrderResponse }) {
         <Ionicons
           name={delivered ? "checkmark-done-circle" : "camera-outline"}
           size={19}
-          color="#8E0A2C"
+          color="#7C0015"
         />
         <View style={{ flex: 1 }}>
           <Text style={giftMarketplaceStyles.proofTitle}>
@@ -4117,7 +4117,7 @@ function GiftCartSheet({
                               line.quantity === 1 ? "trash-outline" : "remove"
                             }
                             size={15}
-                            color="#8E0A2C"
+                            color="#7C0015"
                           />
                         </Pressable>
                         <Text
@@ -4137,7 +4137,7 @@ function GiftCartSheet({
                             line.quantity >= 5 && { opacity: 0.4 },
                           ]}
                         >
-                          <Ionicons name="add" size={15} color="#8E0A2C" />
+                          <Ionicons name="add" size={15} color="#7C0015" />
                         </Pressable>
                       </View>
                     </View>
@@ -4174,7 +4174,7 @@ function GiftCartSheet({
                 )}
               </View>
               <View style={giftMarketplaceStyles.cartTrust}>
-                <Ionicons name="shield-checkmark" size={19} color="#9B7517" />
+                <Ionicons name="shield-checkmark" size={19} color="#B98A2F" />
                 <Text style={giftMarketplaceStyles.cartTrustText}>
                   This cart belongs only to {recipientName}. It clears after
                   checkout or when you switch recipients.
@@ -4187,7 +4187,7 @@ function GiftCartSheet({
                   onPress={onClear}
                   style={giftMarketplaceStyles.clearCartButton}
                 >
-                  <Ionicons name="trash-outline" size={17} color="#8E0A2C" />
+                  <Ionicons name="trash-outline" size={17} color="#7C0015" />
                   <Text style={giftMarketplaceStyles.clearCartText}>
                     Clear cart
                   </Text>
@@ -4203,7 +4203,7 @@ function GiftCartSheet({
                 >
                   <LinearGradient
                     pointerEvents="none"
-                    colors={["#740017", "#C20A3A", "#9A062C"]}
+                    colors={["#7C0015", "#B30C3D", "#B30C3D"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={StyleSheet.absoluteFill}
@@ -4341,7 +4341,7 @@ function GiftOrderManagementSheet({
               </View>
               <View style={giftMarketplaceStyles.providerReadiness}>
                 <View style={giftMarketplaceStyles.providerReadinessItem}>
-                  <Ionicons name="cube-outline" size={19} color="#8E0A2C" />
+                  <Ionicons name="cube-outline" size={19} color="#7C0015" />
                   <View style={{ flex: 1 }}>
                     <Text style={giftMarketplaceStyles.providerReadinessTitle}>
                       Merchant inventory
@@ -4353,7 +4353,7 @@ function GiftOrderManagementSheet({
                   <Ionicons name="checkmark-circle" size={18} color="#3B8C62" />
                 </View>
                 <View style={giftMarketplaceStyles.providerReadinessItem}>
-                  <Ionicons name="car-outline" size={19} color="#8E0A2C" />
+                  <Ionicons name="car-outline" size={19} color="#7C0015" />
                   <View style={{ flex: 1 }}>
                     <Text style={giftMarketplaceStyles.providerReadinessTitle}>
                       Courier dispatch
@@ -4362,7 +4362,7 @@ function GiftOrderManagementSheet({
                       Live tracking begins after pickup
                     </Text>
                   </View>
-                  <Ionicons name="time-outline" size={18} color="#9A7417" />
+                  <Ionicons name="time-outline" size={18} color="#B98A2F" />
                 </View>
               </View>
             </>
@@ -4519,7 +4519,7 @@ function GiftField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder || label}
-        placeholderTextColor="#A08A90"
+        placeholderTextColor="#76686C"
         keyboardType={keyboardType}
         autoComplete={autoComplete}
         style={giftMarketplaceStyles.input}

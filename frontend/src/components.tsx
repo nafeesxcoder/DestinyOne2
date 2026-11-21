@@ -47,8 +47,8 @@ export function Button({
         <LinearGradient
           colors={
             variant === "gold"
-              ? ["#F5E7C0", colors.gold, "#735317"]
-              : ["#D85D7A", colors.pink, "#720B29"]
+              ? ["#FFF8E9", colors.gold, "#2B1A1E"]
+              : ["#D45B7A", colors.pink, "#7C0015"]
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -62,7 +62,7 @@ export function Button({
         style={[
           styles.buttonText,
           variant === "primary" && { color: "#FFFDFC" },
-          variant === "gold" && { color: "#24171A" },
+          variant === "gold" && { color: "#2B1A1E" },
           variant === "ghost" && { color: colors.muted },
         ]}
       >
@@ -85,7 +85,7 @@ export function Button({
     >
       {variant === "primary" ? (
         <LinearGradient
-          colors={["#C92C57", colors.pink, "#760B29"]}
+          colors={["#D45B7A", colors.pink, "#7C0015"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.button, styles.primary]}
@@ -108,7 +108,7 @@ export function Field({ label, error, emphasis = false, ...inputProps }: any) {
       <TextInput
         accessibilityLabel={label}
         accessibilityHint={error || undefined}
-        placeholderTextColor="#6F6875"
+        placeholderTextColor="#76686C"
         selectionColor={colors.wine}
         style={[
           styles.input,
@@ -155,18 +155,18 @@ export function Chip({
     >
       <Text
         maxFontSizeMultiplier={1.3}
-        style={[styles.chipText, gold && { color: "#24171A" }]}
+        style={[styles.chipText, gold && { color: "#2B1A1E" }]}
       >
         {label}
       </Text>
       {selected && (
         <LinearGradient
-          colors={["#FFE8A3", colors.gold, "#4B3205"]}
+          colors={["#F4D170", colors.gold, "#2B1A1E"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.chipCheck}
         >
-          <Ionicons name="checkmark" size={10} color="#240B05" />
+          <Ionicons name="checkmark" size={10} color="#2B1A1E" />
         </LinearGradient>
       )}
     </Pressable>
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   ghost: { backgroundColor: "transparent" },
   gold: {
-    backgroundColor: "#F8ECD0",
+    backgroundColor: "#FFF8E9",
     borderWidth: 1,
     borderColor: colors.gold,
   },
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.selectedSurface,
     borderColor: colors.selectedBorder,
   },
-  chipGold: { backgroundColor: "#F8ECD0", borderColor: colors.gold },
+  chipGold: { backgroundColor: "#FFF8E9", borderColor: colors.gold },
   chipText: {
     color: colors.text,
     fontFamily: "Poppins_600SemiBold",

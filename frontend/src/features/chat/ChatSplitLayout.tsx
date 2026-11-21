@@ -45,7 +45,7 @@ export function ChatSplitLayout({
 }
 
 const splitStyles = StyleSheet.create({
-  root: { flex: 1, flexDirection: "row", backgroundColor: "#FFF7F8" },
+  root: { flex: 1, flexDirection: "row", backgroundColor: "#FFFDFC" },
   listPane: {
     width: 380,
     borderRightWidth: StyleSheet.hairlineWidth,
@@ -58,8 +58,8 @@ const splitStyles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     padding: 32,
-    backgroundColor: "#FBF3F4",
+    backgroundColor: "#FBF7F2",
   },
-  emptyTitle: { fontSize: 22, fontWeight: "800", color: "#2A0A10" },
-  emptyBody: { fontSize: 15, color: "#6E5A5E", textAlign: "center", maxWidth: 360 },
+  emptyTitle: { fontSize: 22, fontWeight: "800", color: "#2B1A1E" },
+  emptyBody: { fontSize: 15, color: "#76686C", textAlign: "center", maxWidth: 360 },
 });

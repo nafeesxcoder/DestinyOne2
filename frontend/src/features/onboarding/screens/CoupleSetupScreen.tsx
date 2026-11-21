@@ -34,7 +34,7 @@ const backgroundImage = require("../../../../assets/background.png");
 
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={backgroundImage}
         resizeMode="cover"
@@ -845,7 +845,7 @@ export function CoupleSetupScreen({
             <TextInput
               accessibilityLabel="Search by name, phone number or email"
               placeholder={onSearchByName ? "Name, phone number or email" : "Phone number or email"}
-              placeholderTextColor="#6F6875"
+              placeholderTextColor="#76686C"
               selectionColor={colors.wine}
               autoCapitalize="none"
               autoCorrect={false}

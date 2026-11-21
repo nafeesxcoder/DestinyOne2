@@ -11,7 +11,7 @@ import { passportStyles } from '../../../theme/appStyles';
 export function IntentPassportCard({input,compact=false,onEdit}:{input:IntentPassportInput;compact?:boolean;onEdit:()=>void}){
   const passport=buildIntentPassport(input);
   const visibleFields=compact?passport.fields.slice(0,3):passport.fields;
-  return <LinearGradient colors={['#FFF9F6','#FCE8EB','#FFF4EA']} locations={[0,.62,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={[passportStyles.card,compact&&passportStyles.cardCompact]}>
+  return <LinearGradient colors={['#FFFDFC','#F7E4E8','#FBF7F2']} locations={[0,.62,1]} start={{x:0,y:0}} end={{x:1,y:1}} style={[passportStyles.card,compact&&passportStyles.cardCompact]}>
     <LinearGradient pointerEvents="none" colors={['rgba(171,17,54,.13)','rgba(229,9,47,.035)','transparent']} start={{x:1,y:0}} end={{x:.25,y:1}} style={passportStyles.glow}/>
     <View pointerEvents="none" style={passportStyles.topAccent}/>
     <View style={passportStyles.header}>

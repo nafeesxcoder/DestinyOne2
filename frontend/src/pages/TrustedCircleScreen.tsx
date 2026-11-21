@@ -40,7 +40,7 @@ export function TrustedCircleScreen({
   const demoQualities = ['Dependable', 'Emotionally mature', 'Family-minded'];
 
   return (
-    <LinearGradient colors={['#F7F1EA', colors.black, colors.black]} className="flex-1">
+    <LinearGradient colors={['#FBF7F2', colors.black, colors.black]} className="flex-1">
       <SafeAreaView style={shared.safe}>
         <View className="h-[58px] flex-row items-center">
           <Pressable onPress={onBack} style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}>
@@ -48,7 +48,7 @@ export function TrustedCircleScreen({
           </Pressable>
           <View className="flex-1" />
           {rewardMode === 'demo' && (
-            <View className="h-9 rounded-2xl bg-[#F8ECD0] border border-[#66521A] px-2.5 flex-row items-center gap-1.5">
+            <View className="h-9 rounded-2xl bg-[#FFF8E9] border border-[#2B1A1E] px-2.5 flex-row items-center gap-1.5">
               <Ionicons name="sparkles" size={14} color={colors.gold} />
               <Text className="font-poppins-bold text-[11px] text-gold">{coinBalance}</Text>
             </View>

@@ -65,7 +65,7 @@ function GlowIcon({
 
 function PremiumBackground({ children }: { children: ReactNode }) {
   return (
-    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFF7F7" }}>
+    <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
         source={backgroundImage}
         resizeMode="cover"
@@ -213,7 +213,7 @@ export function ModeSelectScreen({
           style={{ borderRadius: 32, overflow: "hidden" }}
         >
           <LinearGradient
-            colors={["#390006", "#7C0015", "#430009", "#210003"]}
+            colors={["#390006", "#7C0015", "#390006", "#210003"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
@@ -241,7 +241,7 @@ export function ModeSelectScreen({
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: "transparent",
-                shadowColor: "#FF3357",
+                shadowColor: "#E5092F",
                 shadowOpacity: 0.65,
                 shadowRadius: 8,
               }}
