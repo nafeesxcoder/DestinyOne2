@@ -46,9 +46,7 @@ const backgroundImage = require("../../../../assets/background.png");
 
 export function ProfileScreen({
   experienceMode,
-  connectionStatus,
   partnerName,
-  onModeChange,
   onOpenTool,
   profile,
   verified,
@@ -438,78 +436,6 @@ export function ProfileScreen({
               />
             </View>
           </LinearGradient>
-          <View style={profilePremiumStyles.experienceCard}>
-            <View style={shared.row}>
-              <PremiumIcon
-                name={isCoupleMode ? "heart-circle" : "search-circle"}
-                tone={isCoupleMode ? "gold" : "ruby"}
-                size={48}
-                iconSize={22}
-              />
-              <View style={{ flex: 1, marginLeft: 11 }}>
-                <Text style={styles.kicker}>APP EXPERIENCE</Text>
-                <Text style={profilePremiumStyles.experienceTitle}>
-                  {isCoupleMode
-                    ? "Using DestinyOne together"
-                    : "Looking for your person"}
-                </Text>
-                <Text style={profilePremiumStyles.experienceBody}>
-                  {isCoupleMode
-                    ? `${connectionStatus === "active" && partnerName ? `Connected with ${partnerName}. ` : ""}Matches, Discover and Likes are hidden.`
-                    : "Serious introductions and matching tools are active."}
-                </Text>
-              </View>
-            </View>
-            <View style={profilePremiumStyles.experienceChoices}>
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: !isCoupleMode }}
-                onPress={() => onModeChange("seeking")}
-                style={[
-                  profilePremiumStyles.experienceChoice,
-                  !isCoupleMode && profilePremiumStyles.experienceChoiceOn,
-                ]}
-              >
-                <Ionicons
-                  name="search-outline"
-                  size={17}
-                  color={!isCoupleMode ? "#FFFFFF" : colors.muted}
-                />
-                <Text
-                  style={[
-                    profilePremiumStyles.experienceChoiceText,
-                    !isCoupleMode &&
-                      profilePremiumStyles.experienceChoiceTextOn,
-                  ]}
-                >
-                  Find my person
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: isCoupleMode }}
-                onPress={() => onModeChange("couple")}
-                style={[
-                  profilePremiumStyles.experienceChoice,
-                  isCoupleMode && profilePremiumStyles.experienceChoiceOn,
-                ]}
-              >
-                <Ionicons
-                  name="heart-outline"
-                  size={17}
-                  color={isCoupleMode ? "#FFFFFF" : colors.muted}
-                />
-                <Text
-                  style={[
-                    profilePremiumStyles.experienceChoiceText,
-                    isCoupleMode && profilePremiumStyles.experienceChoiceTextOn,
-                  ]}
-                >
-                  With my partner
-                </Text>
-              </Pressable>
-            </View>
-          </View>
           {!isCoupleMode && (
             <View style={profilePremiumStyles.readinessCard}>
               <View style={profilePremiumStyles.readinessHeader}>
