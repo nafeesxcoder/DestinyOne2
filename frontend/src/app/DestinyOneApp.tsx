@@ -354,9 +354,9 @@ function PremiumBackground({ children }: { children: ReactNode }) {
         end={{ x: 0.5, y: 1 }}
         style={{
           position: "absolute",
-          bottom: -160,
-          left: -80,
-          right: -80,
+          bottom: 0,
+          left: 0,
+          right: 0,
           height: 430,
         }}
       />
