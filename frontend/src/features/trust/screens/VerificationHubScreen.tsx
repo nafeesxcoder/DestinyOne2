@@ -7,9 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, shared } from '../../../components';
 import { MiniPremiumIcon, PremiumIcon } from '../../../components/premium/PremiumIcon';
 import { colors } from '../../../theme';
+import type { Screen } from '../../../app/navigation/types';
 import { coachStyles, discoveryStyles, launchStyles, styles, trustHubStyles, ventureStyles } from '../../../theme/appStyles';
 
-export function VerificationHubScreen({preview,verified,selfieUri,hasVoiceIntro,vouches,onBack,onVerify,onOpenSafety}:{preview:boolean;verified:boolean;selfieUri:string;hasVoiceIntro:boolean;vouches:string[];onBack:()=>void;onVerify:()=>void;onOpenSafety:()=>void}){
+export function VerificationHubScreen({preview,verified,selfieUri,hasVoiceIntro,vouches,onBack,onVerify,onOpenSafety,onNavigate}:{preview:boolean;verified:boolean;selfieUri:string;hasVoiceIntro:boolean;vouches:string[];onBack:()=>void;onVerify:()=>void;onOpenSafety:()=>void;onNavigate?:(screen:Screen)=>void}){
   const [biometricConsent,setBiometricConsent]=useState(false);
   const [idStatus,setIdStatus]=useState<'not_started'|'submitted'|'verified'>('not_started');
   const [businessStatus,setBusinessStatus]=useState<'not_started'|'submitted'|'verified'>('not_started');
@@ -35,7 +36,7 @@ export function VerificationHubScreen({preview,verified,selfieUri,hasVoiceIntro,
     {title:'Trusted Circle',body:'Friend vouches add confidence for serious matches.',icon:'people' as const,done:vouches.length>0},
   ];
   const requirePreview=(action:()=>void)=>{if(preview){action();return}setTrustStatus('Secure provider connection required. No verification, consent, or trusted-device result was changed.')};
-  const runLiveness=()=>requirePreview(()=>{if(!biometricConsent){setTrustStatus('Please accept biometric consent before liveness verification.');return}onVerify();setTrustStatus('Selfie/liveness preview completed. Production will call a liveness provider here.')});
+  const runLiveness=()=>requirePreview(()=>{if(!biometricConsent){setTrustStatus('Please accept biometric consent before liveness verification.');return}if(preview){setTrustStatus('Selfie/liveness preview completed. Production will call a liveness provider here.');return}onVerify();setTrustStatus('Selfie/liveness preview completed. Production will call a liveness provider here.')});
   const advanceId=()=>requirePreview(()=>{if(idStatus==='not_started'){setIdStatus('submitted');setTrustStatus('ID review packet prepared. Production will upload encrypted documents to the provider.');return}setIdStatus('verified');setTrustStatus('ID check marked verified in preview. Public profile only shows a simple badge.')});
   const advanceBusiness=()=>requirePreview(()=>{if(businessStatus==='not_started'){setBusinessStatus('submitted');setTrustStatus('Business verification packet prepared for Executive Circle review.');return}setBusinessStatus('verified');setTrustStatus('Business verification marked approved. Executive Circle can unlock after real review.')});
   const refreshSession=()=>requirePreview(()=>{setSessionStatus(`Preview device refreshed · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);setTrustStatus('Session/device preview refreshed. AWS session APIs will store trusted devices and revoke controls.')});
@@ -60,7 +61,7 @@ export function VerificationHubScreen({preview,verified,selfieUri,hasVoiceIntro,
       <TrustAction icon="phone-portrait" title="Device/session" body={sessionStatus} cta={preview?'Refresh':'Unavailable'} onPress={refreshSession}/>
     </View>
     <View style={trustHubStyles.privacyPanel}><PremiumIcon name="eye-off-outline" tone="gold" size={46} iconSize={21}/><View style={{flex:1}}><Text style={styles.cardTitle}>What stays private</Text><Text style={styles.helper}>ID documents, selfie source files, exact trust score, reports, blocks and safety notes are never shown on public profiles.</Text></View></View>
-    <View style={ventureStyles.section}>{steps.map(step=><TrustStep key={step.title} {...step}/>)}</View>
+    <View style={ventureStyles.section}>{steps.map(step=>{const target=({'Selfie liveness':['Add selfie','profileSetup'],'Voice intro':['Add voice intro','profileSetup'],'Friend vouches':['Add vouches','circle']} as Record<string,[string,Screen]>)[step.title];return <TrustStep key={step.title} {...step} actionLabel={target?.[0]} onAction={target&&onNavigate?()=>onNavigate(target[1]):undefined}/>})}</View>
     <View style={coachStyles.boundaryCard}><PremiumIcon name="lock-closed" tone="gold" size={44} iconSize={19}/><View style={{flex:1}}><Text style={styles.cardTitle}>Privacy promise</Text><Text style={styles.helper}>Verification photos, ID details and safety reports stay private. Public profile only shows simple trust badges.</Text></View></View>
     <View style={ventureStyles.section}><Text style={styles.sectionLabel}>PROVIDER READINESS</Text>{providerChecklist.map(([title,body,done])=><VerificationChecklistRow key={title} title={title} body={body} done={done}/>)}</View>
     <View style={ventureStyles.section}><Text style={styles.sectionLabel}>SECURITY FEATURES TO SHIP</Text>{['End-to-end sensitive media rules','Screenshot and abuse reporting hooks','Device/session management','Data export and delete account flow','Blocked-member graph across discovery, likes and chat'].map(item=><VerificationChecklistRow key={item} title={item} body="AWS integration requirement for production release." done={item.includes('delete')||item.includes('Device')}/>)}</View>
@@ -72,8 +73,8 @@ function TrustAction({icon,title,body,cta,onPress}:{icon:keyof typeof Ionicons.g
   return <View style={trustHubStyles.actionCard}><PremiumIcon name={icon} tone="gold" size={42} iconSize={19}/><View style={{flex:1}}><Text style={trustHubStyles.actionTitle}>{title}</Text><Text style={trustHubStyles.onDarkBody}>{body}</Text></View><Pressable onPress={onPress} style={trustHubStyles.actionButton}><Text style={trustHubStyles.actionButtonText}>{cta}</Text></Pressable></View>
 }
 
-function TrustStep({title,body,done,icon}:{title:string;body:string;done:boolean;icon:keyof typeof Ionicons.glyphMap}){
-  return <View style={ventureStyles.trustStep}><PremiumIcon name={icon} tone={done?'gold':'ruby'} size={42} iconSize={19}/><View style={{flex:1}}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.helper}>{body}</Text></View><MiniPremiumIcon name={done?'checkmark-circle':'ellipse-outline'} tone={done?'gold':'dark'} size={34} iconSize={16}/></View>
+function TrustStep({title,body,done,icon,actionLabel,onAction}:{title:string;body:string;done:boolean;icon:keyof typeof Ionicons.glyphMap;actionLabel?:string;onAction?:()=>void}){
+  return <View style={ventureStyles.trustStep}><PremiumIcon name={icon} tone={done?'gold':'ruby'} size={42} iconSize={19}/><View style={{flex:1}}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.helper}>{body}</Text>{!done&&actionLabel&&onAction&&<Pressable onPress={onAction} style={[trustHubStyles.actionButton,{alignSelf:'flex-start',marginTop:8,minWidth:0}]}><Text style={trustHubStyles.actionButtonText}>{actionLabel}</Text></Pressable>}</View><MiniPremiumIcon name={done?'checkmark-circle':'ellipse-outline'} tone={done?'gold':'dark'} size={34} iconSize={16}/></View>
 }
 
 

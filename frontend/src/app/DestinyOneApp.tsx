@@ -4147,6 +4147,7 @@ function DestinyOneApp() {
             hasVoiceIntro={!!voiceIntroUri}
             vouches={vouches}
             onBack={() => setScreen("profile")}
+            onNavigate={navigateTo}
             onVerify={async () => {
               if (!accessToken) {
                 setAppNotice({
