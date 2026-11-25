@@ -233,6 +233,12 @@ import {
   type SafetyTool,
 } from "../features/trust/screens/SafetyScreens";
 import { VerificationHubScreen } from "../features/trust/screens/VerificationHubScreen";
+import {
+  CredentialsScreen,
+  ForgotPasswordScreen,
+  LoginScreen,
+  NewPasswordScreen,
+} from "../features/access/screens/CredentialScreens";
 import { CityCommunityRoomsScreen } from "../features/community/screens/CityCommunityRoomsScreen";
 import { ExploreHubScreen } from "../features/discovery/screens/ExploreHubScreen";
 import { LikesScreen } from "../features/discovery/screens/LikesScreen";
@@ -703,6 +709,10 @@ function DestinyOneApp() {
   const [verified, setVerified] = useState(isCustomerShowcase);
   const [authDestination, setAuthDestination] = useState("");
   const [authPassword, setAuthPassword] = useState("");
+  // Which code the OTP screen is verifying: signup, password reset, or the legacy code login.
+  const [otpPurpose, setOtpPurpose] = useState<"login" | "signup" | "reset">("login");
+  const [verificationToken, setVerificationToken] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const onboardingCompleteRef = useRef(false);
   const [serverDiscoveredMatches, setServerDiscoveredMatches] = useState<
@@ -3663,6 +3673,55 @@ function DestinyOneApp() {
       await resetDemo();
     }
   };
+  // Stores the session and loads the saved profile. Used by every sign-in path.
+  const finishSignIn = async (result: { accessToken: string; refreshToken: string }) => {
+        await AsyncStorage.setItem(
+          "destinyone_access_token",
+          result.accessToken,
+        );
+        await AsyncStorage.setItem(
+          "destinyone_refresh_token",
+          result.refreshToken,
+        );
+        setAccessToken(result.accessToken);
+        try {
+          const profileData = await profileApi.getMyProfile(
+            result.accessToken,
+          );
+          if (profileData.profile) {
+            setProfileDraft((current) => ({
+              ...current,
+              firstName:
+                profileData.profile.first_name ?? current.firstName,
+              gender: profileData.profile.gender ?? current.gender,
+              age: profileData.profile.age
+                ? String(profileData.profile.age)
+                : current.age,
+              height: profileData.profile.height ?? current.height,
+              city: profileData.profile.city ?? current.city,
+              profession:
+                profileData.profile.profession ?? current.profession,
+              religion:
+                profileData.profile.religion ?? current.religion,
+              community:
+                profileData.profile.community ?? current.community,
+            }));
+            setVerified(!!profileData.profile.verified);
+          }
+          if (profileData.photos?.length)
+            setProfilePhotos(profileData.photos);
+          if (profileData.vibes?.length) setVibeList(profileData.vibes);
+          if (profileData.intent?.intent)
+            setIntent(profileData.intent.intent);
+          const done = !!profileData.profile?.onboarding_complete;
+          setOnboardingComplete(done);
+          onboardingCompleteRef.current = done;
+        } catch {
+          setOnboardingComplete(false);
+          onboardingCompleteRef.current = false;
+        }
+  };
+
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
@@ -3675,11 +3734,13 @@ function DestinyOneApp() {
         {screen === "auth" && (
           <AuthScreen
             onBack={() => setScreen("welcome")}
+            onLogin={() => setScreen("login")}
             onRequestCode={async (request) => {
               const channel = request.method === "phone" ? "phone" : "email";
-              await authApi.requestOtp(channel, request.destination);
+              await authApi.registerRequestCode(channel, request.destination);
+              setOtpPurpose("signup");
               setAuthDestination(request.destination);
-              setAuthPassword(request.password ?? "");
+              setAuthPassword("");
               setScreen("otp");
             }}
             onSocialContinue={async (provider) => {
@@ -3710,6 +3771,7 @@ function DestinyOneApp() {
                 if (email) {
                   setAuthDestination(email);
                   setAuthPassword("");
+                  setOtpPurpose("login");
                   setScreen("otp");
                 }
               }
@@ -3726,69 +3788,99 @@ function DestinyOneApp() {
             onBack={() => setScreen("auth")}
             onResend={async () => {
               const channel = authDestination.includes("@") ? "email" : "phone";
-              await authApi.requestOtp(channel, authDestination);
+              if (otpPurpose === "signup") {
+                await authApi.registerRequestCode(channel, authDestination);
+              } else if (otpPurpose === "reset") {
+                await authApi.passwordRequestCode(channel, authDestination);
+              } else {
+                await authApi.requestOtp(channel, authDestination);
+              }
             }}
             onVerify={async (code) => {
               const channel = authDestination.includes("@") ? "email" : "phone";
               try {
+                if (otpPurpose === "signup") {
+                  const signup = await authApi.registerVerifyCode(channel, authDestination, code);
+                  setVerificationToken(signup.verificationToken);
+                  return true;
+                }
+                if (otpPurpose === "reset") {
+                  const reset = await authApi.passwordVerifyCode(channel, authDestination, code);
+                  setResetToken(reset.resetToken);
+                  return true;
+                }
                 const result = await authApi.verifyOtp(
                   channel,
                   authDestination,
                   code,
                 );
-                await AsyncStorage.setItem(
-                  "destinyone_access_token",
-                  result.accessToken,
-                );
-                await AsyncStorage.setItem(
-                  "destinyone_refresh_token",
-                  result.refreshToken,
-                );
-                setAccessToken(result.accessToken);
-                try {
-                  const profileData = await profileApi.getMyProfile(
-                    result.accessToken,
-                  );
-                  if (profileData.profile) {
-                    setProfileDraft((current) => ({
-                      ...current,
-                      firstName:
-                        profileData.profile.first_name ?? current.firstName,
-                      gender: profileData.profile.gender ?? current.gender,
-                      age: profileData.profile.age
-                        ? String(profileData.profile.age)
-                        : current.age,
-                      height: profileData.profile.height ?? current.height,
-                      city: profileData.profile.city ?? current.city,
-                      profession:
-                        profileData.profile.profession ?? current.profession,
-                      religion:
-                        profileData.profile.religion ?? current.religion,
-                      community:
-                        profileData.profile.community ?? current.community,
-                    }));
-                    setVerified(!!profileData.profile.verified);
-                  }
-                  if (profileData.photos?.length)
-                    setProfilePhotos(profileData.photos);
-                  if (profileData.vibes?.length) setVibeList(profileData.vibes);
-                  if (profileData.intent?.intent)
-                    setIntent(profileData.intent.intent);
-                  const done = !!profileData.profile?.onboarding_complete;
-                  setOnboardingComplete(done);
-                  onboardingCompleteRef.current = done;
-                } catch {
-                  setOnboardingComplete(false);
-                  onboardingCompleteRef.current = false;
-                }
+                await finishSignIn(result);
                 return true;
               } catch {
                 return false;
               }
             }}
-            onVerified={() =>
-              setScreen(onboardingCompleteRef.current ? "home" : "verify")
-            }
+            onVerified={() => {
+              if (otpPurpose === "signup") {
+                setScreen("credentials");
+                return;
+              }
+              if (otpPurpose === "reset") {
+                setScreen("newPassword");
+                return;
+              }
+              setScreen(onboardingCompleteRef.current ? "home" : "verify");
+            }}
+          />
+        )}
+        {screen === "credentials" && (
+          <CredentialsScreen
+            onBack={() => setScreen("auth")}
+            onCheckUsername={(username) => authApi.checkUsername(username)}
+            onSubmit={async (username, password) => {
+              const result = await authApi.register(verificationToken, username, password);
+              await finishSignIn(result);
+              setScreen(onboardingCompleteRef.current ? "home" : "verify");
+            }}
+          />
+        )}
+        {screen === "login" && (
+          <LoginScreen
+            onBack={() => setScreen("welcome")}
+            onLogin={async (identifier, password) => {
+              const result = await authApi.login(identifier, password);
+              await finishSignIn(result);
+              setScreen(onboardingCompleteRef.current ? "home" : "verify");
+            }}
+            onForgot={() => setScreen("forgot")}
+            onCreate={() => setScreen("auth")}
+          />
+        )}
+        {screen === "forgot" && (
+          <ForgotPasswordScreen
+            onBack={() => setScreen("login")}
+            onRequestCode={async (channel, destination) => {
+              await authApi.passwordRequestCode(channel, destination);
+              setOtpPurpose("reset");
+              setAuthDestination(destination);
+              setScreen("otp");
+            }}
+          />
+        )}
+        {screen === "newPassword" && (
+          <NewPasswordScreen
+            onBack={() => setScreen("login")}
+            onSubmit={async (password) => {
+              await authApi.passwordReset(resetToken, password);
+              setResetToken("");
+              setScreen("login");
+              setAppNotice({
+                title: "Password updated",
+                body: "Log in with your new password.",
+                icon: "checkmark-circle-outline",
+                tone: "gold",
+              });
+            }}
           />
         )}
         {screen === "verify" && (

@@ -20,6 +20,18 @@ export const isSessionRejected = (error: unknown) =>
   (error.status === 401 || error.status === 403);
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+
+async function postJson(path: string, body: unknown, fallbackError: string) {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || fallbackError);
+  return data;
+}
+
 export const authApi = {
   async requestOtp(channel: "phone" | "email", identifier: string) {
     const response = await fetch(`${API_URL}/auth/otp/request`, {
@@ -121,6 +133,36 @@ export const authApi = {
     if (!response.ok)
       throw new Error(data.error || "Account deactivation failed");
     return data;
+  },
+  // ---- Username + password accounts ----
+  async registerRequestCode(channel: "phone" | "email", identifier: string) {
+    return postJson("/auth/register/request-code", { channel, identifier }, "Could not send the code");
+  },
+  async registerVerifyCode(channel: "phone" | "email", identifier: string, code: string) {
+    return postJson("/auth/register/verify-code", { channel, identifier, code }, "Verification failed");
+  },
+  async checkUsername(username: string): Promise<{ valid: boolean; available: boolean }> {
+    const response = await fetch(
+      `${API_URL}/auth/username/available?username=${encodeURIComponent(username)}`,
+    );
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not check username");
+    return data;
+  },
+  async register(verificationToken: string, username: string, password: string) {
+    return postJson("/auth/register", { verificationToken, username, password }, "Could not create your account");
+  },
+  async login(identifier: string, password: string) {
+    return postJson("/auth/login", { identifier, password }, "Could not log in");
+  },
+  async passwordRequestCode(channel: "phone" | "email", identifier: string) {
+    return postJson("/auth/password/request-code", { channel, identifier }, "Could not send the code");
+  },
+  async passwordVerifyCode(channel: "phone" | "email", identifier: string, code: string) {
+    return postJson("/auth/password/verify-code", { channel, identifier, code }, "Verification failed");
+  },
+  async passwordReset(resetToken: string, password: string) {
+    return postJson("/auth/password/reset", { resetToken, password }, "Could not reset your password");
   },
   oauthUrl(provider: "google" | "apple" | "linkedin") {
     return `${API_URL}/auth/${provider}`;

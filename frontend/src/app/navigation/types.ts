@@ -1,6 +1,6 @@
 /** Every top-level UI destination in the original DestinyOne experience. */
 export type Screen =
-  | 'splash' | 'welcome' | 'auth' | 'otp' | 'verify' | 'modeSelect'
+  | 'splash' | 'welcome' | 'auth' | 'otp' | 'verify' | 'modeSelect' | 'login' | 'forgot' | 'newPassword' | 'credentials'
   | 'coupleSetup' | 'profileSetup' | 'vibes' | 'intent' | 'alignment'
   | 'home' | 'explore' | 'circle' | 'discovery' | 'detail' | 'mutual'
   | 'icebreaker' | 'chat' | 'gifts' | 'datePlan' | 'safety' | 'likes'
@@ -21,7 +21,7 @@ export type PreviewState =
   | 'safety-emergency' | 'safety-privacy' | 'safety-data' | 'safety-delete';
 
 export const previewScreens: readonly Screen[] = [
-  'splash','welcome','auth','otp','verify','modeSelect','coupleSetup','profileSetup',
+  'splash','welcome','auth','otp','verify','modeSelect','login','forgot','newPassword','credentials','coupleSetup','profileSetup',
   'vibes','intent','alignment','home','explore','circle','discovery','detail','mutual',
   'icebreaker','chat','gifts','datePlan','safety','likes','profile','pricing','support',
   'coach','events','executive','verifyHub','readiness','community','blueprint','journey',

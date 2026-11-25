@@ -26,7 +26,6 @@ import {
 import {
   buildPhoneNumber,
   isValidEmail,
-  isValidPassword,
 } from "../../../domain/validation";
 import { COUNTRIES, DEFAULT_COUNTRY } from "../../../domain/countries";
 import { colors } from "../../../theme";
@@ -43,7 +42,7 @@ const backgroundImage = require("../../../../assets/background.png");
 /* =========================================================
    PREMIUM BACKGROUND
    ========================================================= */
-function PremiumBackground({ children }: { children: ReactNode }) {
+export function PremiumBackground({ children }: { children: ReactNode }) {
   return (
     <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#FFFDFC" }}>
       <Image
@@ -129,17 +128,18 @@ type AuthScreenProps = {
   onBack: () => void;
   onRequestCode: (request: AccessRequest) => Promise<void>;
   onSocialContinue: (provider: SocialProvider) => Promise<void>;
+  onLogin?: () => void;
 };
 
 export function AuthScreen({
   onBack,
   onRequestCode,
   onSocialContinue,
+  onLogin,
 }: AuthScreenProps) {
   const [mode, setMode] = useState<AccessMethod>("phone");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [authError, setAuthError] = useState("");
   const [socialStatus, setSocialStatus] = useState("");
@@ -149,8 +149,7 @@ export function AuthScreen({
   const fullPhone = buildPhoneNumber(country.dial, phone);
   const phoneValid = fullPhone !== null;
   const emailValid = isValidEmail(email);
-  const passwordValid = isValidPassword(password);
-  const valid = mode === "phone" ? phoneValid : emailValid && passwordValid;
+  const valid = mode === "phone" ? phoneValid : emailValid;
 
   const submit = async () => {
     setSubmitted(true);
@@ -165,7 +164,6 @@ export function AuthScreen({
           : {
               method: "email",
               destination: email.trim().toLowerCase(),
-              password,
             },
       );
     } catch (error) {
@@ -417,19 +415,6 @@ export function AuthScreen({
                   submitted && !emailValid ? "Enter a valid email address." : ""
                 }
               />
-              <Field
-                emphasis
-                label="Password"
-                placeholder="10+ characters"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                error={
-                  submitted && !passwordValid
-                    ? "Use 10+ characters with uppercase, lowercase, and a number."
-                    : ""
-                }
-              />
               <Text style={[styles.helper, onboardingStyles.supportingText]}>
                 We’ll send a quick code before your profile opens.
               </Text>
@@ -480,6 +465,17 @@ export function AuthScreen({
         <Text style={[styles.legal, onboardingStyles.supportingText]}>
           By continuing, you agree to our Terms and Privacy Policy.
         </Text>
+        {onLogin && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onLogin}
+            style={{ alignSelf: "center", padding: 10 }}
+          >
+            <Text style={{ color: colors.wine, fontFamily: "Poppins_600SemiBold", fontSize: 14 }}>
+              Already have an account? Log in
+            </Text>
+          </Pressable>
+        )}
       </FormPage>
     </PremiumBackground>
   );
