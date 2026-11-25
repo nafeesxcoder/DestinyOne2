@@ -17,9 +17,31 @@ const otpVerifyLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many requests. Please try again later." },
 });
-// OTP: phone or email login
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please try again later." },
+});
+
+// OTP: phone or email login (legacy)
 router.post("/otp/request", otpRequestLimiter, authController.requestOtp);
 router.post("/otp/verify", otpVerifyLimiter, authController.verifyOtp);
+
+// Signup: verify phone or email, then choose username and password
+router.post("/register/request-code", otpRequestLimiter, authController.registerRequestCode);
+router.post("/register/verify-code", otpVerifyLimiter, authController.registerVerifyCode);
+router.post("/register", otpVerifyLimiter, authController.register);
+router.get("/username/available", authController.usernameAvailable);
+
+// Login with username, email or phone, plus password
+router.post("/login", loginLimiter, authController.login);
+
+// Forgot password: code to phone or email, then a new password
+router.post("/password/request-code", otpRequestLimiter, authController.passwordRequestCode);
+router.post("/password/verify-code", otpVerifyLimiter, authController.passwordVerifyCode);
+router.post("/password/reset", otpVerifyLimiter, authController.passwordReset);
 // Session
 router.post("/refresh", authController.refresh);
 router.post("/logout", requireAuth, authController.logout);

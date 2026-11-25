@@ -12,7 +12,7 @@ const { sendOtpSms } = require("./smsService");
 const { sendOtpEmail } = require("./emailService");
 const { ApiError } = require("../middleware/errorHandler");
 
-async function requestOtp({ channel, identifier }) {
+async function requestOtp({ channel, identifier, purpose = "login" }) {
   const normalized = normalizeIdentifier(channel, identifier);
   if (channel === "phone" && !isValidPhone(normalized)) {
     throw new ApiError(
@@ -21,12 +21,12 @@ async function requestOtp({ channel, identifier }) {
     );
   }
 
-  // Cooldown: block rapid resends for the same identifier
+  // Cooldown: block rapid resends for the same identifier and purpose
   const recent = await query(
     `SELECT created_at FROM otp_codes
-     WHERE identifier = ? AND channel = ? AND consumed_at IS NULL
+     WHERE identifier = ? AND channel = ? AND purpose = ? AND consumed_at IS NULL
      ORDER BY created_at DESC LIMIT 1`,
-    [normalized, channel],
+    [normalized, channel, purpose],
   );
   if (recent[0]) {
     const secondsSince =
@@ -46,8 +46,8 @@ async function requestOtp({ channel, identifier }) {
 
   await query(
     `INSERT INTO otp_codes (id, identifier, channel, code_hash, purpose, max_attempts, expires_at)
-     VALUES (?, ?, ?, ?, 'login', ?, ?)`,
-    [id, normalized, channel, codeHash, env.otp.maxAttempts, expiresAt],
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, normalized, channel, codeHash, purpose, env.otp.maxAttempts, expiresAt],
   );
 
   try {
@@ -77,16 +77,16 @@ async function requestOtp({ channel, identifier }) {
   };
 }
 
-async function verifyOtp({ channel, identifier, code }) {
+async function verifyOtp({ channel, identifier, code, purpose = "login" }) {
   const normalized = normalizeIdentifier(channel, identifier);
 
   // Phone aur email dono ke liye database se hi check karo
   // (kyunki OTP humesha yahin generate/save hota hai, chahe SMS ho ya email)
   const rows = await query(
     `SELECT * FROM otp_codes
-     WHERE identifier = ? AND channel = ? AND consumed_at IS NULL
+     WHERE identifier = ? AND channel = ? AND purpose = ? AND consumed_at IS NULL
      ORDER BY created_at DESC LIMIT 1`,
-    [normalized, channel],
+    [normalized, channel, purpose],
   );
   const record = rows[0];
 

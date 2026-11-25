@@ -6,6 +6,16 @@ const userService = require("../services/userService");
 const sessionService = require("../services/sessionService");
 const oauthService = require("../services/oauthService");
 const env = require("../config/env");
+const { normalizeIdentifier } = require("../utils/otp");
+const {
+  normalizeUsername,
+  isValidUsername,
+  isValidPassword,
+  classifyLoginIdentifier,
+  hashPassword,
+  comparePassword,
+} = require("../utils/credentials");
+const { signFlowToken, verifyFlowToken } = require("../utils/flowToken");
 // In-memory OAuth state store (swap for Redis in production / multi-instance deploys)
 const oauthStates = new Map();
 function createState(meta = {}) {
@@ -179,12 +189,225 @@ const linkedinCallback = asyncHandler(async (req, res) => {
   });
   res.redirect(`${env.appUrl}/auth/callback?${params.toString()}`);
 });
+// ---------- Username + password accounts ----------
+// Signup: verify a phone or email code, then choose a username and password.
+// Login: username, email or phone plus password.
+// Forgot password: verify a phone or email code, then set a new password.
+
+const SIGNUP_PURPOSE = "verify";
+const RESET_PURPOSE = "reset";
+
+function assertChannel(channel, identifier) {
+  if (!channel || !["phone", "email"].includes(channel)) {
+    throw new ApiError(400, 'channel must be "phone" or "email"');
+  }
+  if (!identifier) throw new ApiError(400, "identifier is required");
+}
+
+function findByChannel(channel, normalized) {
+  return channel === "phone"
+    ? userService.findUserByPhone(normalized)
+    : userService.findUserByEmail(normalized);
+}
+
+// Brings back a deleted (within 30 days) or deactivated account on login.
+async function reviveUserIfNeeded(user) {
+  let accountRestored = false;
+  let accountReactivated = false;
+  if (user.deleted_at) {
+    if (!userService.isWithinGracePeriod(user.deleted_at)) {
+      throw new ApiError(410, "This account has been permanently deleted.");
+    }
+    await userService.restoreUser(user.id);
+    user.deleted_at = null;
+    accountRestored = true;
+  }
+  if (user.deactivated_at) {
+    await userService.reactivateUser(user.id);
+    user.deactivated_at = null;
+    accountReactivated = true;
+  }
+  return { accountRestored, accountReactivated };
+}
+
+const registerRequestCode = asyncHandler(async (req, res) => {
+  const { channel, identifier } = req.body;
+  assertChannel(channel, identifier);
+  const normalized = normalizeIdentifier(channel, identifier);
+  const existing = await findByChannel(channel, normalized);
+  if (existing && existing.password_hash) {
+    throw new ApiError(
+      409,
+      "An account already exists for this number or email. Log in or reset your password.",
+    );
+  }
+  const result = await otpService.requestOtp({
+    channel,
+    identifier,
+    purpose: SIGNUP_PURPOSE,
+  });
+  res.json({ ok: true, ...result });
+});
+
+const registerVerifyCode = asyncHandler(async (req, res) => {
+  const { channel, identifier, code } = req.body;
+  assertChannel(channel, identifier);
+  if (!code) throw new ApiError(400, "code is required");
+  const { identifier: normalized } = await otpService.verifyOtp({
+    channel,
+    identifier,
+    code,
+    purpose: SIGNUP_PURPOSE,
+  });
+  res.json({
+    ok: true,
+    verificationToken: signFlowToken({ purpose: "register", channel, identifier: normalized }),
+  });
+});
+
+const usernameAvailable = asyncHandler(async (req, res) => {
+  const username = normalizeUsername(req.query.username);
+  if (!isValidUsername(username)) {
+    return res.json({ ok: true, valid: false, available: false });
+  }
+  const taken = await userService.findUserByUsername(username);
+  res.json({ ok: true, valid: true, available: !taken });
+});
+
+const register = asyncHandler(async (req, res) => {
+  const { verificationToken, username, password } = req.body;
+  if (!verificationToken || !username || !password) {
+    throw new ApiError(400, "verificationToken, username and password are required");
+  }
+  let claims;
+  try {
+    claims = verifyFlowToken(verificationToken, "register");
+  } catch {
+    throw new ApiError(401, "Your verification expired. Please request a new code.");
+  }
+  if (!isValidUsername(username)) {
+    throw new ApiError(
+      400,
+      "Username must be 3-20 letters, numbers, dots or underscores, with at least one letter.",
+    );
+  }
+  if (!isValidPassword(password)) {
+    throw new ApiError(400, "Use 10+ characters with uppercase, lowercase, and a number.");
+  }
+  const handle = normalizeUsername(username);
+  if (await userService.findUserByUsername(handle)) {
+    throw new ApiError(409, "That username is taken. Try another one.");
+  }
+
+  const { channel, identifier } = claims;
+  let user = await findByChannel(channel, identifier);
+  if (user && user.password_hash) {
+    throw new ApiError(409, "An account already exists for this number or email. Log in instead.");
+  }
+
+  const passwordHash = await hashPassword(password);
+  try {
+    if (user) {
+      // Accounts made earlier with only a code can add a username and password now.
+      await userService.setCredentials(user.id, { username: handle, passwordHash });
+      if (channel === "phone" && !user.phone_verified_at) await userService.markPhoneVerified(user.id);
+      if (channel === "email" && !user.email_verified_at) await userService.markEmailVerified(user.id);
+    } else {
+      user = await userService.createUser(channel === "phone" ? { phone: identifier } : { email: identifier });
+      await userService.setCredentials(user.id, { username: handle, passwordHash });
+    }
+  } catch (error) {
+    if (error && error.code === "ER_DUP_ENTRY") {
+      throw new ApiError(409, "That username is taken. Try another one.");
+    }
+    throw error;
+  }
+
+  user = await userService.findUserById(user.id);
+  const revived = await reviveUserIfNeeded(user);
+  const tokens = await sessionService.issueSession(user.id);
+  res.json({ ok: true, user: publicUser(user), ...revived, ...tokens });
+});
+
+const login = asyncHandler(async (req, res) => {
+  const { identifier, password } = req.body;
+  if (!identifier || !password) {
+    throw new ApiError(400, "identifier and password are required");
+  }
+  const { channel, identifier: key } = classifyLoginIdentifier(identifier);
+  const user =
+    channel === "phone"
+      ? await userService.findUserByPhone(key)
+      : channel === "email"
+        ? await userService.findUserByEmail(key)
+        : await userService.findUserByUsername(key);
+  const matches = user && (await comparePassword(password, user.password_hash));
+  if (!matches) {
+    throw new ApiError(401, "Wrong username, email, phone or password.");
+  }
+  const revived = await reviveUserIfNeeded(user);
+  const tokens = await sessionService.issueSession(user.id);
+  res.json({ ok: true, user: publicUser(user), ...revived, ...tokens });
+});
+
+const passwordRequestCode = asyncHandler(async (req, res) => {
+  const { channel, identifier } = req.body;
+  assertChannel(channel, identifier);
+  const normalized = normalizeIdentifier(channel, identifier);
+  // Same answer whether or not the account exists, so this cannot be used to find members.
+  const user = await findByChannel(channel, normalized);
+  if (user) {
+    await otpService.requestOtp({ channel, identifier, purpose: RESET_PURPOSE });
+  }
+  res.json({ ok: true, identifier: normalized, expiresInSeconds: env.otp.expiresMinutes * 60 });
+});
+
+const passwordVerifyCode = asyncHandler(async (req, res) => {
+  const { channel, identifier, code } = req.body;
+  assertChannel(channel, identifier);
+  if (!code) throw new ApiError(400, "code is required");
+  const { identifier: normalized } = await otpService.verifyOtp({
+    channel,
+    identifier,
+    code,
+    purpose: RESET_PURPOSE,
+  });
+  res.json({
+    ok: true,
+    resetToken: signFlowToken({ purpose: "reset", channel, identifier: normalized }),
+  });
+});
+
+const passwordReset = asyncHandler(async (req, res) => {
+  const { resetToken, password } = req.body;
+  if (!resetToken || !password) {
+    throw new ApiError(400, "resetToken and password are required");
+  }
+  let claims;
+  try {
+    claims = verifyFlowToken(resetToken, "reset");
+  } catch {
+    throw new ApiError(401, "This reset expired. Please request a new code.");
+  }
+  if (!isValidPassword(password)) {
+    throw new ApiError(400, "Use 10+ characters with uppercase, lowercase, and a number.");
+  }
+  const user = await findByChannel(claims.channel, claims.identifier);
+  if (!user) throw new ApiError(400, "This reset is no longer valid. Please start again.");
+  await userService.setPassword(user.id, await hashPassword(password));
+  // A new password signs out every other device.
+  await sessionService.revokeAllSessions(user.id);
+  res.json({ ok: true, message: "Password updated. Log in with your new password." });
+});
+
 // ---------- helpers ----------
 function publicUser(user) {
   return {
     id: user.id,
     phone: user.phone,
     email: user.email,
+    username: user.username || null,
+    hasPassword: !!user.password_hash,
     fullName: user.full_name,
     avatarUrl: user.avatar_url,
     phoneVerified: !!user.phone_verified_at,
@@ -194,6 +417,14 @@ function publicUser(user) {
 module.exports = {
   requestOtp,
   verifyOtp,
+  registerRequestCode,
+  registerVerifyCode,
+  usernameAvailable,
+  register,
+  login,
+  passwordRequestCode,
+  passwordVerifyCode,
+  passwordReset,
   refresh,
   logout,
   me,

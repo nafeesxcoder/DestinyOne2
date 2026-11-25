@@ -12,6 +12,21 @@ async function findUserById(id) {
   const rows = await query('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
   return rows[0] || null;
 }
+async function findUserByUsername(username) {
+  const rows = await query('SELECT * FROM users WHERE username = ? LIMIT 1', [username]);
+  return rows[0] || null;
+}
+// Saves a username and password hash. Throws ER_DUP_ENTRY if the username is taken.
+async function setCredentials(userId, { username, passwordHash }) {
+  await query('UPDATE users SET username = ?, password_hash = ? WHERE id = ?', [
+    username,
+    passwordHash,
+    userId,
+  ]);
+}
+async function setPassword(userId, passwordHash) {
+  await query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId]);
+}
 async function createUser({ phone = null, email = null, fullName = null, avatarUrl = null }) {
   const id = crypto.randomUUID();
   await query(
@@ -96,6 +111,9 @@ module.exports = {
   findUserByPhone,
   findUserByEmail,
   findUserById,
+  findUserByUsername,
+  setCredentials,
+  setPassword,
   createUser,
   markPhoneVerified,
   markEmailVerified,
