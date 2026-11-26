@@ -216,18 +216,18 @@ export function LoginScreen({
           emphasis
           eyebrow="WELCOME BACK"
           title="Log in."
-          body="Use your username, email or phone number, and your password."
+          body="Enter the username you chose and your password."
         />
         <View style={{ gap: 16 }}>
           <Field
             emphasis
-            label="Username, email or phone"
-            placeholder="ravi_k, you@example.com or +1 416 555 0123"
+            label="Username"
+            placeholder="e.g. ravi_k"
             autoCapitalize="none"
             autoCorrect={false}
             value={identifier}
             onChangeText={setIdentifier}
-            error={submitted && !identifier.trim() ? "Enter your username, email or phone." : ""}
+            error={submitted && !identifier.trim() ? "Enter your username." : ""}
           />
           <Field
             emphasis
@@ -357,29 +357,37 @@ export function ForgotPasswordScreen({
   );
 }
 
-/** Last step of a reset: the code was verified, now set the new password. */
+/**
+ * Last step of a reset: the code was verified, now set the new password.
+ * Accounts made with only a code also pick a username here, so they can log in.
+ */
 export function NewPasswordScreen({
   onBack,
+  askUsername,
   onSubmit,
 }: {
   onBack: () => void;
-  onSubmit: (password: string) => Promise<void>;
+  askUsername: boolean;
+  onSubmit: (password: string, username?: string) => Promise<void>;
 }) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
+  const handle = username.trim().toLowerCase();
+  const usernameValid = !askUsername || isUsernameShape(handle);
   const passwordValid = isValidPassword(password);
   const passwordsMatch = password.length > 0 && password === confirm;
 
   const submit = async () => {
     setSubmitted(true);
     setFormError("");
-    if (!passwordValid || !passwordsMatch) return;
+    if (!usernameValid || !passwordValid || !passwordsMatch) return;
     setLoading(true);
     try {
-      await onSubmit(password);
+      await onSubmit(password, askUsername ? handle : undefined);
     } catch (caught) {
       setFormError(caught instanceof Error ? caught.message : "Could not reset your password.");
     } finally {
@@ -400,6 +408,22 @@ export function NewPasswordScreen({
           body="You will log in with it next time."
         />
         <View style={{ gap: 16 }}>
+          {askUsername && (
+            <Field
+              emphasis
+              label="Choose a username"
+              placeholder="e.g. ravi_k"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={username}
+              onChangeText={setUsername}
+              error={
+                submitted && !usernameValid
+                  ? "3–20 letters, numbers, dots or underscores, with at least one letter."
+                  : ""
+              }
+            />
+          )}
           <Field
             emphasis
             label="New password"

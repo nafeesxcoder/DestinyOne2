@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { installNoSaveGuard, noSaveDataProps, noSaveStyle } from "./noSave";
 import { stepPhotoStory, storySegmentFill } from "./photoStory";
 
 type PhotoStoryViewerProps = {
@@ -32,6 +33,10 @@ export function PhotoStoryViewer({ photos, startIndex, visible, onClose }: Photo
   useEffect(() => {
     if (visible) setIndex(Math.min(Math.max(0, startIndex), Math.max(0, count - 1)));
   }, [visible, startIndex, count]);
+
+  useEffect(() => {
+    if (visible) installNoSaveGuard();
+  }, [visible]);
 
   const go = (direction: 1 | -1) => {
     const step = stepPhotoStory(index, count, direction);
@@ -139,7 +144,8 @@ export function PhotoStoryViewer({ photos, startIndex, visible, onClose }: Photo
     >
       <View
         ref={rootRef}
-        style={styles.root}
+        style={[styles.root, noSaveStyle as any]}
+        {...(noSaveDataProps as any)}
         {...(Platform.OS === "web" ? {} : nativeSwipe.panHandlers)}
         accessibilityLabel={`Photo ${index + 1} of ${count}`}
       >

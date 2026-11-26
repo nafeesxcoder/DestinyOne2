@@ -28,6 +28,7 @@ import { getCitiesOfState } from "@countrystatecity/countries-browser";
 import { Button, Field, SectionTitle, shared } from "../../../components";
 import { FormPage } from "../../../components/forms/FormScaffold";
 import { PhotoStoryViewer } from "../../../components/media/PhotoStoryViewer";
+import { installNoSaveGuard, noSaveDataProps, noSaveStyle } from "../../../components/media/noSave";
 import {
   MiniPremiumIcon,
   PremiumIcon,
@@ -842,6 +843,9 @@ export function ProfileSetupScreen({
 }) {
   const { width } = useWindowDimensions();
   const [mediaError, setMediaError] = useState("");
+  useEffect(() => {
+    installNoSaveGuard();
+  }, []);
   const [photoPickerIndex, setPhotoPickerIndex] = useState<number | null>(null);
   // Photo to open in the story viewer after a long press (index among the filled photos).
   const [storyStart, setStoryStart] = useState<number | null>(null);
@@ -1040,11 +1044,16 @@ export function ProfileSetupScreen({
               >
                 {photos[index] ? (
                   <>
-                    <Image
-                      source={{ uri: photos[index] }}
-                      resizeMode="cover"
-                      style={styles.fill}
-                    />
+                    <View
+                      {...(noSaveDataProps as any)}
+                      style={[styles.fill, noSaveStyle as any]}
+                    >
+                      <Image
+                        source={{ uri: photos[index] }}
+                        resizeMode="cover"
+                        style={styles.fill}
+                      />
+                    </View>
                     <LinearGradient
                       pointerEvents="none"
                       colors={["transparent", "rgba(11,2,8,.84)"]}

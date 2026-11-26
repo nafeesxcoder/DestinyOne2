@@ -161,8 +161,12 @@ export const authApi = {
   async passwordVerifyCode(channel: "phone" | "email", identifier: string, code: string) {
     return postJson("/auth/password/verify-code", { channel, identifier, code }, "Verification failed");
   },
-  async passwordReset(resetToken: string, password: string) {
-    return postJson("/auth/password/reset", { resetToken, password }, "Could not reset your password");
+  async passwordReset(resetToken: string, password: string, username?: string) {
+    return postJson(
+      "/auth/password/reset",
+      { resetToken, password, ...(username ? { username } : {}) },
+      "Could not reset your password",
+    );
   },
   oauthUrl(provider: "google" | "apple" | "linkedin") {
     return `${API_URL}/auth/${provider}`;

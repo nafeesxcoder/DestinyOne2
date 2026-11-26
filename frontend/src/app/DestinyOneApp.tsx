@@ -713,6 +713,8 @@ function DestinyOneApp() {
   const [otpPurpose, setOtpPurpose] = useState<"login" | "signup" | "reset">("login");
   const [verificationToken, setVerificationToken] = useState("");
   const [resetToken, setResetToken] = useState("");
+  // Set when the reset code is verified: accounts made with only a code must pick a username.
+  const [resetNeedsUsername, setResetNeedsUsername] = useState(false);
   const [accessToken, setAccessToken] = useState("");
   const onboardingCompleteRef = useRef(false);
   const [serverDiscoveredMatches, setServerDiscoveredMatches] = useState<
@@ -3807,6 +3809,7 @@ function DestinyOneApp() {
                 if (otpPurpose === "reset") {
                   const reset = await authApi.passwordVerifyCode(channel, authDestination, code);
                   setResetToken(reset.resetToken);
+                  setResetNeedsUsername(!!reset.needsUsername);
                   return true;
                 }
                 const result = await authApi.verifyOtp(
@@ -3870,9 +3873,11 @@ function DestinyOneApp() {
         {screen === "newPassword" && (
           <NewPasswordScreen
             onBack={() => setScreen("login")}
-            onSubmit={async (password) => {
-              await authApi.passwordReset(resetToken, password);
+            askUsername={resetNeedsUsername}
+            onSubmit={async (password, username) => {
+              await authApi.passwordReset(resetToken, password, username);
               setResetToken("");
+              setResetNeedsUsername(false);
               setScreen("login");
               setAppNotice({
                 title: "Password updated",
