@@ -3731,7 +3731,10 @@ function DestinyOneApp() {
       <PremiumBackground>
         {screen === "splash" && <SplashScreen />}
         {screen === "welcome" && (
-          <WelcomeScreen onNext={() => setScreen("auth")} />
+          <WelcomeScreen
+            onNext={() => setScreen("auth")}
+            onLogin={() => setScreen("login")}
+          />
         )}
         {screen === "auth" && (
           <AuthScreen

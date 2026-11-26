@@ -13,7 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Brand, Button, shared } from "../../../components";
+import { Brand, shared } from "../../../components";
+import { MemberLoginCard } from "../../../components/auth/MemberLoginCard";
 import { matches } from "../../../data";
 
 const destinyOneLogo = require("../../../../assets/destinyone-logo.png");
@@ -235,7 +236,13 @@ export function SplashScreen() {
    WELCOME SCREEN
    ========================================================= */
 
-export function WelcomeScreen({ onNext }: { onNext: () => void }) {
+export function WelcomeScreen({
+  onNext,
+  onLogin,
+}: {
+  onNext: () => void;
+  onLogin: () => void;
+}) {
   return (
     <PremiumBackground>
       <SafeAreaView style={shared.safe}>
@@ -429,11 +436,7 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
                 </Text>
               </LinearGradient>
             </Pressable>
-            <Button
-              variant="ghost"
-              label="I already have an account"
-              onPress={onNext}
-            />
+            <MemberLoginCard onPress={onLogin} />
           </View>
         </View>
       </SafeAreaView>
