@@ -213,6 +213,90 @@ export function AuthScreen({
           title="Let’s make this yours."
           body="Start with your phone, email, or a trusted account."
         />
+        {onLogin && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Already a member? Log in"
+            onPress={onLogin}
+            style={({ pressed }) => ({
+              borderRadius: 22,
+              opacity: pressed ? 0.92 : 1,
+              transform: [{ scale: pressed ? 0.985 : 1 }],
+            })}
+          >
+            <LinearGradient
+              colors={["#390006", "#7C0015", "#2B1A1E"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 14,
+                padding: 16,
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: "rgba(244,209,112,0.55)",
+              }}
+            >
+              <View
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 23,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(244,209,112,0.16)",
+                  borderWidth: 1,
+                  borderColor: "#F4D170",
+                }}
+              >
+                <Ionicons name="key" size={21} color="#F4D170" />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text
+                  style={{
+                    color: "#F4D170",
+                    fontFamily: "Poppins_700Bold",
+                    fontSize: 10,
+                    letterSpacing: 1.4,
+                  }}
+                >
+                  ALREADY A MEMBER?
+                </Text>
+                <Text
+                  style={{
+                    color: "#FFFDFC",
+                    fontFamily: "Poppins_700Bold",
+                    fontSize: 17,
+                  }}
+                >
+                  Log in with your password
+                </Text>
+                <Text
+                  style={{
+                    color: "rgba(255,253,252,0.78)",
+                    fontFamily: "Poppins_400Regular",
+                    fontSize: 12.5,
+                  }}
+                >
+                  Username, email or phone
+                </Text>
+              </View>
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 17,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#F4D170",
+                }}
+              >
+                <Ionicons name="arrow-forward" size={18} color="#390006" />
+              </View>
+            </LinearGradient>
+          </Pressable>
+        )}
         <View style={authStyles.socialGrid}>
           {(["Apple", "Google", "LinkedIn"] as const).map((provider) => (
             <Pressable
@@ -465,17 +549,6 @@ export function AuthScreen({
         <Text style={[styles.legal, onboardingStyles.supportingText]}>
           By continuing, you agree to our Terms and Privacy Policy.
         </Text>
-        {onLogin && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onLogin}
-            style={{ alignSelf: "center", padding: 10 }}
-          >
-            <Text style={{ color: colors.wine, fontFamily: "Poppins_600SemiBold", fontSize: 14 }}>
-              Already have an account? Log in
-            </Text>
-          </Pressable>
-        )}
       </FormPage>
     </PremiumBackground>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type ReactNode } from "react";
+import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Image,
   Modal,
@@ -27,6 +27,7 @@ import { getCitiesOfState } from "@countrystatecity/countries-browser";
 
 import { Button, Field, SectionTitle, shared } from "../../../components";
 import { FormPage } from "../../../components/forms/FormScaffold";
+import { PhotoStoryViewer } from "../../../components/media/PhotoStoryViewer";
 import {
   MiniPremiumIcon,
   PremiumIcon,
@@ -842,6 +843,10 @@ export function ProfileSetupScreen({
   const { width } = useWindowDimensions();
   const [mediaError, setMediaError] = useState("");
   const [photoPickerIndex, setPhotoPickerIndex] = useState<number | null>(null);
+  // Photo to open in the story viewer after a long press (index among the filled photos).
+  const [storyStart, setStoryStart] = useState<number | null>(null);
+  // Set by a long press so the release does not also count as a tap that replaces the photo.
+  const longPressed = useRef(false);
   const [profilePicker, setProfilePicker] = useState<ProfilePickerKind | null>(
     null,
   );
@@ -992,7 +997,7 @@ export function ProfileSetupScreen({
                 Start with 3 photos that feel like you
               </Text>
               <Text style={[styles.helper, onboardingStyles.supportingText]}>
-                Portrait photos are cropped to 4:5. Tap any photo to replace it.
+                Portrait photos are cropped to 4:5. Tap a photo to replace it, or hold it to view all three.
               </Text>
             </View>
             <View style={profileSetupStyles.photoCount}>
@@ -1010,7 +1015,23 @@ export function ProfileSetupScreen({
                     ? `Replace photo ${index + 1}`
                     : `Add photo ${index + 1}`
                 }
-                onPress={() => choosePhoto(index)}
+                onPressIn={() => {
+                  longPressed.current = false;
+                }}
+                delayLongPress={350}
+                onLongPress={() => {
+                  if (!photos[index]) return;
+                  longPressed.current = true;
+                  const filled = photos.filter(Boolean);
+                  setStoryStart(Math.max(0, filled.indexOf(photos[index]!)));
+                }}
+                onPress={() => {
+                  if (longPressed.current) {
+                    longPressed.current = false;
+                    return;
+                  }
+                  choosePhoto(index);
+                }}
                 key={index}
                 style={[
                   styles.addPhoto,
@@ -1030,7 +1051,7 @@ export function ProfileSetupScreen({
                       style={profileSetupStyles.photoOverlay}
                     >
                       <Text style={profileSetupStyles.photoChange}>
-                        Tap to replace
+                        Hold to view · tap to change
                       </Text>
                     </LinearGradient>
                     <Pressable
@@ -1245,6 +1266,12 @@ export function ProfileSetupScreen({
           </LinearGradient>
         </Pressable>
 
+        <PhotoStoryViewer
+          photos={photos.filter(Boolean)}
+          startIndex={storyStart ?? 0}
+          visible={storyStart !== null}
+          onClose={() => setStoryStart(null)}
+        />
         <PhotoPickerSheet
           visible={photoPickerIndex !== null}
           slot={photoPickerIndex === null ? 0 : photoPickerIndex + 1}
