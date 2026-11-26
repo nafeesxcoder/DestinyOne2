@@ -372,14 +372,17 @@ const passwordVerifyCode = asyncHandler(async (req, res) => {
     code,
     purpose: RESET_PURPOSE,
   });
+  const user = await findByChannel(channel, normalized);
   res.json({
     ok: true,
+    // Accounts made with only a code have no username yet; the reset asks for one.
+    needsUsername: !user || !user.username,
     resetToken: signFlowToken({ purpose: "reset", channel, identifier: normalized }),
   });
 });
 
 const passwordReset = asyncHandler(async (req, res) => {
-  const { resetToken, password } = req.body;
+  const { resetToken, password, username } = req.body;
   if (!resetToken || !password) {
     throw new ApiError(400, "resetToken and password are required");
   }
@@ -394,7 +397,30 @@ const passwordReset = asyncHandler(async (req, res) => {
   }
   const user = await findByChannel(claims.channel, claims.identifier);
   if (!user) throw new ApiError(400, "This reset is no longer valid. Please start again.");
-  await userService.setPassword(user.id, await hashPassword(password));
+  const passwordHash = await hashPassword(password);
+  if (!user.username) {
+    // Code-only accounts need a username so they can log in with username and password.
+    if (!username || !isValidUsername(username)) {
+      throw new ApiError(
+        400,
+        "Choose a username: 3-20 letters, numbers, dots or underscores, with at least one letter.",
+      );
+    }
+    const handle = normalizeUsername(username);
+    if (await userService.findUserByUsername(handle)) {
+      throw new ApiError(409, "That username is taken. Try another one.");
+    }
+    try {
+      await userService.setCredentials(user.id, { username: handle, passwordHash });
+    } catch (error) {
+      if (error && error.code === "ER_DUP_ENTRY") {
+        throw new ApiError(409, "That username is taken. Try another one.");
+      }
+      throw error;
+    }
+  } else {
+    await userService.setPassword(user.id, passwordHash);
+  }
   // A new password signs out every other device.
   await sessionService.revokeAllSessions(user.id);
   res.json({ ok: true, message: "Password updated. Log in with your new password." });
