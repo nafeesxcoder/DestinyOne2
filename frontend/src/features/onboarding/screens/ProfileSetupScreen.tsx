@@ -1048,11 +1048,13 @@ export function ProfileSetupScreen({
                       {...(noSaveDataProps as any)}
                       style={[styles.fill, noSaveStyle as any]}
                     >
-                      <Image
-                        source={{ uri: photos[index] }}
-                        resizeMode="cover"
-                        style={styles.fill}
-                      />
+                      <View pointerEvents="none" style={styles.fill}>
+                        <Image
+                          source={{ uri: photos[index] }}
+                          resizeMode="cover"
+                          style={styles.fill}
+                        />
+                      </View>
                     </View>
                     <LinearGradient
                       pointerEvents="none"

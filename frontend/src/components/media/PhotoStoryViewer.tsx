@@ -149,7 +149,11 @@ export function PhotoStoryViewer({ photos, startIndex, visible, onClose }: Photo
         {...(Platform.OS === "web" ? {} : nativeSwipe.panHandlers)}
         accessibilityLabel={`Photo ${index + 1} of ${count}`}
       >
-        {!!current && <Image source={{ uri: current }} resizeMode="contain" style={styles.image} />}
+        {!!current && (
+          <View pointerEvents="none" style={styles.image}>
+            <Image source={{ uri: current }} resizeMode="contain" style={styles.image} />
+          </View>
+        )}
 
         <View style={styles.tapLayer}>
           <Pressable

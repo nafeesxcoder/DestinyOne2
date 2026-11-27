@@ -73,7 +73,7 @@ export function MemberLoginCard({ onPress }: { onPress: () => void }) {
               fontSize: 12.5,
             }}
           >
-            Username, email or phone
+            Your username and password
           </Text>
         </View>
         <View

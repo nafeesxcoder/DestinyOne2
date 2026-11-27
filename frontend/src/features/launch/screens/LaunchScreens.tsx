@@ -5,6 +5,7 @@ import {
   Image,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -246,6 +247,10 @@ export function WelcomeScreen({
   return (
     <PremiumBackground>
       <SafeAreaView style={shared.safe}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 28 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View className="pt-2 flex-row items-center">
           <Brand small />
           <View className="ml-auto flex-row items-center gap-1.5 px-2.5 py-[7px] rounded-[20px] bg-white/[.55] border border-[rgba(229,9,47,.28)]">
@@ -439,6 +444,7 @@ export function WelcomeScreen({
             <MemberLoginCard onPress={onLogin} />
           </View>
         </View>
+      </ScrollView>
       </SafeAreaView>
     </PremiumBackground>
   );
